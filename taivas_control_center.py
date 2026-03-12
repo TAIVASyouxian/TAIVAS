@@ -16,12 +16,13 @@ st.set_page_config(page_title="TAIVAS Energy Control Center", layout="wide")
 # =========================
 # Language
 # =========================
-available_languages = [k for k in ["English", "中文"] if k in translations]
+preferred_order = ["English", "中文", "Deutsch", "Suomi", "Schweizerdeutsch", "Íslenska"]
+available_languages = [lang for lang in preferred_order if lang in translations]
 if not available_languages:
     available_languages = list(translations.keys())
 
 language = st.sidebar.selectbox("Language / 語言", available_languages)
-t = translations.get(language, translations["English"])
+t = translations.get(language, translations.get("English", {}))
 
 # =========================
 # Font
@@ -145,6 +146,210 @@ UI = {
         "sunny": "晴天",
         "cloudy": "陰天",
     },
+    "Deutsch": {
+        "info1": "Dies ist das Hauptkontrollzentrum von TAIVAS.",
+        "info2": "Es kombiniert Länderlogik, Stadtprofile, Wettersimulation und Energie-Dashboard-Steuerung.",
+        "country_logic": "Länderlogik",
+        "city_profile": "Stadtprofil",
+        "current_inputs": "Aktuelle Eingaben",
+        "weather_mode": "Wettermodus",
+        "live_weather": "Live-Wetter",
+        "override_mode": "Szenario-Override",
+        "scenario": "Extremszenario",
+        "normal": "Normal",
+        "heat_wave": "Hitzewelle",
+        "storm": "Sturm",
+        "cold_wave": "Kältewelle",
+        "blizzard": "Schneesturm",
+        "typhoon": "Taifun",
+        "weather_status": "Wetterstatus",
+        "temperature": "Temperatur",
+        "wind_speed": "Windgeschwindigkeit",
+        "solar_radiation": "Solarstrahlung",
+        "precipitation": "Niederschlag",
+        "humidity": "Luftfeuchtigkeit",
+        "system_performance": "Systemleistung",
+        "energy_shortfall": "Energieengpass",
+        "renewable_utilization": "Nutzung erneuerbarer Energien",
+        "system_efficiency": "Systemeffizienz",
+        "grid_dependency": "Netzabhängigkeit",
+        "energy_demand_supply": "Energienachfrage vs. Versorgung",
+        "battery_storage_level": "Batteriespeicherstand",
+        "grid_stability": "Netzstabilität",
+        "energy_mix": "Energiemix",
+        "ai_recommendation": "TAIVAS Empfehlung",
+        "demand": "Nachfrage",
+        "renewable": "Erneuerbar",
+        "final_supply": "Endversorgung",
+        "solar_label": "Solar",
+        "wind_label": "Wind",
+        "geothermal_label": "Geothermie",
+        "hydro_label": "Wasserkraft",
+        "hour": "Stunde",
+        "energy": "Energie",
+        "stored_energy": "Gespeicherte Energie",
+        "supply_minus_demand": "Versorgung - Nachfrage",
+        "latitude": "Breitengrad",
+        "longitude": "Längengrad",
+        "country_model": "Ländermodell",
+        "balanced": "Die aktuelle Konfiguration ist relativ ausgewogen.",
+        "detected": "Systeminstabilität erkannt. Empfohlene Verbesserungen:",
+        "sunny": "Sonnig",
+        "cloudy": "Bewölkt",
+    },
+    "Suomi": {
+        "info1": "Tämä on TAIVASin pääohjauskeskus.",
+        "info2": "Se yhdistää maalogiikan, kaupunkiprofiilit, sääsimulaation ja energiadashboard-ohjauksen.",
+        "country_logic": "Maalogiikka",
+        "city_profile": "Kaupunkiprofiili",
+        "current_inputs": "Nykyiset syötteet",
+        "weather_mode": "Säätila",
+        "live_weather": "Live-sää",
+        "override_mode": "Skenaarion ohitus",
+        "scenario": "Ääriskenaario",
+        "normal": "Normaali",
+        "heat_wave": "Helleaalto",
+        "storm": "Myrsky",
+        "cold_wave": "Kylmä aalto",
+        "blizzard": "Lumimyrsky",
+        "typhoon": "Taifuuni",
+        "weather_status": "Säätila",
+        "temperature": "Lämpötila",
+        "wind_speed": "Tuulen nopeus",
+        "solar_radiation": "Auringonsäteily",
+        "precipitation": "Sademäärä",
+        "humidity": "Kosteus",
+        "system_performance": "Järjestelmän suorituskyky",
+        "energy_shortfall": "Energiavaje",
+        "renewable_utilization": "Uusiutuvan energian käyttöaste",
+        "system_efficiency": "Järjestelmän tehokkuus",
+        "grid_dependency": "Verkkoriippuvuus",
+        "energy_demand_supply": "Energian kysyntä vs tarjonta",
+        "battery_storage_level": "Akun varaustaso",
+        "grid_stability": "Verkon vakaus",
+        "energy_mix": "Energiayhdistelmä",
+        "ai_recommendation": "TAIVAS-suositus",
+        "demand": "Kysyntä",
+        "renewable": "Uusiutuva",
+        "final_supply": "Lopullinen tarjonta",
+        "solar_label": "Aurinko",
+        "wind_label": "Tuuli",
+        "geothermal_label": "Geoterminen",
+        "hydro_label": "Vesivoima",
+        "hour": "Tunti",
+        "energy": "Energia",
+        "stored_energy": "Varastoitu energia",
+        "supply_minus_demand": "Tarjonta - kysyntä",
+        "latitude": "Leveysaste",
+        "longitude": "Pituusaste",
+        "country_model": "Maamalli",
+        "balanced": "Nykyinen kokoonpano on melko tasapainoinen.",
+        "detected": "Järjestelmän epävakautta havaittu. Suositellut parannukset:",
+        "sunny": "Aurinkoinen",
+        "cloudy": "Pilvinen",
+    },
+    "Schweizerdeutsch": {
+        "info1": "Das isch s Hauptkontrollzentrum vo TAIVAS.",
+        "info2": "Es verbindet Länderlogik, Stadtprofile, Wättersimulation und Energie-Dashboard-Steuerig.",
+        "country_logic": "Länderlogik",
+        "city_profile": "Stadtprofil",
+        "current_inputs": "Aktuelli Iigabe",
+        "weather_mode": "Wättermodus",
+        "live_weather": "Live-Wätter",
+        "override_mode": "Szenario-Override",
+        "scenario": "Extremszenario",
+        "normal": "Normal",
+        "heat_wave": "Hitzewälle",
+        "storm": "Sturm",
+        "cold_wave": "Chältiwälle",
+        "blizzard": "Schneesturm",
+        "typhoon": "Taifun",
+        "weather_status": "Wätterstatus",
+        "temperature": "Temperatur",
+        "wind_speed": "Windgschwindigkeit",
+        "solar_radiation": "Solarstrahlig",
+        "precipitation": "Niederschlag",
+        "humidity": "Luftfeuchtigkeit",
+        "system_performance": "Systemleistig",
+        "energy_shortfall": "Energie-Defizit",
+        "renewable_utilization": "Nutzig vo erneuerbare Energie",
+        "system_efficiency": "System-Effizienz",
+        "grid_dependency": "Netz-Abhängigkeit",
+        "energy_demand_supply": "Energiebedarf vs Versorgig",
+        "battery_storage_level": "Batterie-Speicherstand",
+        "grid_stability": "Netzstabilität",
+        "energy_mix": "Energiemix",
+        "ai_recommendation": "TAIVAS-Empfählig",
+        "demand": "Bedarf",
+        "renewable": "Erneuerbar",
+        "final_supply": "Finali Versorgig",
+        "solar_label": "Solar",
+        "wind_label": "Wind",
+        "geothermal_label": "Geothermie",
+        "hydro_label": "Wasserkraft",
+        "hour": "Stund",
+        "energy": "Energie",
+        "stored_energy": "Gspeichereti Energie",
+        "supply_minus_demand": "Versorgig - Bedarf",
+        "latitude": "Breitegrad",
+        "longitude": "Längigrad",
+        "country_model": "Ländermodell",
+        "balanced": "D aktuelli Konfiguration isch relativ usgwoge.",
+        "detected": "Systeminstabilität erkannt. Vorgschlagni Verbessrige:",
+        "sunny": "Sunnig",
+        "cloudy": "Bewölkt",
+    },
+    "Íslenska": {
+        "info1": "Þetta er aðalstjórnstöð TAIVAS.",
+        "info2": "Hún sameinar landslógík, borgarsnið, veðurhermun og orkustjórnborð.",
+        "country_logic": "Landslógík",
+        "city_profile": "Borgarsnið",
+        "current_inputs": "Núverandi inntök",
+        "weather_mode": "Veðurhamur",
+        "live_weather": "Rauntímaveður",
+        "override_mode": "Yfirskrifa sviðsmynd",
+        "scenario": "Öfgasviðsmynd",
+        "normal": "Venjulegt",
+        "heat_wave": "Hitabylgja",
+        "storm": "Stormur",
+        "cold_wave": "Kuldabylgja",
+        "blizzard": "Snjóbylur",
+        "typhoon": "Fellibylur",
+        "weather_status": "Veðurstaða",
+        "temperature": "Hitastig",
+        "wind_speed": "Vindhraði",
+        "solar_radiation": "Sólgeislun",
+        "precipitation": "Úrkoma",
+        "humidity": "Raki",
+        "system_performance": "Afköst kerfis",
+        "energy_shortfall": "Orkuskortur",
+        "renewable_utilization": "Nýting endurnýjanlegrar orku",
+        "system_efficiency": "Kerfisnýtni",
+        "grid_dependency": "Háð rafkerfi",
+        "energy_demand_supply": "Orkuþörf vs framboð",
+        "battery_storage_level": "Staða rafhlöðugeymslu",
+        "grid_stability": "Stöðugleiki rafkerfis",
+        "energy_mix": "Orkublanda",
+        "ai_recommendation": "TAIVAS tillaga",
+        "demand": "Eftirspurn",
+        "renewable": "Endurnýjanlegt",
+        "final_supply": "Lokaframboð",
+        "solar_label": "Sól",
+        "wind_label": "Vindur",
+        "geothermal_label": "Jarðhiti",
+        "hydro_label": "Vatnsafl",
+        "hour": "Klst",
+        "energy": "Orka",
+        "stored_energy": "Geymd orka",
+        "supply_minus_demand": "Framboð - eftirspurn",
+        "latitude": "Breiddargráða",
+        "longitude": "Lengdargráða",
+        "country_model": "Landsmódel",
+        "balanced": "Núverandi uppsetning er nokkuð vel í jafnvægi.",
+        "detected": "Óstöðugleiki í kerfi greindur. Tillögur að úrbótum:",
+        "sunny": "Sólríkt",
+        "cloudy": "Skýjað",
+    },
 }
 ui = UI.get(language, UI["English"])
 
@@ -167,17 +372,14 @@ def fetch_weather(lat: float, lon: float):
     with urllib.request.urlopen(url, timeout=20) as response:
         return json.loads(response.read().decode("utf-8"))
 
-
 def safe_country_desc(key: str) -> str:
     return t.get("country_descriptions", {}).get(
         key,
         country_logic.get(key, {}).get("description", f"{key} energy model"),
     )
 
-
 def get_bias(key: str, field: str, default: float) -> float:
     return float(country_logic.get(key, {}).get(field, default))
-
 
 # =========================
 # Style
@@ -220,7 +422,10 @@ country_labels = t.get("countries", {})
 city_labels = t.get("cities", {})
 
 country_display_map = {country_labels.get(k, k): k for k in country_keys}
-country_display = st.sidebar.selectbox(t.get("country", "Country"), list(country_display_map.keys()))
+country_display = st.sidebar.selectbox(
+    t.get("country", "Country"),
+    list(country_display_map.keys())
+)
 country_key = country_display_map[country_display]
 
 available_cities = [
@@ -228,7 +433,10 @@ available_cities = [
     if city_data.get("country") == country_key
 ]
 city_display_map = {city_labels.get(k, k): k for k in available_cities}
-city_display = st.sidebar.selectbox(t.get("city", "City"), list(city_display_map.keys()))
+city_display = st.sidebar.selectbox(
+    t.get("city", "City"),
+    list(city_display_map.keys())
+)
 city_key = city_display_map[city_display]
 city_data = city_profiles[city_key]
 
@@ -252,7 +460,7 @@ scenario = st.sidebar.selectbox(
 )
 
 # =========================
-# Country / city info
+# Country / City info
 # =========================
 st.subheader(f"{ui['country_logic']}: {country_display}")
 st.write(safe_country_desc(country_key))
@@ -356,16 +564,16 @@ desc = safe_country_desc(country_key).lower()
 heat_sens = 0.25
 cool_sens = 0.25
 
-if any(x in desc for x in ["cooling", "高濕", "島嶼"]):
+if any(x in desc for x in ["cooling", "高濕", "島嶼", "kühl", "chüel", "jääh", "kæli"]):
     cool_sens = 0.85
     heat_sens = 0.20
-elif any(x in desc for x in ["cold", "nordic", "寒冷", "北歐", "heating", "冬季"]):
+elif any(x in desc for x in ["cold", "nordic", "寒冷", "北歐", "heating", "冬季", "heiz", "lämm", "hitun"]):
     heat_sens = 1.00
     cool_sens = 0.08
-elif any(x in desc for x in ["geothermal", "地熱"]):
+elif any(x in desc for x in ["geothermal", "地熱", "geothermie", "jarðhiti"]):
     heat_sens = 0.95
     cool_sens = 0.02
-elif any(x in desc for x in ["alpine", "阿爾卑斯"]):
+elif any(x in desc for x in ["alpine", "阿爾卑斯", "alp", "alpa"]):
     heat_sens = 0.75
     cool_sens = 0.15
 
@@ -442,7 +650,7 @@ system_efficiency = max(0, 100 - (shortfall / demand.sum() * 100))
 grid_dependency = (grid_support_used.sum() / demand.sum()) * 100
 
 # =========================
-# Current inputs
+# Current Inputs
 # =========================
 st.subheader(ui["current_inputs"])
 st.write(f"{t.get('population', 'Population')}: {population}")
