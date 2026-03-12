@@ -1,0 +1,51 @@
+country_logic = {
+    "taiwan": {
+        "description": "Cooling-heavy island model with strong storage need.",
+        "solar_bias": 1.05,
+        "wind_bias": 1.00,
+        "geo_bias": 0.35,
+        "hydro_bias": 0.50,
+    },
+    "finland": {
+        "description": "Heating-heavy Nordic model with strong winter demand.",
+        "solar_bias": 0.75,
+        "wind_bias": 1.10,
+        "geo_bias": 0.25,
+        "hydro_bias": 0.70,
+    },
+    "iceland": {
+        "description": "Geothermal-hydro dominant model.",
+        "solar_bias": 0.45,
+        "wind_bias": 0.90,
+        "geo_bias": 1.00,
+        "hydro_bias": 0.90,
+    },
+    "norway": {
+        "description": "Hydropower-dominant Nordic mountain model.",
+        "solar_bias": 0.70,
+        "wind_bias": 1.00,
+        "geo_bias": 0.20,
+        "hydro_bias": 1.00,
+    },
+    "denmark": {
+        "description": "Wind-dominant flatland model.",
+        "solar_bias": 0.85,
+        "wind_bias": 1.25,
+        "geo_bias": 0.10,
+        "hydro_bias": 0.20,
+    },
+    "germany": {
+        "description": "Industrial mixed-load model with solar-wind transition.",
+        "solar_bias": 1.00,
+        "wind_bias": 1.05,
+        "geo_bias": 0.15,
+        "hydro_bias": 0.45,
+    },
+    "switzerland": {
+        "description": "Alpine hydropower balancing model.",
+        "solar_bias": 0.85,
+        "wind_bias": 0.80,
+        "geo_bias": 0.10,
+        "hydro_bias": 1.00,
+    },
+}
