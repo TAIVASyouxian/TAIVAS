@@ -46,7 +46,7 @@ else:
 UI = {
     "English": {
         "info1": "This app is the main control center for TAIVAS.",
-        "info2": "It combines country logic, city profiles, weather simulation, and energy dashboard controls.",
+        "info2": "It combines country logic, city profiles, weather simulation, and energy resilience dashboard controls.",
         "country_logic": "Country Logic",
         "city_profile": "City Profile",
         "current_inputs": "Current Inputs",
@@ -71,11 +71,18 @@ UI = {
         "renewable_utilization": "Renewable Utilization",
         "system_efficiency": "System Efficiency",
         "grid_dependency": "Grid Dependency",
+        "backup_hours": "Backup Hours",
+        "repair_eta": "Repair ETA",
+        "shortfall_severity": "Shortfall Severity",
+        "low": "Low",
+        "moderate": "Moderate",
+        "high": "High",
         "energy_demand_supply": "Energy Demand vs Supply",
         "battery_storage_level": "Battery Storage Level",
         "grid_stability": "Grid Stability",
         "energy_mix": "Energy Mix Breakdown",
         "ai_recommendation": "TAIVAS Recommendation",
+        "resilience_summary": "Energy Resilience Summary",
         "demand": "Demand",
         "renewable": "Renewable",
         "final_supply": "Final Supply",
@@ -94,10 +101,14 @@ UI = {
         "detected": "System instability detected. Suggested improvements:",
         "sunny": "Sunny",
         "cloudy": "Cloudy",
+        "stable_status": "Stable",
+        "stressed_status": "Stressed",
+        "critical_status": "Critical",
+        "status_label": "System Status",
     },
     "中文": {
         "info1": "這是 TAIVAS 的主要能源控制中心。",
-        "info2": "它整合了國家邏輯、城市設定、天氣模擬與能源控制台功能。",
+        "info2": "它整合了國家邏輯、城市設定、天氣模擬與能源韌性控制台功能。",
         "country_logic": "國家邏輯",
         "city_profile": "城市設定",
         "current_inputs": "目前輸入參數",
@@ -122,11 +133,18 @@ UI = {
         "renewable_utilization": "再生能源利用率",
         "system_efficiency": "系統效率",
         "grid_dependency": "電網依賴度",
+        "backup_hours": "備援時數",
+        "repair_eta": "修復時間",
+        "shortfall_severity": "缺口嚴重度",
+        "low": "低",
+        "moderate": "中",
+        "high": "高",
         "energy_demand_supply": "能源需求與供給",
         "battery_storage_level": "電池儲能變化",
         "grid_stability": "電網穩定度",
         "energy_mix": "能源組成分析",
         "ai_recommendation": "TAIVAS 建議",
+        "resilience_summary": "能源韌性摘要",
         "demand": "需求",
         "renewable": "再生能源",
         "final_supply": "最終供給",
@@ -145,10 +163,14 @@ UI = {
         "detected": "偵測到系統不穩定，建議可考慮以下調整：",
         "sunny": "晴天",
         "cloudy": "陰天",
+        "stable_status": "穩定",
+        "stressed_status": "緊繃",
+        "critical_status": "危急",
+        "status_label": "系統狀態",
     },
     "Deutsch": {
         "info1": "Dies ist das Hauptkontrollzentrum von TAIVAS.",
-        "info2": "Es kombiniert Länderlogik, Stadtprofile, Wettersimulation und Energie-Dashboard-Steuerung.",
+        "info2": "Es kombiniert Länderlogik, Stadtprofile, Wettersimulation und Energie-Resilienz-Dashboard-Steuerung.",
         "country_logic": "Länderlogik",
         "city_profile": "Stadtprofil",
         "current_inputs": "Aktuelle Eingaben",
@@ -173,11 +195,18 @@ UI = {
         "renewable_utilization": "Nutzung erneuerbarer Energien",
         "system_efficiency": "Systemeffizienz",
         "grid_dependency": "Netzabhängigkeit",
+        "backup_hours": "Backup-Stunden",
+        "repair_eta": "Reparaturzeit",
+        "shortfall_severity": "Schweregrad des Defizits",
+        "low": "Niedrig",
+        "moderate": "Mittel",
+        "high": "Hoch",
         "energy_demand_supply": "Energienachfrage vs. Versorgung",
         "battery_storage_level": "Batteriespeicherstand",
         "grid_stability": "Netzstabilität",
         "energy_mix": "Energiemix",
         "ai_recommendation": "TAIVAS Empfehlung",
+        "resilience_summary": "Zusammenfassung der Energie-Resilienz",
         "demand": "Nachfrage",
         "renewable": "Erneuerbar",
         "final_supply": "Endversorgung",
@@ -196,10 +225,14 @@ UI = {
         "detected": "Systeminstabilität erkannt. Empfohlene Verbesserungen:",
         "sunny": "Sonnig",
         "cloudy": "Bewölkt",
+        "stable_status": "Stabil",
+        "stressed_status": "Belastet",
+        "critical_status": "Kritisch",
+        "status_label": "Systemstatus",
     },
     "Suomi": {
         "info1": "Tämä on TAIVASin pääohjauskeskus.",
-        "info2": "Se yhdistää maalogiikan, kaupunkiprofiilit, sääsimulaation ja energiadashboard-ohjauksen.",
+        "info2": "Se yhdistää maalogiikan, kaupunkiprofiilit, sääsimulaation ja energiaresilienssin ohjauspaneelin.",
         "country_logic": "Maalogiikka",
         "city_profile": "Kaupunkiprofiili",
         "current_inputs": "Nykyiset syötteet",
@@ -224,11 +257,18 @@ UI = {
         "renewable_utilization": "Uusiutuvan energian käyttöaste",
         "system_efficiency": "Järjestelmän tehokkuus",
         "grid_dependency": "Verkkoriippuvuus",
+        "backup_hours": "Vara-aikatunnit",
+        "repair_eta": "Korjausaika",
+        "shortfall_severity": "Vajeen vakavuus",
+        "low": "Matala",
+        "moderate": "Keskitaso",
+        "high": "Korkea",
         "energy_demand_supply": "Energian kysyntä vs tarjonta",
         "battery_storage_level": "Akun varaustaso",
         "grid_stability": "Verkon vakaus",
         "energy_mix": "Energiayhdistelmä",
         "ai_recommendation": "TAIVAS-suositus",
+        "resilience_summary": "Energiaresilienssin yhteenveto",
         "demand": "Kysyntä",
         "renewable": "Uusiutuva",
         "final_supply": "Lopullinen tarjonta",
@@ -247,10 +287,14 @@ UI = {
         "detected": "Järjestelmän epävakautta havaittu. Suositellut parannukset:",
         "sunny": "Aurinkoinen",
         "cloudy": "Pilvinen",
+        "stable_status": "Vakaa",
+        "stressed_status": "Rasitettu",
+        "critical_status": "Kriittinen",
+        "status_label": "Järjestelmän tila",
     },
     "Schweizerdeutsch": {
         "info1": "Das isch s Hauptkontrollzentrum vo TAIVAS.",
-        "info2": "Es verbindet Länderlogik, Stadtprofile, Wättersimulation und Energie-Dashboard-Steuerig.",
+        "info2": "Es verbindet Länderlogik, Stadtprofile, Wättersimulation und Energie-Resilienz-Dashboard-Steuerig.",
         "country_logic": "Länderlogik",
         "city_profile": "Stadtprofil",
         "current_inputs": "Aktuelli Iigabe",
@@ -275,11 +319,18 @@ UI = {
         "renewable_utilization": "Nutzig vo erneuerbare Energie",
         "system_efficiency": "System-Effizienz",
         "grid_dependency": "Netz-Abhängigkeit",
+        "backup_hours": "Backup-Stunde",
+        "repair_eta": "Reparaturziit",
+        "shortfall_severity": "Defizit-Schweregrad",
+        "low": "Niedrig",
+        "moderate": "Mittel",
+        "high": "Hoch",
         "energy_demand_supply": "Energiebedarf vs Versorgig",
         "battery_storage_level": "Batterie-Speicherstand",
         "grid_stability": "Netzstabilität",
         "energy_mix": "Energiemix",
         "ai_recommendation": "TAIVAS-Empfählig",
+        "resilience_summary": "Energie-Resilienz-Zämefassig",
         "demand": "Bedarf",
         "renewable": "Erneuerbar",
         "final_supply": "Finali Versorgig",
@@ -298,10 +349,14 @@ UI = {
         "detected": "Systeminstabilität erkannt. Vorgschlagni Verbessrige:",
         "sunny": "Sunnig",
         "cloudy": "Bewölkt",
+        "stable_status": "Stabil",
+        "stressed_status": "Aagspannt",
+        "critical_status": "Kritisch",
+        "status_label": "Systemstatus",
     },
     "Íslenska": {
         "info1": "Þetta er aðalstjórnstöð TAIVAS.",
-        "info2": "Hún sameinar landslógík, borgarsnið, veðurhermun og orkustjórnborð.",
+        "info2": "Hún sameinar landslógík, borgarsnið, veðurhermun og stjórnborð fyrir orkuþol.",
         "country_logic": "Landslógík",
         "city_profile": "Borgarsnið",
         "current_inputs": "Núverandi inntök",
@@ -326,11 +381,18 @@ UI = {
         "renewable_utilization": "Nýting endurnýjanlegrar orku",
         "system_efficiency": "Kerfisnýtni",
         "grid_dependency": "Háð rafkerfi",
+        "backup_hours": "Varaklukkustundir",
+        "repair_eta": "Viðgerðartími",
+        "shortfall_severity": "Alvarleiki skorts",
+        "low": "Lágur",
+        "moderate": "Miðlungs",
+        "high": "Mikill",
         "energy_demand_supply": "Orkuþörf vs framboð",
         "battery_storage_level": "Staða rafhlöðugeymslu",
         "grid_stability": "Stöðugleiki rafkerfis",
         "energy_mix": "Orkublanda",
         "ai_recommendation": "TAIVAS tillaga",
+        "resilience_summary": "Samantekt orkuþols",
         "demand": "Eftirspurn",
         "renewable": "Endurnýjanlegt",
         "final_supply": "Lokaframboð",
@@ -349,13 +411,16 @@ UI = {
         "detected": "Óstöðugleiki í kerfi greindur. Tillögur að úrbótum:",
         "sunny": "Sólríkt",
         "cloudy": "Skýjað",
+        "stable_status": "Stöðugt",
+        "stressed_status": "Undir álagi",
+        "critical_status": "Alvarlegt",
+        "status_label": "Staða kerfis",
     },
 }
+
 ui = UI.get(language, UI["English"])
 
-# =========================
-# Helpers
-# =========================
+
 def fetch_weather(lat: float, lon: float):
     url = (
         "https://api.open-meteo.com/v1/forecast?"
@@ -372,18 +437,17 @@ def fetch_weather(lat: float, lon: float):
     with urllib.request.urlopen(url, timeout=20) as response:
         return json.loads(response.read().decode("utf-8"))
 
+
 def safe_country_desc(key: str) -> str:
     return t.get("country_descriptions", {}).get(
         key,
         country_logic.get(key, {}).get("description", f"{key} energy model"),
     )
 
+
 def get_bias(key: str, field: str, default: float) -> float:
     return float(country_logic.get(key, {}).get(field, default))
 
-# =========================
-# Style
-# =========================
 st.markdown(
     """
     <style>
@@ -399,9 +463,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# =========================
-# Header
-# =========================
 title_text = t.get("title", "TAIVAS Energy Control Center")
 subtitle_text = t.get("subtitle", "AI-driven energy resilience and recovery dashboard")
 
@@ -414,9 +475,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# =========================
-# Country / City
-# =========================
 country_keys = list(country_logic.keys())
 country_labels = t.get("countries", {})
 city_labels = t.get("cities", {})
@@ -440,9 +498,6 @@ city_display = st.sidebar.selectbox(
 city_key = city_display_map[city_display]
 city_data = city_profiles[city_key]
 
-# =========================
-# Inputs
-# =========================
 population = st.sidebar.slider(t.get("population", "Population"), 10000, 5000000, 500000, step=50000)
 solar_capacity = st.sidebar.slider(t.get("solar", "Solar Capacity (MW)"), 0, 500, 120, step=10)
 wind_capacity = st.sidebar.slider(t.get("wind", "Wind Capacity (MW)"), 0, 500, 80, step=10)
@@ -459,9 +514,6 @@ scenario = st.sidebar.selectbox(
     [ui["normal"], ui["heat_wave"], ui["storm"], ui["cold_wave"], ui["blizzard"], ui["typhoon"]]
 )
 
-# =========================
-# Country / City info
-# =========================
 st.subheader(f"{ui['country_logic']}: {country_display}")
 st.write(safe_country_desc(country_key))
 
@@ -470,9 +522,6 @@ st.write(f"{ui['latitude']}: {city_data.get('lat', '-')}")
 st.write(f"{ui['longitude']}: {city_data.get('lon', '-')}")
 st.write(f"{ui['country_model']}: {city_data.get('country', '-')}")
 
-# =========================
-# Weather
-# =========================
 try:
     weather_data = fetch_weather(city_data["lat"], city_data["lon"])
     h = weather_data["hourly"]
@@ -552,9 +601,6 @@ w3.metric(ui["solar_radiation"], f"{avg_rad:.0f} W/m²")
 w4.metric(ui["precipitation"], f"{total_precip:.1f} mm")
 w5.metric(ui["humidity"], f"{avg_humidity:.0f}%")
 
-# =========================
-# Simulation
-# =========================
 solar_bias = get_bias(country_key, "solar_bias", 1.0)
 wind_bias = get_bias(country_key, "wind_bias", 1.0)
 geo_bias = get_bias(country_key, "geo_bias", 0.3)
@@ -646,12 +692,39 @@ grid_support_used = np.array(grid_support_used)
 
 shortfall = np.maximum(demand - final_supply, 0).sum()
 renewable_ratio = min((renewable_supply.sum() / demand.sum()) * 100, 100)
-system_efficiency = max(0, 100 - (shortfall / demand.sum() * 100))
-grid_dependency = (grid_support_used.sum() / demand.sum()) * 100
+system_efficiency = max(0.0, 100 - (shortfall / max(demand.sum(), 1) * 100))
+grid_dependency = (grid_support_used.sum() / max(demand.sum(), 1)) * 100
 
-# =========================
-# Current Inputs
-# =========================
+hourly_deficit = np.maximum(demand - renewable_supply, 0)
+avg_hourly_deficit = max(1.0, float(np.mean(hourly_deficit)))
+backup_support_hours = battery_capacity / avg_hourly_deficit
+
+base_repair_hours_map = {
+    ui["normal"]: 2.0,
+    ui["heat_wave"]: 4.0,
+    ui["storm"]: 8.0,
+    ui["cold_wave"]: 6.0,
+    ui["blizzard"]: 12.0,
+    ui["typhoon"]: 16.0,
+}
+repair_eta = base_repair_hours_map.get(scenario, 6.0)
+repair_eta = repair_eta * (1 + min(shortfall / max(demand.sum(), 1), 0.5))
+
+shortfall_ratio = shortfall / max(demand.sum(), 1)
+if shortfall_ratio <= 0.05:
+    shortfall_severity = ui["low"]
+elif shortfall_ratio <= 0.15:
+    shortfall_severity = ui["moderate"]
+else:
+    shortfall_severity = ui["high"]
+
+if system_efficiency >= 90 and backup_support_hours >= 10:
+    resilience_status = ui["stable_status"]
+elif system_efficiency >= 70 and backup_support_hours >= 4:
+    resilience_status = ui["stressed_status"]
+else:
+    resilience_status = ui["critical_status"]
+
 st.subheader(ui["current_inputs"])
 st.write(f"{t.get('population', 'Population')}: {population}")
 st.write(f"{t.get('solar', 'Solar Capacity (MW)')}: {solar_capacity}")
@@ -660,24 +733,34 @@ st.write(f"{t.get('geothermal', 'Geothermal Capacity (MW)')}: {geothermal_capaci
 st.write(f"{t.get('hydro', 'Hydropower Capacity (MW)')}: {hydro_capacity}")
 st.write(f"{t.get('battery', 'Battery Storage (MWh)')}: {battery_capacity}")
 
-# =========================
-# KPI
-# =========================
 st.subheader(ui["system_performance"])
-k1, k2, k3, k4 = st.columns(4)
+k1, k2, k3, k4, k5, k6 = st.columns(6)
 k1.metric(ui["energy_shortfall"], f"{shortfall:.1f} MWh")
 k2.metric(ui["renewable_utilization"], f"{renewable_ratio:.1f}%")
 k3.metric(ui["system_efficiency"], f"{system_efficiency:.1f}%")
 k4.metric(ui["grid_dependency"], f"{grid_dependency:.1f}%")
+k5.metric(ui["backup_hours"], f"{backup_support_hours:.1f} h")
+k6.metric(ui["repair_eta"], f"{repair_eta:.1f} h")
 
-# =========================
-# Charts
-# =========================
+st.subheader(ui["resilience_summary"])
+c1, c2 = st.columns(2)
+with c1:
+    st.write(f"**{ui['shortfall_severity']}**: {shortfall_severity}")
+with c2:
+    st.write(f"**{ui['status_label']}**: {resilience_status}")
+
+if resilience_status == ui["stable_status"]:
+    st.success(resilience_status)
+elif resilience_status == ui["stressed_status"]:
+    st.warning(resilience_status)
+else:
+    st.error(resilience_status)
+
 plt.style.use("dark_background")
 
-c1, c2 = st.columns(2)
+c3, c4 = st.columns(2)
 
-with c1:
+with c3:
     fig1, ax1 = plt.subplots(figsize=(8, 4))
     fig1.patch.set_facecolor("#0B1220")
     ax1.set_facecolor("#0B1220")
@@ -691,7 +774,7 @@ with c1:
     ax1.legend()
     st.pyplot(fig1)
 
-with c2:
+with c4:
     fig2, ax2 = plt.subplots(figsize=(8, 4))
     fig2.patch.set_facecolor("#0B1220")
     ax2.set_facecolor("#0B1220")
@@ -731,9 +814,6 @@ mix_colors = ["#FACC15", "#38BDF8", "#F97316", "#3B82F6"]
 ax4.pie(mix_values, labels=mix_labels, autopct="%1.1f%%", colors=mix_colors)
 st.pyplot(fig4)
 
-# =========================
-# Recommendation
-# =========================
 st.subheader(ui["ai_recommendation"])
 
 if shortfall < 50:
