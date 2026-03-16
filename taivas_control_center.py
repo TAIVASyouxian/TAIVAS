@@ -1,835 +1,703 @@
-import json
-import urllib.parse
-import urllib.request
+from __future__ import annotations
 
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np
+from dataclasses import asdict, dataclass
+from typing import Dict, List, Tuple
+
+import pandas as pd
 import streamlit as st
 
-from modules.translations import translations
-from modules.country_logic import country_logic
-from modules.city_profiles import city_profiles
+# =========================
+# TAIVAS V1 CORE CONSTANTS
+# =========================
+SCENARIOS = [
+    "normal",
+    "heat_wave",
+    "storm",
+    "cold_wave",
+    "blizzard",
+    "typhoon",
+]
 
-st.set_page_config(page_title="TAIVAS Energy Control Center", layout="wide")
-
-# =========================
-# Language
-# =========================
-preferred_order = ["English", "中文", "Deutsch", "Suomi", "Schweizerdeutsch", "Íslenska"]
-available_languages = [lang for lang in preferred_order if lang in translations]
-if not available_languages:
-    available_languages = list(translations.keys())
-
-language = st.sidebar.selectbox("Language / 語言", available_languages)
-t = translations.get(language, translations.get("English", {}))
-
-# =========================
-# Font
-# =========================
-matplotlib.rcParams["axes.unicode_minus"] = False
-if language == "中文":
-    matplotlib.rcParams["font.sans-serif"] = [
-        "Microsoft JhengHei",
-        "PingFang TC",
-        "Noto Sans CJK TC",
-        "SimHei",
-        "Arial Unicode MS",
-        "DejaVu Sans",
-    ]
-else:
-    matplotlib.rcParams["font.sans-serif"] = ["DejaVu Sans"]
-
-# =========================
-# UI text
-# =========================
-UI = {
+LANG = {
     "English": {
-        "info1": "This app is the main control center for TAIVAS.",
-        "info2": "It combines country logic, city profiles, weather simulation, and energy resilience dashboard controls.",
-        "country_logic": "Country Logic",
+        "app_title": "TAIVAS Energy Control Center",
+        "app_subtitle": "AI-driven energy resilience and recovery dashboard",
+        "sidebar": "Control Panel",
+        "language": "Language / 語言",
+        "country": "Country",
+        "city": "City",
+        "scenario": "Scenario",
+        "population": "Population",
+        "weather": "Weather Inputs",
+        "capacity": "Energy Capacity Inputs",
+        "battery": "Battery Capacity (MWh)",
+        "solar": "Solar Capacity (MW)",
+        "wind": "Wind Capacity (MW)",
+        "geo": "Geothermal Capacity (MW)",
+        "hydro": "Hydropower Capacity (MW)",
+        "temperature": "Temperature (°C)",
+        "wind_speed": "Wind Speed (m/s)",
+        "solar_rad": "Solar Radiation (W/m²)",
+        "precip": "Precipitation (mm)",
+        "humidity": "Humidity (%)",
+        "run": "Simulation Summary",
+        "baseline": "Baseline vs Selected Scenario",
+        "energy_mix": "Energy Mix",
+        "scenario_table": "Scenario Comparison Table",
+        "recommendation": "AI Recommendation Panel",
+        "governance": "Risk & Governance Reminder",
+        "audit": "Audit Trail (Current Session)",
+        "input_summary": "Input Summary",
         "city_profile": "City Profile",
-        "current_inputs": "Current Inputs",
-        "weather_mode": "Weather Mode",
-        "live_weather": "Live Weather",
-        "override_mode": "Scenario Override",
-        "scenario": "Extreme Scenario",
-        "normal": "Normal",
-        "heat_wave": "Heat Wave",
-        "storm": "Storm",
-        "cold_wave": "Cold Wave",
-        "blizzard": "Blizzard",
-        "typhoon": "Typhoon",
         "weather_status": "Weather Status",
-        "temperature": "Temperature",
-        "wind_speed": "Wind Speed",
-        "solar_radiation": "Solar Radiation",
-        "precipitation": "Precipitation",
-        "humidity": "Humidity",
-        "system_performance": "System Performance",
-        "energy_shortfall": "Energy Shortfall",
-        "renewable_utilization": "Renewable Utilization",
-        "system_efficiency": "System Efficiency",
-        "grid_dependency": "Grid Dependency",
-        "backup_hours": "Backup Hours",
-        "repair_eta": "Repair ETA",
-        "shortfall_severity": "Shortfall Severity",
-        "low": "Low",
-        "moderate": "Moderate",
-        "high": "High",
-        "energy_demand_supply": "Energy Demand vs Supply",
-        "battery_storage_level": "Battery Storage Level",
-        "grid_stability": "Grid Stability",
-        "energy_mix": "Energy Mix Breakdown",
-        "ai_recommendation": "TAIVAS Recommendation",
-        "resilience_summary": "Energy Resilience Summary",
-        "demand": "Demand",
-        "renewable": "Renewable",
-        "final_supply": "Final Supply",
-        "solar_label": "Solar",
-        "wind_label": "Wind",
-        "geothermal_label": "Geothermal",
-        "hydro_label": "Hydropower",
-        "hour": "Hour",
-        "energy": "Energy",
-        "stored_energy": "Stored Energy",
-        "supply_minus_demand": "Supply - Demand",
-        "latitude": "Latitude",
-        "longitude": "Longitude",
-        "country_model": "Country Model",
-        "balanced": "Current configuration is relatively balanced.",
-        "detected": "System instability detected. Suggested improvements:",
-        "sunny": "Sunny",
-        "cloudy": "Cloudy",
-        "stable_status": "Stable",
-        "stressed_status": "Stressed",
-        "critical_status": "Critical",
-        "status_label": "System Status",
+        "decision_support": "This product is decision-support software, not an unconditional guarantee.",
+        "deviation": "I understand that changing assumptions may lead to different outcomes.",
+        "accept_rec": "Accept AI recommendation",
+        "reject_rec": "Override / reject AI recommendation",
+        "stable": "System is relatively stable under the selected scenario.",
     },
-    "中文": {
-        "info1": "這是 TAIVAS 的主要能源控制中心。",
-        "info2": "它整合了國家邏輯、城市設定、天氣模擬與能源韌性控制台功能。",
-        "country_logic": "國家邏輯",
-        "city_profile": "城市設定",
-        "current_inputs": "目前輸入參數",
-        "weather_mode": "天氣模式",
-        "live_weather": "真實天氣",
-        "override_mode": "情境覆寫",
-        "scenario": "極端情境",
-        "normal": "正常",
-        "heat_wave": "熱浪",
-        "storm": "暴風雨",
-        "cold_wave": "寒流",
-        "blizzard": "暴風雪",
-        "typhoon": "颱風",
+    "繁體中文": {
+        "app_title": "TAIVAS 能源控制中心",
+        "app_subtitle": "AI 驅動的能源韌性與復原儀表板",
+        "sidebar": "控制面板",
+        "language": "Language / 語言",
+        "country": "國家",
+        "city": "城市",
+        "scenario": "情境",
+        "population": "人口",
+        "weather": "氣候輸入",
+        "capacity": "能源容量輸入",
+        "battery": "電池容量 (MWh)",
+        "solar": "太陽能容量 (MW)",
+        "wind": "風力容量 (MW)",
+        "geo": "地熱容量 (MW)",
+        "hydro": "水力容量 (MW)",
+        "temperature": "溫度 (°C)",
+        "wind_speed": "風速 (m/s)",
+        "solar_rad": "太陽輻射 (W/m²)",
+        "precip": "降水量 (mm)",
+        "humidity": "濕度 (%)",
+        "run": "模擬摘要",
+        "baseline": "基準情境 vs 選定情境",
+        "energy_mix": "能源組成",
+        "scenario_table": "情境比較表",
+        "recommendation": "AI 建議面板",
+        "governance": "風險與治理提醒",
+        "audit": "稽核軌跡（本次工作階段）",
+        "input_summary": "輸入摘要",
+        "city_profile": "城市檔案",
         "weather_status": "天氣狀態",
-        "temperature": "溫度",
-        "wind_speed": "風速",
-        "solar_radiation": "太陽輻射",
-        "precipitation": "降水",
-        "humidity": "濕度",
-        "system_performance": "系統表現",
-        "energy_shortfall": "能源缺口",
-        "renewable_utilization": "再生能源利用率",
-        "system_efficiency": "系統效率",
-        "grid_dependency": "電網依賴度",
-        "backup_hours": "備援時數",
-        "repair_eta": "修復時間",
-        "shortfall_severity": "缺口嚴重度",
-        "low": "低",
-        "moderate": "中",
-        "high": "高",
-        "energy_demand_supply": "能源需求與供給",
-        "battery_storage_level": "電池儲能變化",
-        "grid_stability": "電網穩定度",
-        "energy_mix": "能源組成分析",
-        "ai_recommendation": "TAIVAS 建議",
-        "resilience_summary": "能源韌性摘要",
-        "demand": "需求",
-        "renewable": "再生能源",
-        "final_supply": "最終供給",
-        "solar_label": "太陽能",
-        "wind_label": "風能",
-        "geothermal_label": "地熱",
-        "hydro_label": "水力",
-        "hour": "小時",
-        "energy": "能源",
-        "stored_energy": "儲存能源",
-        "supply_minus_demand": "供給 - 需求",
-        "latitude": "緯度",
-        "longitude": "經度",
-        "country_model": "國家模型",
-        "balanced": "目前配置相對平衡。",
-        "detected": "偵測到系統不穩定，建議可考慮以下調整：",
-        "sunny": "晴天",
-        "cloudy": "陰天",
-        "stable_status": "穩定",
-        "stressed_status": "緊繃",
-        "critical_status": "危急",
-        "status_label": "系統狀態",
-    },
-    "Deutsch": {
-        "info1": "Dies ist das Hauptkontrollzentrum von TAIVAS.",
-        "info2": "Es kombiniert Länderlogik, Stadtprofile, Wettersimulation und Energie-Resilienz-Dashboard-Steuerung.",
-        "country_logic": "Länderlogik",
-        "city_profile": "Stadtprofil",
-        "current_inputs": "Aktuelle Eingaben",
-        "weather_mode": "Wettermodus",
-        "live_weather": "Live-Wetter",
-        "override_mode": "Szenario-Override",
-        "scenario": "Extremszenario",
-        "normal": "Normal",
-        "heat_wave": "Hitzewelle",
-        "storm": "Sturm",
-        "cold_wave": "Kältewelle",
-        "blizzard": "Schneesturm",
-        "typhoon": "Taifun",
-        "weather_status": "Wetterstatus",
-        "temperature": "Temperatur",
-        "wind_speed": "Windgeschwindigkeit",
-        "solar_radiation": "Solarstrahlung",
-        "precipitation": "Niederschlag",
-        "humidity": "Luftfeuchtigkeit",
-        "system_performance": "Systemleistung",
-        "energy_shortfall": "Energieengpass",
-        "renewable_utilization": "Nutzung erneuerbarer Energien",
-        "system_efficiency": "Systemeffizienz",
-        "grid_dependency": "Netzabhängigkeit",
-        "backup_hours": "Backup-Stunden",
-        "repair_eta": "Reparaturzeit",
-        "shortfall_severity": "Schweregrad des Defizits",
-        "low": "Niedrig",
-        "moderate": "Mittel",
-        "high": "Hoch",
-        "energy_demand_supply": "Energienachfrage vs. Versorgung",
-        "battery_storage_level": "Batteriespeicherstand",
-        "grid_stability": "Netzstabilität",
-        "energy_mix": "Energiemix",
-        "ai_recommendation": "TAIVAS Empfehlung",
-        "resilience_summary": "Zusammenfassung der Energie-Resilienz",
-        "demand": "Nachfrage",
-        "renewable": "Erneuerbar",
-        "final_supply": "Endversorgung",
-        "solar_label": "Solar",
-        "wind_label": "Wind",
-        "geothermal_label": "Geothermie",
-        "hydro_label": "Wasserkraft",
-        "hour": "Stunde",
-        "energy": "Energie",
-        "stored_energy": "Gespeicherte Energie",
-        "supply_minus_demand": "Versorgung - Nachfrage",
-        "latitude": "Breitengrad",
-        "longitude": "Längengrad",
-        "country_model": "Ländermodell",
-        "balanced": "Die aktuelle Konfiguration ist relativ ausgewogen.",
-        "detected": "Systeminstabilität erkannt. Empfohlene Verbesserungen:",
-        "sunny": "Sonnig",
-        "cloudy": "Bewölkt",
-        "stable_status": "Stabil",
-        "stressed_status": "Belastet",
-        "critical_status": "Kritisch",
-        "status_label": "Systemstatus",
-    },
-    "Suomi": {
-        "info1": "Tämä on TAIVASin pääohjauskeskus.",
-        "info2": "Se yhdistää maalogiikan, kaupunkiprofiilit, sääsimulaation ja energiaresilienssin ohjauspaneelin.",
-        "country_logic": "Maalogiikka",
-        "city_profile": "Kaupunkiprofiili",
-        "current_inputs": "Nykyiset syötteet",
-        "weather_mode": "Säätila",
-        "live_weather": "Live-sää",
-        "override_mode": "Skenaarion ohitus",
-        "scenario": "Ääriskenaario",
-        "normal": "Normaali",
-        "heat_wave": "Helleaalto",
-        "storm": "Myrsky",
-        "cold_wave": "Kylmä aalto",
-        "blizzard": "Lumimyrsky",
-        "typhoon": "Taifuuni",
-        "weather_status": "Säätila",
-        "temperature": "Lämpötila",
-        "wind_speed": "Tuulen nopeus",
-        "solar_radiation": "Auringonsäteily",
-        "precipitation": "Sademäärä",
-        "humidity": "Kosteus",
-        "system_performance": "Järjestelmän suorituskyky",
-        "energy_shortfall": "Energiavaje",
-        "renewable_utilization": "Uusiutuvan energian käyttöaste",
-        "system_efficiency": "Järjestelmän tehokkuus",
-        "grid_dependency": "Verkkoriippuvuus",
-        "backup_hours": "Vara-aikatunnit",
-        "repair_eta": "Korjausaika",
-        "shortfall_severity": "Vajeen vakavuus",
-        "low": "Matala",
-        "moderate": "Keskitaso",
-        "high": "Korkea",
-        "energy_demand_supply": "Energian kysyntä vs tarjonta",
-        "battery_storage_level": "Akun varaustaso",
-        "grid_stability": "Verkon vakaus",
-        "energy_mix": "Energiayhdistelmä",
-        "ai_recommendation": "TAIVAS-suositus",
-        "resilience_summary": "Energiaresilienssin yhteenveto",
-        "demand": "Kysyntä",
-        "renewable": "Uusiutuva",
-        "final_supply": "Lopullinen tarjonta",
-        "solar_label": "Aurinko",
-        "wind_label": "Tuuli",
-        "geothermal_label": "Geoterminen",
-        "hydro_label": "Vesivoima",
-        "hour": "Tunti",
-        "energy": "Energia",
-        "stored_energy": "Varastoitu energia",
-        "supply_minus_demand": "Tarjonta - kysyntä",
-        "latitude": "Leveysaste",
-        "longitude": "Pituusaste",
-        "country_model": "Maamalli",
-        "balanced": "Nykyinen kokoonpano on melko tasapainoinen.",
-        "detected": "Järjestelmän epävakautta havaittu. Suositellut parannukset:",
-        "sunny": "Aurinkoinen",
-        "cloudy": "Pilvinen",
-        "stable_status": "Vakaa",
-        "stressed_status": "Rasitettu",
-        "critical_status": "Kriittinen",
-        "status_label": "Järjestelmän tila",
-    },
-    "Schweizerdeutsch": {
-        "info1": "Das isch s Hauptkontrollzentrum vo TAIVAS.",
-        "info2": "Es verbindet Länderlogik, Stadtprofile, Wättersimulation und Energie-Resilienz-Dashboard-Steuerig.",
-        "country_logic": "Länderlogik",
-        "city_profile": "Stadtprofil",
-        "current_inputs": "Aktuelli Iigabe",
-        "weather_mode": "Wättermodus",
-        "live_weather": "Live-Wätter",
-        "override_mode": "Szenario-Override",
-        "scenario": "Extremszenario",
-        "normal": "Normal",
-        "heat_wave": "Hitzewälle",
-        "storm": "Sturm",
-        "cold_wave": "Chältiwälle",
-        "blizzard": "Schneesturm",
-        "typhoon": "Taifun",
-        "weather_status": "Wätterstatus",
-        "temperature": "Temperatur",
-        "wind_speed": "Windgschwindigkeit",
-        "solar_radiation": "Solarstrahlig",
-        "precipitation": "Niederschlag",
-        "humidity": "Luftfeuchtigkeit",
-        "system_performance": "Systemleistig",
-        "energy_shortfall": "Energie-Defizit",
-        "renewable_utilization": "Nutzig vo erneuerbare Energie",
-        "system_efficiency": "System-Effizienz",
-        "grid_dependency": "Netz-Abhängigkeit",
-        "backup_hours": "Backup-Stunde",
-        "repair_eta": "Reparaturziit",
-        "shortfall_severity": "Defizit-Schweregrad",
-        "low": "Niedrig",
-        "moderate": "Mittel",
-        "high": "Hoch",
-        "energy_demand_supply": "Energiebedarf vs Versorgig",
-        "battery_storage_level": "Batterie-Speicherstand",
-        "grid_stability": "Netzstabilität",
-        "energy_mix": "Energiemix",
-        "ai_recommendation": "TAIVAS-Empfählig",
-        "resilience_summary": "Energie-Resilienz-Zämefassig",
-        "demand": "Bedarf",
-        "renewable": "Erneuerbar",
-        "final_supply": "Finali Versorgig",
-        "solar_label": "Solar",
-        "wind_label": "Wind",
-        "geothermal_label": "Geothermie",
-        "hydro_label": "Wasserkraft",
-        "hour": "Stund",
-        "energy": "Energie",
-        "stored_energy": "Gspeichereti Energie",
-        "supply_minus_demand": "Versorgig - Bedarf",
-        "latitude": "Breitegrad",
-        "longitude": "Längigrad",
-        "country_model": "Ländermodell",
-        "balanced": "D aktuelli Konfiguration isch relativ usgwoge.",
-        "detected": "Systeminstabilität erkannt. Vorgschlagni Verbessrige:",
-        "sunny": "Sunnig",
-        "cloudy": "Bewölkt",
-        "stable_status": "Stabil",
-        "stressed_status": "Aagspannt",
-        "critical_status": "Kritisch",
-        "status_label": "Systemstatus",
-    },
-    "Íslenska": {
-        "info1": "Þetta er aðalstjórnstöð TAIVAS.",
-        "info2": "Hún sameinar landslógík, borgarsnið, veðurhermun og stjórnborð fyrir orkuþol.",
-        "country_logic": "Landslógík",
-        "city_profile": "Borgarsnið",
-        "current_inputs": "Núverandi inntök",
-        "weather_mode": "Veðurhamur",
-        "live_weather": "Rauntímaveður",
-        "override_mode": "Yfirskrifa sviðsmynd",
-        "scenario": "Öfgasviðsmynd",
-        "normal": "Venjulegt",
-        "heat_wave": "Hitabylgja",
-        "storm": "Stormur",
-        "cold_wave": "Kuldabylgja",
-        "blizzard": "Snjóbylur",
-        "typhoon": "Fellibylur",
-        "weather_status": "Veðurstaða",
-        "temperature": "Hitastig",
-        "wind_speed": "Vindhraði",
-        "solar_radiation": "Sólgeislun",
-        "precipitation": "Úrkoma",
-        "humidity": "Raki",
-        "system_performance": "Afköst kerfis",
-        "energy_shortfall": "Orkuskortur",
-        "renewable_utilization": "Nýting endurnýjanlegrar orku",
-        "system_efficiency": "Kerfisnýtni",
-        "grid_dependency": "Háð rafkerfi",
-        "backup_hours": "Varaklukkustundir",
-        "repair_eta": "Viðgerðartími",
-        "shortfall_severity": "Alvarleiki skorts",
-        "low": "Lágur",
-        "moderate": "Miðlungs",
-        "high": "Mikill",
-        "energy_demand_supply": "Orkuþörf vs framboð",
-        "battery_storage_level": "Staða rafhlöðugeymslu",
-        "grid_stability": "Stöðugleiki rafkerfis",
-        "energy_mix": "Orkublanda",
-        "ai_recommendation": "TAIVAS tillaga",
-        "resilience_summary": "Samantekt orkuþols",
-        "demand": "Eftirspurn",
-        "renewable": "Endurnýjanlegt",
-        "final_supply": "Lokaframboð",
-        "solar_label": "Sól",
-        "wind_label": "Vindur",
-        "geothermal_label": "Jarðhiti",
-        "hydro_label": "Vatnsafl",
-        "hour": "Klst",
-        "energy": "Orka",
-        "stored_energy": "Geymd orka",
-        "supply_minus_demand": "Framboð - eftirspurn",
-        "latitude": "Breiddargráða",
-        "longitude": "Lengdargráða",
-        "country_model": "Landsmódel",
-        "balanced": "Núverandi uppsetning er nokkuð vel í jafnvægi.",
-        "detected": "Óstöðugleiki í kerfi greindur. Tillögur að úrbótum:",
-        "sunny": "Sólríkt",
-        "cloudy": "Skýjað",
-        "stable_status": "Stöðugt",
-        "stressed_status": "Undir álagi",
-        "critical_status": "Alvarlegt",
-        "status_label": "Staða kerfis",
+        "decision_support": "本產品屬於決策輔助工具，並非無條件保證。",
+        "deviation": "我理解調整假設條件後，結果可能不同。",
+        "accept_rec": "接受 AI 建議",
+        "reject_rec": "覆寫 / 不採納 AI 建議",
+        "stable": "在目前情境下，系統整體相對穩定。",
     },
 }
 
-ui = UI.get(language, UI["English"])
+COUNTRY_CITY_DATA: Dict[str, Dict[str, Dict[str, float | str]]] = {
+    "[TW] Taiwan": {
+        "[TW] Taipei, Taiwan": {
+            "lat": 25.0330,
+            "lon": 121.5654,
+            "temperature": 26.0,
+            "wind_speed": 4.2,
+            "solar_radiation": 640.0,
+            "precipitation": 12.0,
+            "humidity": 73.0,
+            "population": 2500000,
+            "country_model": "taiwan",
+            "climate_note": "Cooling-heavy island model with strong storage need.",
+            "weather_tag": "☀️ Sunny",
+        },
+        "[TW] Taichung, Taiwan": {
+            "lat": 24.1477,
+            "lon": 120.6736,
+            "temperature": 27.0,
+            "wind_speed": 3.8,
+            "solar_radiation": 680.0,
+            "precipitation": 8.0,
+            "humidity": 69.0,
+            "population": 2850000,
+            "country_model": "taiwan",
+            "climate_note": "Balanced urban-industrial load with strong solar upside.",
+            "weather_tag": "🌤️ Partly Sunny",
+        },
+        "[TW] Tainan, Taiwan": {
+            "lat": 22.9999,
+            "lon": 120.2270,
+            "temperature": 28.0,
+            "wind_speed": 4.0,
+            "solar_radiation": 710.0,
+            "precipitation": 6.0,
+            "humidity": 68.0,
+            "population": 1850000,
+            "country_model": "taiwan",
+            "climate_note": "Solar-favorable southern profile with heat sensitivity.",
+            "weather_tag": "☀️ Sunny",
+        },
+        "[TW] Kaohsiung, Taiwan": {
+            "lat": 22.6273,
+            "lon": 120.3014,
+            "temperature": 29.0,
+            "wind_speed": 4.8,
+            "solar_radiation": 730.0,
+            "precipitation": 5.0,
+            "humidity": 67.0,
+            "population": 2730000,
+            "country_model": "taiwan",
+            "climate_note": "High solar output with industrial demand pressure.",
+            "weather_tag": "☀️ Sunny",
+        },
+    },
+    "[FI] Finland": {
+        "[FI] Helsinki, Finland": {
+            "lat": 60.1699,
+            "lon": 24.9384,
+            "temperature": 12.0,
+            "wind_speed": 6.8,
+            "solar_radiation": 420.0,
+            "precipitation": 18.0,
+            "humidity": 71.0,
+            "population": 665000,
+            "country_model": "finland",
+            "climate_note": "Cold-resilient urban grid with strong winter heating swings.",
+            "weather_tag": "🌥️ Cool",
+        },
+        "[FI] Rovaniemi, Finland": {
+            "lat": 66.5039,
+            "lon": 25.7294,
+            "temperature": 5.0,
+            "wind_speed": 6.0,
+            "solar_radiation": 280.0,
+            "precipitation": 15.0,
+            "humidity": 78.0,
+            "population": 65000,
+            "country_model": "finland",
+            "climate_note": "Extreme winter sensitivity with storage importance.",
+            "weather_tag": "❄️ Arctic",
+        },
+        "[FI] Tampere, Finland": {
+            "lat": 61.4978,
+            "lon": 23.7610,
+            "temperature": 11.0,
+            "wind_speed": 5.9,
+            "solar_radiation": 390.0,
+            "precipitation": 17.0,
+            "humidity": 72.0,
+            "population": 255000,
+            "country_model": "finland",
+            "climate_note": "Manufacturing-linked city load with steady hydro support.",
+            "weather_tag": "🌥️ Mild",
+        },
+    },
+    "[NO] Norway": {
+        "[NO] Oslo, Norway": {
+            "lat": 59.9139,
+            "lon": 10.7522,
+            "temperature": 10.0,
+            "wind_speed": 5.5,
+            "solar_radiation": 400.0,
+            "precipitation": 22.0,
+            "humidity": 74.0,
+            "population": 710000,
+            "country_model": "norway",
+            "climate_note": "Hydro-strong system with winter reliability focus.",
+            "weather_tag": "🌦️ Mixed",
+        },
+        "[NO] Bergen, Norway": {
+            "lat": 60.3913,
+            "lon": 5.3221,
+            "temperature": 9.0,
+            "wind_speed": 6.8,
+            "solar_radiation": 340.0,
+            "precipitation": 40.0,
+            "humidity": 83.0,
+            "population": 290000,
+            "country_model": "norway",
+            "climate_note": "Rain-heavy coastal system with strong hydro response.",
+            "weather_tag": "🌧️ Rainy",
+        },
+    },
+    "[CH] Switzerland": {
+        "[CH] Zurich, Switzerland": {
+            "lat": 47.3769,
+            "lon": 8.5417,
+            "temperature": 14.0,
+            "wind_speed": 4.5,
+            "solar_radiation": 500.0,
+            "precipitation": 16.0,
+            "humidity": 66.0,
+            "population": 434000,
+            "country_model": "switzerland",
+            "climate_note": "High-value resilient urban core with balanced grid integration.",
+            "weather_tag": "🌤️ Mild",
+        },
+        "[CH] Geneva, Switzerland": {
+            "lat": 46.2044,
+            "lon": 6.1432,
+            "temperature": 15.0,
+            "wind_speed": 4.1,
+            "solar_radiation": 520.0,
+            "precipitation": 14.0,
+            "humidity": 64.0,
+            "population": 205000,
+            "country_model": "switzerland",
+            "climate_note": "Balanced city profile with stable hydro and storage opportunity.",
+            "weather_tag": "🌤️ Clear",
+        },
+    },
+}
+
+COUNTRY_DEFAULT_CAPACITY = {
+    "[TW] Taiwan": {"solar": 120.0, "wind": 80.0, "geo": 60.0, "hydro": 70.0, "battery": 180.0},
+    "[FI] Finland": {"solar": 70.0, "wind": 120.0, "geo": 50.0, "hydro": 110.0, "battery": 220.0},
+    "[NO] Norway": {"solar": 50.0, "wind": 110.0, "geo": 40.0, "hydro": 180.0, "battery": 200.0},
+    "[CH] Switzerland": {"solar": 85.0, "wind": 60.0, "geo": 35.0, "hydro": 160.0, "battery": 170.0},
+}
 
 
-def fetch_weather(lat: float, lon: float):
-    url = (
-        "https://api.open-meteo.com/v1/forecast?"
-        + urllib.parse.urlencode(
+@dataclass
+class TaivasInputs:
+    country_key: str
+    city_key: str
+    lat: float
+    lon: float
+    temperature: float
+    wind_speed: float
+    solar_radiation: float
+    precipitation: float
+    humidity: float
+    population: int
+    solar_capacity: float
+    wind_capacity: float
+    geothermal_capacity: float
+    hydro_capacity: float
+    battery_capacity: float
+
+
+@dataclass
+class TaivasOutputs:
+    demand: float
+    renewable_supply: float
+    final_supply: float
+    battery_levels: float
+    shortfall: float
+    renewable_ratio: float
+    system_efficiency: float
+    grid_dependency: float
+
+
+def clamp(val: float, low: float, high: float) -> float:
+    return max(low, min(high, val))
+
+
+def apply_scenario(base: TaivasInputs, scenario: str) -> TaivasInputs:
+    x = TaivasInputs(**asdict(base))
+    if scenario == "heat_wave":
+        x.temperature += 8
+        x.humidity = clamp(x.humidity + 6, 0, 100)
+        x.solar_radiation *= 1.05
+    elif scenario == "storm":
+        x.wind_speed *= 1.35
+        x.precipitation *= 2.0
+        x.solar_radiation *= 0.72
+        x.humidity = clamp(x.humidity + 10, 0, 100)
+    elif scenario == "cold_wave":
+        x.temperature -= 10
+        x.solar_radiation *= 0.82
+        x.humidity = clamp(x.humidity + 2, 0, 100)
+    elif scenario == "blizzard":
+        x.temperature -= 15
+        x.wind_speed *= 1.18
+        x.precipitation *= 1.8
+        x.solar_radiation *= 0.42
+        x.humidity = clamp(x.humidity + 8, 0, 100)
+    elif scenario == "typhoon":
+        x.wind_speed *= 1.7
+        x.precipitation *= 2.8
+        x.solar_radiation *= 0.35
+        x.humidity = clamp(x.humidity + 12, 0, 100)
+
+    x.wind_speed = max(0.0, x.wind_speed)
+    x.solar_radiation = max(0.0, x.solar_radiation)
+    x.precipitation = max(0.0, x.precipitation)
+    return x
+
+
+def estimate_demand(inp: TaivasInputs, scenario: str) -> float:
+    base = 0.00022 * inp.population
+    temp_gap = abs(inp.temperature - 20.0)
+    climate_load = temp_gap * 2.6
+    humidity_load = max(inp.humidity - 65.0, 0.0) * 0.28
+
+    scenario_multiplier = {
+        "normal": 1.00,
+        "heat_wave": 1.18,
+        "storm": 1.10,
+        "cold_wave": 1.16,
+        "blizzard": 1.28,
+        "typhoon": 1.24,
+    }[scenario]
+    return max((base + climate_load + humidity_load) * scenario_multiplier, 0.0)
+
+
+def estimate_supply(inp: TaivasInputs) -> Dict[str, float]:
+    solar_cf = clamp(inp.solar_radiation / 850.0, 0.0, 1.0) * (1 - clamp(inp.humidity / 300.0, 0.0, 0.35))
+    wind_cf = clamp(inp.wind_speed / 12.0, 0.0, 1.0)
+    hydro_cf = clamp(0.42 + inp.precipitation / 320.0, 0.2, 0.96)
+    geo_cf = 0.9
+
+    solar = inp.solar_capacity * solar_cf
+    wind = inp.wind_capacity * wind_cf
+    hydro = inp.hydro_capacity * hydro_cf
+    geothermal = inp.geothermal_capacity * geo_cf
+    renewable = solar + wind + hydro + geothermal
+
+    return {
+        "solar": round(solar, 2),
+        "wind": round(wind, 2),
+        "hydro": round(hydro, 2),
+        "geothermal": round(geothermal, 2),
+        "renewable": round(renewable, 2),
+        "solar_cf": round(solar_cf, 4),
+        "wind_cf": round(wind_cf, 4),
+        "hydro_cf": round(hydro_cf, 4),
+        "geo_cf": round(geo_cf, 4),
+    }
+
+
+def simulate_taivas(base: TaivasInputs, scenario: str) -> Tuple[TaivasOutputs, Dict[str, float], TaivasInputs]:
+    adjusted = apply_scenario(base, scenario)
+    demand = estimate_demand(adjusted, scenario)
+    supply = estimate_supply(adjusted)
+    renewable_supply = supply["renewable"]
+
+    battery_dispatch_limit = adjusted.battery_capacity * 0.35
+    battery_support = min(max(demand - renewable_supply, 0.0), battery_dispatch_limit)
+    final_supply = renewable_supply + battery_support
+    shortfall = max(demand - final_supply, 0.0)
+    battery_levels = max(adjusted.battery_capacity - battery_support, 0.0)
+    renewable_ratio = renewable_supply / demand if demand > 0 else 0.0
+    system_efficiency = min(final_supply / demand, 1.0) if demand > 0 else 1.0
+    grid_dependency = shortfall / demand if demand > 0 else 0.0
+
+    out = TaivasOutputs(
+        demand=round(demand, 2),
+        renewable_supply=round(renewable_supply, 2),
+        final_supply=round(final_supply, 2),
+        battery_levels=round(battery_levels, 2),
+        shortfall=round(shortfall, 2),
+        renewable_ratio=round(renewable_ratio, 4),
+        system_efficiency=round(system_efficiency, 4),
+        grid_dependency=round(grid_dependency, 4),
+    )
+    return out, supply, adjusted
+
+
+def build_explainable_recommendations(base_out: TaivasOutputs, scenario_out: TaivasOutputs, supply: Dict[str, float], scenario: str, labels: Dict[str, str]) -> List[Dict[str, str]]:
+    recs: List[Dict[str, str]] = []
+
+    if scenario_out.shortfall > 0:
+        recs.append({
+            "recommendation": "Increase battery reserve or add backup dispatch capacity.",
+            "reason": f"Shortfall is {scenario_out.shortfall:.2f} MW under {scenario}.",
+            "consequence": "This reduces unmet demand and lowers outage risk.",
+        })
+    if scenario_out.renewable_ratio < 0.75:
+        recs.append({
+            "recommendation": "Expand renewable capacity mix or rebalance local generation.",
+            "reason": f"Renewable ratio is {scenario_out.renewable_ratio * 100:.1f}%.",
+            "consequence": "Higher self-supply improves resilience and reduces grid stress.",
+        })
+    if scenario_out.grid_dependency > 0.15:
+        recs.append({
+            "recommendation": "Strengthen microgrid isolation and critical-load prioritization.",
+            "reason": f"Grid dependency is {scenario_out.grid_dependency * 100:.1f}%.",
+            "consequence": "Core services remain more stable during extreme events.",
+        })
+    if scenario in {"storm", "typhoon", "blizzard"}:
+        recs.append({
+            "recommendation": "Protect storage reserve and pre-position emergency operating mode.",
+            "reason": "Extreme-weather scenario is active.",
+            "consequence": "Improves response speed and protects essential loads.",
+        })
+    if supply["solar"] < supply["wind"] * 0.4 and scenario in {"normal", "heat_wave"}:
+        recs.append({
+            "recommendation": "Review solar assumptions or increase solar deployment.",
+            "reason": "Solar contribution is materially lower than wind in a sun-favorable case.",
+            "consequence": "This can improve daytime resilience and renewable ratio.",
+        })
+    if not recs:
+        recs.append({
+            "recommendation": labels["stable"],
+            "reason": "No major resilience weakness is visible in this run.",
+            "consequence": "Continue monitoring and compare with additional scenarios.",
+        })
+
+    if scenario_out.final_supply > base_out.final_supply:
+        recs.append({
+            "recommendation": "Keep scenario comparison enabled when presenting results.",
+            "reason": "Selected scenario materially changes supply-demand balance from baseline.",
+            "consequence": "This supports explainability and auditability.",
+        })
+
+    return recs
+
+
+def get_labels(selected_language: str) -> Dict[str, str]:
+    return LANG[selected_language]
+
+
+def ensure_audit_log() -> None:
+    if "taivas_audit_log" not in st.session_state:
+        st.session_state.taivas_audit_log = []
+
+
+def push_audit_entry(inputs: TaivasInputs, scenario: str, outputs: TaivasOutputs, accepted: str) -> None:
+    st.session_state.taivas_audit_log.append(
+        {
+            "country": inputs.country_key,
+            "city": inputs.city_key,
+            "scenario": scenario,
+            "demand": outputs.demand,
+            "renewable_supply": outputs.renewable_supply,
+            "final_supply": outputs.final_supply,
+            "shortfall": outputs.shortfall,
+            "renewable_ratio": round(outputs.renewable_ratio * 100, 2),
+            "grid_dependency": round(outputs.grid_dependency * 100, 2),
+            "accepted_ai_recommendation": accepted,
+        }
+    )
+
+
+def render_sidebar(labels: Dict[str, str]) -> Tuple[str, TaivasInputs, str, Dict[str, float | str]]:
+    st.sidebar.header(labels["sidebar"])
+    language = st.sidebar.selectbox(labels["language"], list(LANG.keys()), index=0)
+    labels = get_labels(language)
+
+    country = st.sidebar.selectbox(labels["country"], list(COUNTRY_CITY_DATA.keys()), index=0)
+    cities = list(COUNTRY_CITY_DATA[country].keys())
+    city = st.sidebar.selectbox(labels["city"], cities, index=0)
+    profile = COUNTRY_CITY_DATA[country][city]
+    cap = COUNTRY_DEFAULT_CAPACITY[country]
+
+    scenario = st.sidebar.selectbox(labels["scenario"], SCENARIOS, index=0)
+    st.sidebar.subheader(labels["weather"])
+    temperature = st.sidebar.slider(labels["temperature"], -30.0, 45.0, float(profile["temperature"]), 0.5)
+    wind_speed = st.sidebar.slider(labels["wind_speed"], 0.0, 45.0, float(profile["wind_speed"]), 0.1)
+    solar_radiation = st.sidebar.slider(labels["solar_rad"], 0.0, 1200.0, float(profile["solar_radiation"]), 5.0)
+    precipitation = st.sidebar.slider(labels["precip"], 0.0, 500.0, float(profile["precipitation"]), 1.0)
+    humidity = st.sidebar.slider(labels["humidity"], 0.0, 100.0, float(profile["humidity"]), 1.0)
+
+    st.sidebar.subheader(labels["capacity"])
+    population = st.sidebar.slider(labels["population"], 10000, 10000000, int(profile["population"]), 10000)
+    solar_capacity = st.sidebar.slider(labels["solar"], 0.0, 1000.0, float(cap["solar"]), 5.0)
+    wind_capacity = st.sidebar.slider(labels["wind"], 0.0, 1000.0, float(cap["wind"]), 5.0)
+    geothermal_capacity = st.sidebar.slider(labels["geo"], 0.0, 500.0, float(cap["geo"]), 5.0)
+    hydro_capacity = st.sidebar.slider(labels["hydro"], 0.0, 1000.0, float(cap["hydro"]), 5.0)
+    battery_capacity = st.sidebar.slider(labels["battery"], 0.0, 1000.0, float(cap["battery"]), 5.0)
+
+    inputs = TaivasInputs(
+        country_key=country,
+        city_key=city,
+        lat=float(profile["lat"]),
+        lon=float(profile["lon"]),
+        temperature=temperature,
+        wind_speed=wind_speed,
+        solar_radiation=solar_radiation,
+        precipitation=precipitation,
+        humidity=humidity,
+        population=population,
+        solar_capacity=solar_capacity,
+        wind_capacity=wind_capacity,
+        geothermal_capacity=geothermal_capacity,
+        hydro_capacity=hydro_capacity,
+        battery_capacity=battery_capacity,
+    )
+    return language, inputs, scenario, profile
+
+
+def metric_row(outputs: TaivasOutputs) -> None:
+    a, b, c, d = st.columns(4)
+    a.metric("Demand", f"{outputs.demand:.2f} MW")
+    b.metric("Renewable Supply", f"{outputs.renewable_supply:.2f} MW")
+    c.metric("Final Supply", f"{outputs.final_supply:.2f} MW")
+    d.metric("Shortfall", f"{outputs.shortfall:.2f} MW")
+
+    e, f, g, h = st.columns(4)
+    e.metric("Battery Left", f"{outputs.battery_levels:.2f} MWh")
+    f.metric("Renewable Ratio", f"{outputs.renewable_ratio * 100:.1f}%")
+    g.metric("System Efficiency", f"{outputs.system_efficiency * 100:.1f}%")
+    h.metric("Grid Dependency", f"{outputs.grid_dependency * 100:.1f}%")
+
+
+def main() -> None:
+    st.set_page_config(page_title="TAIVAS Energy Control Center", layout="wide")
+    ensure_audit_log()
+
+    default_labels = get_labels("English")
+    language, inputs, scenario, profile = render_sidebar(default_labels)
+    labels = get_labels(language)
+
+    st.title(labels["app_title"])
+    st.caption(labels["app_subtitle"])
+    st.info(
+        "This app is the main control center for TAIVAS. It combines country logic, city profiles, "
+        "weather simulation, and energy resilience dashboard controls."
+    )
+
+    baseline_outputs, baseline_supply, baseline_adjusted = simulate_taivas(inputs, "normal")
+    outputs, supply_map, adjusted = simulate_taivas(inputs, scenario)
+    recommendations = build_explainable_recommendations(baseline_outputs, outputs, supply_map, scenario, labels)
+
+    st.subheader(labels["run"])
+    metric_row(outputs)
+
+    left, right = st.columns([1.15, 0.85])
+    with left:
+        st.subheader(f"{labels['city_profile']}: {inputs.city_key}")
+        st.write(f"Latitude: {inputs.lat}")
+        st.write(f"Longitude: {inputs.lon}")
+        st.write(f"Country Model: {profile['country_model']}")
+        st.write(profile["climate_note"])
+        st.success(f"{labels['weather_status']}: {profile['weather_tag']}")
+
+        st.subheader(labels["input_summary"])
+        st.json(asdict(inputs))
+
+    with right:
+        st.subheader(labels["baseline"])
+        compare_df = pd.DataFrame(
             {
-                "latitude": lat,
-                "longitude": lon,
-                "hourly": "temperature_2m,wind_speed_10m,shortwave_radiation,precipitation,relative_humidity_2m",
-                "forecast_days": 1,
-                "timezone": "auto",
+                "Metric": [
+                    "Demand (MW)",
+                    "Renewable Supply (MW)",
+                    "Final Supply (MW)",
+                    "Shortfall (MW)",
+                    "Battery Left (MWh)",
+                    "Renewable Ratio (%)",
+                    "Grid Dependency (%)",
+                ],
+                "Normal": [
+                    baseline_outputs.demand,
+                    baseline_outputs.renewable_supply,
+                    baseline_outputs.final_supply,
+                    baseline_outputs.shortfall,
+                    baseline_outputs.battery_levels,
+                    round(baseline_outputs.renewable_ratio * 100, 2),
+                    round(baseline_outputs.grid_dependency * 100, 2),
+                ],
+                scenario: [
+                    outputs.demand,
+                    outputs.renewable_supply,
+                    outputs.final_supply,
+                    outputs.shortfall,
+                    outputs.battery_levels,
+                    round(outputs.renewable_ratio * 100, 2),
+                    round(outputs.grid_dependency * 100, 2),
+                ],
             }
         )
+        st.dataframe(compare_df, use_container_width=True, hide_index=True)
+
+    st.divider()
+    tab1, tab2, tab3, tab4 = st.tabs([
+        labels["energy_mix"],
+        labels["scenario_table"],
+        labels["recommendation"],
+        labels["audit"],
+    ])
+
+    with tab1:
+        mix_df = pd.DataFrame(
+            {
+                "Source": ["Solar", "Wind", "Hydro", "Geothermal"],
+                "Output (MW)": [supply_map["solar"], supply_map["wind"], supply_map["hydro"], supply_map["geothermal"]],
+            }
+        ).set_index("Source")
+        st.bar_chart(mix_df)
+
+        cf_df = pd.DataFrame(
+            {
+                "Source": ["Solar CF", "Wind CF", "Hydro CF", "Geo CF"],
+                "Capacity Factor": [
+                    supply_map["solar_cf"],
+                    supply_map["wind_cf"],
+                    supply_map["hydro_cf"],
+                    supply_map["geo_cf"],
+                ],
+            }
+        ).set_index("Source")
+        st.line_chart(cf_df)
+
+    with tab2:
+        rows = []
+        for sc in SCENARIOS:
+            out, _, adj = simulate_taivas(inputs, sc)
+            rows.append(
+                {
+                    "Scenario": sc,
+                    "Temp": adj.temperature,
+                    "Wind": round(adj.wind_speed, 2),
+                    "Solar Rad": round(adj.solar_radiation, 2),
+                    "Demand": out.demand,
+                    "Renewable": out.renewable_supply,
+                    "Final Supply": out.final_supply,
+                    "Shortfall": out.shortfall,
+                    "Renewable %": round(out.renewable_ratio * 100, 2),
+                    "Grid %": round(out.grid_dependency * 100, 2),
+                }
+            )
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+    with tab3:
+        st.subheader(labels["recommendation"])
+        for idx, rec in enumerate(recommendations, start=1):
+            st.markdown(
+                f"**{idx}. Recommendation:** {rec['recommendation']}  \n"
+                f"**Reason:** {rec['reason']}  \n"
+                f"**Consequence:** {rec['consequence']}"
+            )
+            st.divider()
+
+        st.subheader(labels["governance"])
+        st.warning(labels["decision_support"])
+        deviation_ack = st.checkbox(labels["deviation"], value=True)
+        decision = st.radio("AI Decision", [labels["accept_rec"], labels["reject_rec"]], horizontal=True)
+
+        if deviation_ack:
+            push_audit_entry(inputs, scenario, outputs, decision)
+            st.success("Session decision logged below.")
+
+    with tab4:
+        if st.session_state.taivas_audit_log:
+            audit_df = pd.DataFrame(st.session_state.taivas_audit_log).tail(20)
+            st.dataframe(audit_df, use_container_width=True, hide_index=True)
+        else:
+            st.write("No audit entries yet.")
+
+    st.divider()
+    st.code(
+        """
+Run locally:
+python -m streamlit run taivas_control_center_complete.py
+
+Core inputs:
+country_key, city_key, lat, lon, temperature, wind_speed, solar_radiation,
+precipitation, humidity, population, solar_capacity, wind_capacity,
+geothermal_capacity, hydro_capacity, battery_capacity
+
+Core outputs:
+demand, renewable_supply, final_supply, battery_levels, shortfall,
+renewable_ratio, system_efficiency, grid_dependency
+
+Scenarios:
+normal, heat_wave, storm, cold_wave, blizzard, typhoon
+        """.strip(),
+        language="python",
     )
-    with urllib.request.urlopen(url, timeout=20) as response:
-        return json.loads(response.read().decode("utf-8"))
 
 
-def safe_country_desc(key: str) -> str:
-    return t.get("country_descriptions", {}).get(
-        key,
-        country_logic.get(key, {}).get("description", f"{key} energy model"),
-    )
-
-
-def get_bias(key: str, field: str, default: float) -> float:
-    return float(country_logic.get(key, {}).get(field, default))
-
-st.markdown(
-    """
-    <style>
-    .taivas-box {
-        background: #0d1b3d;
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 14px;
-        padding: 16px;
-        margin-bottom: 16px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-title_text = t.get("title", "TAIVAS Energy Control Center")
-subtitle_text = t.get("subtitle", "AI-driven energy resilience and recovery dashboard")
-
-st.title(title_text)
-st.caption(subtitle_text)
-st.markdown(
-    "<div class='taivas-box'><div>{}</div><div style='margin-top:8px'>{}</div></div>".format(
-        ui["info1"], ui["info2"]
-    ),
-    unsafe_allow_html=True,
-)
-
-country_keys = list(country_logic.keys())
-country_labels = t.get("countries", {})
-city_labels = t.get("cities", {})
-
-country_display_map = {country_labels.get(k, k): k for k in country_keys}
-country_display = st.sidebar.selectbox(
-    t.get("country", "Country"),
-    list(country_display_map.keys())
-)
-country_key = country_display_map[country_display]
-
-available_cities = [
-    city_key for city_key, city_data in city_profiles.items()
-    if city_data.get("country") == country_key
-]
-city_display_map = {city_labels.get(k, k): k for k in available_cities}
-city_display = st.sidebar.selectbox(
-    t.get("city", "City"),
-    list(city_display_map.keys())
-)
-city_key = city_display_map[city_display]
-city_data = city_profiles[city_key]
-
-population = st.sidebar.slider(t.get("population", "Population"), 10000, 5000000, 500000, step=50000)
-solar_capacity = st.sidebar.slider(t.get("solar", "Solar Capacity (MW)"), 0, 500, 120, step=10)
-wind_capacity = st.sidebar.slider(t.get("wind", "Wind Capacity (MW)"), 0, 500, 80, step=10)
-geothermal_capacity = st.sidebar.slider(t.get("geothermal", "Geothermal Capacity (MW)"), 0, 500, 60, step=10)
-hydro_capacity = st.sidebar.slider(t.get("hydro", "Hydropower Capacity (MW)"), 0, 500, 70, step=10)
-battery_capacity = st.sidebar.slider(t.get("battery", "Battery Storage (MWh)"), 0, 2000, 300, step=50)
-
-weather_mode = st.sidebar.selectbox(
-    ui["weather_mode"],
-    [ui["live_weather"], ui["override_mode"]]
-)
-scenario = st.sidebar.selectbox(
-    ui["scenario"],
-    [ui["normal"], ui["heat_wave"], ui["storm"], ui["cold_wave"], ui["blizzard"], ui["typhoon"]]
-)
-
-st.subheader(f"{ui['country_logic']}: {country_display}")
-st.write(safe_country_desc(country_key))
-
-st.subheader(f"{ui['city_profile']}: {city_display}")
-st.write(f"{ui['latitude']}: {city_data.get('lat', '-')}")
-st.write(f"{ui['longitude']}: {city_data.get('lon', '-')}")
-st.write(f"{ui['country_model']}: {city_data.get('country', '-')}")
-
-try:
-    weather_data = fetch_weather(city_data["lat"], city_data["lon"])
-    h = weather_data["hourly"]
-    temperature = np.array(h["temperature_2m"][:24], dtype=float)
-    wind_speed = np.array(h["wind_speed_10m"][:24], dtype=float)
-    solar_radiation = np.array(h["shortwave_radiation"][:24], dtype=float)
-    precipitation = np.array(h["precipitation"][:24], dtype=float)
-    humidity = np.array(h["relative_humidity_2m"][:24], dtype=float)
-except Exception:
-    temperature = np.array([24] * 24, dtype=float)
-    wind_speed = np.array([5] * 24, dtype=float)
-    solar_radiation = np.array(
-        [0, 0, 0, 0, 0, 40, 120, 220, 380, 520, 650, 740, 780, 720, 600, 420, 240, 90, 20, 0, 0, 0, 0, 0],
-        dtype=float,
-    )
-    precipitation = np.array([0] * 24, dtype=float)
-    humidity = np.array([70] * 24, dtype=float)
-
-if weather_mode == ui["override_mode"]:
-    if scenario == ui["heat_wave"]:
-        temperature = temperature + 8
-        solar_radiation = solar_radiation * 1.05
-    elif scenario == ui["storm"]:
-        solar_radiation = solar_radiation * 0.35
-        wind_speed = wind_speed * 1.25
-        precipitation = precipitation + 10
-    elif scenario == ui["cold_wave"]:
-        temperature = temperature - 10
-        solar_radiation = solar_radiation * 0.75
-    elif scenario == ui["blizzard"]:
-        temperature = temperature - 12
-        solar_radiation = solar_radiation * 0.20
-        wind_speed = wind_speed * 1.15
-        precipitation = precipitation + 5
-    elif scenario == ui["typhoon"]:
-        solar_radiation = solar_radiation * 0.15
-        wind_speed = wind_speed * 1.50
-        precipitation = precipitation + 25
-
-hours = np.arange(24)
-
-avg_temp = float(np.mean(temperature))
-avg_wind = float(np.mean(wind_speed))
-avg_rad = float(np.mean(solar_radiation))
-total_precip = float(np.sum(precipitation))
-avg_humidity = float(np.mean(humidity))
-
-if weather_mode == ui["override_mode"]:
-    weather_label = scenario
-else:
-    if total_precip > 20:
-        weather_label = ui["storm"]
-    elif avg_rad < 180:
-        weather_label = ui["cloudy"]
-    else:
-        weather_label = ui["sunny"]
-
-if weather_label == ui["sunny"]:
-    weather_icon = "☀️"
-elif weather_label == ui["cloudy"]:
-    weather_icon = "☁️"
-elif weather_label in [ui["storm"], ui["typhoon"]]:
-    weather_icon = "⛈️"
-elif weather_label == ui["blizzard"]:
-    weather_icon = "🌨️"
-elif weather_label == ui["cold_wave"]:
-    weather_icon = "🥶"
-else:
-    weather_icon = "🌦️"
-
-st.info(f"{ui.get('weather_status', 'Weather Status')}: {weather_icon} {weather_label}")
-
-w1, w2, w3, w4, w5 = st.columns(5)
-w1.metric(ui["temperature"], f"{avg_temp:.1f} °C")
-w2.metric(ui["wind_speed"], f"{avg_wind:.1f} m/s")
-w3.metric(ui["solar_radiation"], f"{avg_rad:.0f} W/m²")
-w4.metric(ui["precipitation"], f"{total_precip:.1f} mm")
-w5.metric(ui["humidity"], f"{avg_humidity:.0f}%")
-
-solar_bias = get_bias(country_key, "solar_bias", 1.0)
-wind_bias = get_bias(country_key, "wind_bias", 1.0)
-geo_bias = get_bias(country_key, "geo_bias", 0.3)
-hydro_bias = get_bias(country_key, "hydro_bias", 0.5)
-
-desc = safe_country_desc(country_key).lower()
-heat_sens = 0.25
-cool_sens = 0.25
-
-if any(x in desc for x in ["cooling", "高濕", "島嶼", "kühl", "chüel", "jääh", "kæli"]):
-    cool_sens = 0.85
-    heat_sens = 0.20
-elif any(x in desc for x in ["cold", "nordic", "寒冷", "北歐", "heating", "冬季", "heiz", "lämm", "hitun"]):
-    heat_sens = 1.00
-    cool_sens = 0.08
-elif any(x in desc for x in ["geothermal", "地熱", "geothermie", "jarðhiti"]):
-    heat_sens = 0.95
-    cool_sens = 0.02
-elif any(x in desc for x in ["alpine", "阿爾卑斯", "alp", "alpa"]):
-    heat_sens = 0.75
-    cool_sens = 0.15
-
-base_curve = np.array([
-    0.78, 0.74, 0.72, 0.70, 0.70, 0.75,
-    0.90, 1.05, 1.20, 1.32, 1.42, 1.48,
-    1.55, 1.50, 1.40, 1.30, 1.18, 1.08,
-    0.98, 0.90, 0.86, 0.82, 0.80, 0.79
-])
-
-base_demand = population / 4500.0
-heating_load = np.maximum(0, (18 - temperature)) * heat_sens * 0.9
-cooling_load = np.maximum(0, (temperature - 24)) * cool_sens * 0.9
-demand = base_demand * base_curve + heating_load + cooling_load
-
-solar_cf = np.clip(solar_radiation / 800.0, 0, 1) * solar_bias
-solar_cf = np.clip(solar_cf, 0, 1.25)
-solar = solar_capacity * solar_cf
-
-cut_in = 3.0
-rated = 12.0
-wind_cf = np.clip((wind_speed - cut_in) / (rated - cut_in), 0, 1) ** 1.4
-wind_cf = np.clip(wind_cf * wind_bias, 0, 1.25)
-wind = wind_capacity * wind_cf
-
-geothermal_cf = np.array([0.92] * 24) * geo_bias
-geothermal = geothermal_capacity * geothermal_cf
-
-hydro_pattern = np.array([
-    0.75, 0.75, 0.75, 0.75, 0.76, 0.78,
-    0.82, 0.86, 0.90, 0.92, 0.94, 0.96,
-    0.96, 0.95, 0.93, 0.90, 0.88, 0.86,
-    0.84, 0.82, 0.80, 0.78, 0.76, 0.75
-])
-hydro_weather_boost = min(1.15, 1 + total_precip / 200)
-hydro = hydro_capacity * hydro_pattern * hydro_bias * hydro_weather_boost
-
-renewable_supply = solar + wind + geothermal + hydro
-
-battery_level = 0.0
-battery_levels = []
-final_supply = []
-grid_support_used = []
-grid_support_capacity = 140
-
-for i in range(24):
-    supply = renewable_supply[i]
-    diff = supply - demand[i]
-
-    if diff > 0:
-        battery_level = min(battery_capacity, battery_level + diff)
-        grid_used = 0.0
-    else:
-        use_battery = min(battery_level, abs(diff))
-        battery_level -= use_battery
-        supply += use_battery
-
-        remaining_gap = max(0.0, demand[i] - supply)
-        use_grid = min(grid_support_capacity, remaining_gap)
-        supply += use_grid
-        grid_used = use_grid
-
-    battery_levels.append(battery_level)
-    final_supply.append(supply)
-    grid_support_used.append(grid_used)
-
-battery_levels = np.array(battery_levels)
-final_supply = np.array(final_supply)
-grid_support_used = np.array(grid_support_used)
-
-shortfall = np.maximum(demand - final_supply, 0).sum()
-renewable_ratio = min((renewable_supply.sum() / demand.sum()) * 100, 100)
-system_efficiency = max(0.0, 100 - (shortfall / max(demand.sum(), 1) * 100))
-grid_dependency = (grid_support_used.sum() / max(demand.sum(), 1)) * 100
-
-hourly_deficit = np.maximum(demand - renewable_supply, 0)
-avg_hourly_deficit = max(1.0, float(np.mean(hourly_deficit)))
-backup_support_hours = battery_capacity / avg_hourly_deficit
-
-base_repair_hours_map = {
-    ui["normal"]: 2.0,
-    ui["heat_wave"]: 4.0,
-    ui["storm"]: 8.0,
-    ui["cold_wave"]: 6.0,
-    ui["blizzard"]: 12.0,
-    ui["typhoon"]: 16.0,
-}
-repair_eta = base_repair_hours_map.get(scenario, 6.0)
-repair_eta = repair_eta * (1 + min(shortfall / max(demand.sum(), 1), 0.5))
-
-shortfall_ratio = shortfall / max(demand.sum(), 1)
-if shortfall_ratio <= 0.05:
-    shortfall_severity = ui["low"]
-elif shortfall_ratio <= 0.15:
-    shortfall_severity = ui["moderate"]
-else:
-    shortfall_severity = ui["high"]
-
-if system_efficiency >= 90 and backup_support_hours >= 10:
-    resilience_status = ui["stable_status"]
-elif system_efficiency >= 70 and backup_support_hours >= 4:
-    resilience_status = ui["stressed_status"]
-else:
-    resilience_status = ui["critical_status"]
-
-st.subheader(ui["current_inputs"])
-st.write(f"{t.get('population', 'Population')}: {population}")
-st.write(f"{t.get('solar', 'Solar Capacity (MW)')}: {solar_capacity}")
-st.write(f"{t.get('wind', 'Wind Capacity (MW)')}: {wind_capacity}")
-st.write(f"{t.get('geothermal', 'Geothermal Capacity (MW)')}: {geothermal_capacity}")
-st.write(f"{t.get('hydro', 'Hydropower Capacity (MW)')}: {hydro_capacity}")
-st.write(f"{t.get('battery', 'Battery Storage (MWh)')}: {battery_capacity}")
-
-st.subheader(ui["system_performance"])
-k1, k2, k3, k4, k5, k6 = st.columns(6)
-k1.metric(ui["energy_shortfall"], f"{shortfall:.1f} MWh")
-k2.metric(ui["renewable_utilization"], f"{renewable_ratio:.1f}%")
-k3.metric(ui["system_efficiency"], f"{system_efficiency:.1f}%")
-k4.metric(ui["grid_dependency"], f"{grid_dependency:.1f}%")
-k5.metric(ui["backup_hours"], f"{backup_support_hours:.1f} h")
-k6.metric(ui["repair_eta"], f"{repair_eta:.1f} h")
-
-st.subheader(ui["resilience_summary"])
-c1, c2 = st.columns(2)
-with c1:
-    st.write(f"**{ui['shortfall_severity']}**: {shortfall_severity}")
-with c2:
-    st.write(f"**{ui['status_label']}**: {resilience_status}")
-
-if resilience_status == ui["stable_status"]:
-    st.success(resilience_status)
-elif resilience_status == ui["stressed_status"]:
-    st.warning(resilience_status)
-else:
-    st.error(resilience_status)
-
-plt.style.use("dark_background")
-
-c3, c4 = st.columns(2)
-
-with c3:
-    fig1, ax1 = plt.subplots(figsize=(8, 4))
-    fig1.patch.set_facecolor("#0B1220")
-    ax1.set_facecolor("#0B1220")
-    ax1.plot(hours, demand, label=ui["demand"], linewidth=2.5, color="#60A5FA")
-    ax1.plot(hours, renewable_supply, label=ui["renewable"], linewidth=2.5, color="#F59E0B")
-    ax1.plot(hours, final_supply, label=ui["final_supply"], linewidth=2.5, color="#22C55E")
-    ax1.set_title(ui["energy_demand_supply"])
-    ax1.set_xlabel(ui["hour"])
-    ax1.set_ylabel(ui["energy"])
-    ax1.grid(alpha=0.15)
-    ax1.legend()
-    st.pyplot(fig1)
-
-with c4:
-    fig2, ax2 = plt.subplots(figsize=(8, 4))
-    fig2.patch.set_facecolor("#0B1220")
-    ax2.set_facecolor("#0B1220")
-    ax2.fill_between(hours, battery_levels, color="#22C55E", alpha=0.35)
-    ax2.plot(hours, battery_levels, color="#22C55E", linewidth=2.5)
-    ax2.set_title(ui["battery_storage_level"])
-    ax2.set_xlabel(ui["hour"])
-    ax2.set_ylabel(ui["stored_energy"])
-    ax2.grid(alpha=0.15)
-    st.pyplot(fig2)
-
-fig3, ax3 = plt.subplots(figsize=(12, 4))
-fig3.patch.set_facecolor("#0B1220")
-ax3.set_facecolor("#0B1220")
-stability = final_supply - demand
-colors = ["#22C55E" if x >= 0 else "#EF4444" for x in stability]
-ax3.bar(hours, stability, color=colors)
-ax3.axhline(0, color="white", linewidth=1, alpha=0.7)
-ax3.set_title(ui["grid_stability"])
-ax3.set_xlabel(ui["hour"])
-ax3.set_ylabel(ui["supply_minus_demand"])
-ax3.grid(axis="y", alpha=0.15)
-st.pyplot(fig3)
-
-st.subheader(ui["energy_mix"])
-fig4, ax4 = plt.subplots(figsize=(7, 4))
-fig4.patch.set_facecolor("#0B1220")
-ax4.set_facecolor("#0B1220")
-mix_values = [solar.sum(), wind.sum(), geothermal.sum(), hydro.sum()]
-mix_labels = [
-    ui["solar_label"],
-    ui["wind_label"],
-    ui["geothermal_label"],
-    ui["hydro_label"],
-]
-mix_colors = ["#FACC15", "#38BDF8", "#F97316", "#3B82F6"]
-ax4.pie(mix_values, labels=mix_labels, autopct="%1.1f%%", colors=mix_colors)
-st.pyplot(fig4)
-
-st.subheader(ui["ai_recommendation"])
-
-if shortfall < 50:
-    st.success(ui["balanced"])
-else:
-    deficit = shortfall
-    solar_add = deficit / max(24 * max(solar_bias, 0.2), 1)
-    wind_add = deficit / max(28 * max(wind_bias, 0.2), 1)
-    geothermal_add = deficit / max(30 * max(geo_bias, 0.15), 1)
-    hydro_add = deficit / max(35 * max(hydro_bias, 0.15), 1)
-
-    st.warning(ui["detected"])
-    a1, a2 = st.columns(2)
-    with a1:
-        st.write(f"☀️ {ui['solar_label']}: **+{solar_add:.0f} MW**")
-        st.write(f"🌬️ {ui['wind_label']}: **+{wind_add:.0f} MW**")
-    with a2:
-        st.write(f"🌋 {ui['geothermal_label']}: **+{geothermal_add:.0f} MW**")
-        st.write(f"💧 {ui['hydro_label']}: **+{hydro_add:.0f} MW**")
+if __name__ == "__main__":
+    main()
