@@ -1,6 +1,5 @@
 
 from io import StringIO
-
 import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
@@ -53,11 +52,11 @@ SCENARIOS = {
 }
 
 
-def clamp(value: float, low: float, high: float) -> float:
+def clamp(value, low, high):
     return max(low, min(high, value))
 
 
-def safe_div(a: float, b: float) -> float:
+def safe_div(a, b):
     return a / b if b not in (0, 0.0) else 0.0
 
 
@@ -68,18 +67,18 @@ def normalize_mix(parts):
     return {k: max(v, 0.0) / total for k, v in parts.items()}
 
 
-def base_demand_from_population(population: int) -> float:
+def base_demand_from_population(population):
     return 80 + population / 50000
 
 
-def weather_adjustment(temp: float, humidity: float, precipitation: float) -> float:
+def weather_adjustment(temp, humidity, precipitation):
     cooling = max(0.0, temp - 24) * 1.8
     humidity_load = max(0.0, humidity - 65) * 0.25
     rain_impact = precipitation * 0.08
     return 1.0 + (cooling + humidity_load + rain_impact) / 100.0
 
 
-def compute_energy_supply(inputs, scenario_key: str):
+def compute_energy_supply(inputs, scenario_key):
     scenario = SCENARIOS.get(scenario_key, SCENARIOS["normal"])
 
     temperature = clamp(inputs["temperature"], -30, 55)
@@ -139,7 +138,7 @@ def compute_energy_supply(inputs, scenario_key: str):
     }
 
 
-def recommendation_lines(results, scenario_key: str):
+def recommendation_lines(results, scenario_key):
     lines = []
     if results["shortfall"] > 0:
         lines.append("Increase storage and reserve capacity to reduce supply gaps under stressed conditions.")
@@ -282,27 +281,35 @@ with col1:
     st.write(f"Country Model: {city_profile['country_model']}")
 with col2:
     st.subheader("Input Summary")
-    summary_df = pd.DataFrame({
-        "Field": [
-            "Country", "City", "Population", "Temperature", "Wind Speed",
-            "Solar Radiation", "Precipitation", "Humidity", "Scenario"
-        ],
-        "Value": [
-            country, city, f"{population:,}", f"{temperature} °C", f"{wind_speed} m/s",
-            f"{solar_radiation} W/m²", f"{precipitation} mm", f"{humidity} %", scenario_key
-        ]
-    })
-    st.dataframe(summary_df, use_container_width=True, hide_index=True)
+    r1 = st.columns(2)
+    r1[0].metric("Country", country)
+    r1[1].metric("City", city)
+
+    r2 = st.columns(2)
+    r2[0].metric("Population", f"{population:,}")
+    r2[1].metric("Scenario", scenario_key)
+
+    r3 = st.columns(2)
+    r3[0].metric("Temperature", f"{temperature} °C")
+    r3[1].metric("Wind Speed", f"{wind_speed} m/s")
+
+    r4 = st.columns(2)
+    r4[0].metric("Solar Radiation", f"{solar_radiation} W/m²")
+    r4[1].metric("Precipitation", f"{precipitation} mm")
+
+    r5 = st.columns(2)
+    r5[0].metric("Humidity", f"{humidity}%")
+    r5[1].metric("Coordinates", f"{city_profile['lat']:.2f}, {city_profile['lon']:.2f}")
 
 st.divider()
 top = st.columns(4)
-top[0].metric("Demand", results["demand"])
-top[1].metric("Renewable Supply", results["renewable_supply"])
-top[2].metric("Final Supply", results["final_supply"])
-top[3].metric("Shortfall", results["shortfall"])
+top[0].metric("Demand", f"{results['demand']} MW")
+top[1].metric("Renewable Supply", f"{results['renewable_supply']} MW")
+top[2].metric("Final Supply", f"{results['final_supply']} MW")
+top[3].metric("Shortfall", f"{results['shortfall']} MW")
 
 bottom = st.columns(4)
-bottom[0].metric("Battery Levels", results["battery_levels"])
+bottom[0].metric("Battery Levels", f"{results['battery_levels']} MWh")
 bottom[1].metric("Renewable Ratio", f"{results['renewable_ratio']}%")
 bottom[2].metric("System Efficiency", f"{results['system_efficiency']}%")
 bottom[3].metric("Grid Dependency", f"{results['grid_dependency']}%")
