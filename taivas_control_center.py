@@ -1,15 +1,11 @@
 
-import math
 from io import StringIO
-from typing import Dict, List
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 
-
 st.set_page_config(page_title="TAIVAS Energy Control Center", layout="wide")
-
 
 CITY_DATA = {
     "Taiwan": {
@@ -65,7 +61,7 @@ def safe_div(a: float, b: float) -> float:
     return a / b if b not in (0, 0.0) else 0.0
 
 
-def normalize_mix(parts: Dict[str, float]) -> Dict[str, float]:
+def normalize_mix(parts):
     total = sum(max(v, 0.0) for v in parts.values())
     if total <= 0:
         return {k: 0.0 for k in parts}
@@ -83,7 +79,7 @@ def weather_adjustment(temp: float, humidity: float, precipitation: float) -> fl
     return 1.0 + (cooling + humidity_load + rain_impact) / 100.0
 
 
-def compute_energy_supply(inputs: Dict[str, float], scenario_key: str) -> Dict[str, float]:
+def compute_energy_supply(inputs, scenario_key: str):
     scenario = SCENARIOS.get(scenario_key, SCENARIOS["normal"])
 
     temperature = clamp(inputs["temperature"], -30, 55)
@@ -113,7 +109,6 @@ def compute_energy_supply(inputs: Dict[str, float], scenario_key: str) -> Dict[s
     geo_supply = geothermal_capacity * geo_cf * scenario["geo"]
 
     renewable_supply = solar_supply + wind_supply + hydro_supply + geo_supply
-
     battery_dispatch = min(battery_capacity * 0.35 * scenario["battery"], max(0.0, demand - renewable_supply))
     final_supply = renewable_supply + battery_dispatch
     shortfall = max(0.0, demand - final_supply)
@@ -140,15 +135,11 @@ def compute_energy_supply(inputs: Dict[str, float], scenario_key: str) -> Dict[s
         "renewable_ratio": round(renewable_ratio, 2),
         "system_efficiency": round(system_efficiency, 2),
         "grid_dependency": round(grid_dependency, 2),
-        "solar_supply": round(solar_supply, 2),
-        "wind_supply": round(wind_supply, 2),
-        "geothermal_supply": round(geo_supply, 2),
-        "hydro_supply": round(hydro_supply, 2),
         "energy_mix_pct": energy_mix_pct,
     }
 
 
-def recommendation_lines(results: Dict[str, float], scenario_key: str) -> List[str]:
+def recommendation_lines(results, scenario_key: str):
     lines = []
     if results["shortfall"] > 0:
         lines.append("Increase storage and reserve capacity to reduce supply gaps under stressed conditions.")
@@ -163,27 +154,51 @@ def recommendation_lines(results: Dict[str, float], scenario_key: str) -> List[s
     return lines
 
 
-def make_donut_chart(mix_pct: Dict[str, float]):
+def make_donut_chart(mix_pct):
     labels = list(mix_pct.keys())
     values = [mix_pct[k] for k in labels]
 
-    fig, ax = plt.subplots(figsize=(8, 5), facecolor="none")
+    fig, ax = plt.subplots(figsize=(10.5, 5.8))
+    fig.patch.set_alpha(0.0)
+    ax.set_facecolor("none")
+
     wedges, _ = ax.pie(
         values,
         startangle=90,
-        wedgeprops=dict(width=0.38, edgecolor="white"),
+        wedgeprops=dict(width=0.36, edgecolor="white", linewidth=1.5),
         labels=None,
     )
-    ax.text(0, 0, "Renewable\nMix", ha="center", va="center", fontsize=16, weight="bold")
+
+    ax.text(
+        0,
+        0,
+        "Renewable\nMix",
+        ha="center",
+        va="center",
+        fontsize=18,
+        weight="bold",
+        color="white",
+    )
+
     legend_labels = [f"{label} — {value:.1f}%" for label, value in zip(labels, values)]
-    ax.legend(wedges, legend_labels, loc="center left", bbox_to_anchor=(1.0, 0.5), frameon=False)
-    ax.set_title("Renewable Energy Mix", fontsize=18, pad=16)
+    legend = ax.legend(
+        wedges,
+        legend_labels,
+        loc="center left",
+        bbox_to_anchor=(0.98, 0.5),
+        frameon=False,
+        fontsize=12,
+    )
+    for text in legend.get_texts():
+        text.set_color("white")
+
+    ax.set_title("Renewable Energy Mix", fontsize=18, pad=16, color="white")
     ax.axis("equal")
-    fig.tight_layout()
+    plt.subplots_adjust(left=0.04, right=0.80, top=0.90, bottom=0.06)
     return fig
 
 
-def comparison_dataframe(inputs: Dict[str, float]) -> pd.DataFrame:
+def comparison_dataframe(inputs):
     rows = []
     for key in SCENARIOS.keys():
         r = compute_energy_supply(inputs, key)
@@ -257,7 +272,7 @@ st.info(
     "scenario stress testing, and energy resilience dashboard outputs."
 )
 
-col1, col2 = st.columns([1.2, 1])
+col1, col2 = st.columns([1.15, 1])
 with col1:
     st.subheader(f"Country Logic: {country}")
     st.write(COUNTRY_NOTES.get(country, "Regional energy model loaded."))
@@ -280,17 +295,17 @@ with col2:
     st.dataframe(summary_df, use_container_width=True, hide_index=True)
 
 st.divider()
-metric_cols = st.columns(4)
-metric_cols[0].metric("Demand", results["demand"])
-metric_cols[1].metric("Renewable Supply", results["renewable_supply"])
-metric_cols[2].metric("Final Supply", results["final_supply"])
-metric_cols[3].metric("Shortfall", results["shortfall"])
+top = st.columns(4)
+top[0].metric("Demand", results["demand"])
+top[1].metric("Renewable Supply", results["renewable_supply"])
+top[2].metric("Final Supply", results["final_supply"])
+top[3].metric("Shortfall", results["shortfall"])
 
-metric_cols2 = st.columns(4)
-metric_cols2[0].metric("Battery Levels", results["battery_levels"])
-metric_cols2[1].metric("Renewable Ratio", f"{results['renewable_ratio']}%")
-metric_cols2[2].metric("System Efficiency", f"{results['system_efficiency']}%")
-metric_cols2[3].metric("Grid Dependency", f"{results['grid_dependency']}%")
+bottom = st.columns(4)
+bottom[0].metric("Battery Levels", results["battery_levels"])
+bottom[1].metric("Renewable Ratio", f"{results['renewable_ratio']}%")
+bottom[2].metric("System Efficiency", f"{results['system_efficiency']}%")
+bottom[3].metric("Grid Dependency", f"{results['grid_dependency']}%")
 
 st.divider()
 tab1, tab2, tab3 = st.tabs(["Energy Mix", "Scenario Comparison", "AI Recommendation"])
