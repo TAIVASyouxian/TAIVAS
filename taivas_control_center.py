@@ -8,29 +8,29 @@ st.set_page_config(page_title="TAIVAS Energy Control Center", layout="wide")
 
 CITY_DATA = {
     "Taiwan": {
-        "Taipei": {"lat": 25.0330, "lon": 121.5654, "population": 2500000, "country_model": "taiwan"},
-        "Taichung": {"lat": 24.1477, "lon": 120.6736, "population": 2820000, "country_model": "taiwan"},
-        "Kaohsiung": {"lat": 22.6273, "lon": 120.3014, "population": 2730000, "country_model": "taiwan"},
+        "Taipei": {"lat": 25.0330, "lon": 121.5654, "population": 2500000, "country_model": "Island Resilience Model"},
+        "Taichung": {"lat": 24.1477, "lon": 120.6736, "population": 2820000, "country_model": "Island Resilience Model"},
+        "Kaohsiung": {"lat": 22.6273, "lon": 120.3014, "population": 2730000, "country_model": "Island Resilience Model"},
     },
     "Finland": {
-        "Helsinki": {"lat": 60.1699, "lon": 24.9384, "population": 664000, "country_model": "finland"},
-        "Tampere": {"lat": 61.4978, "lon": 23.7610, "population": 255000, "country_model": "finland"},
-        "Rovaniemi": {"lat": 66.5039, "lon": 25.7294, "population": 65000, "country_model": "finland"},
+        "Helsinki": {"lat": 60.1699, "lon": 24.9384, "population": 664000, "country_model": "Winter Reliability Model"},
+        "Tampere": {"lat": 61.4978, "lon": 23.7610, "population": 255000, "country_model": "Winter Reliability Model"},
+        "Rovaniemi": {"lat": 66.5039, "lon": 25.7294, "population": 65000, "country_model": "Winter Reliability Model"},
     },
     "Switzerland": {
-        "Zurich": {"lat": 47.3769, "lon": 8.5417, "population": 435000, "country_model": "switzerland"},
-        "Geneva": {"lat": 46.2044, "lon": 6.1432, "population": 203000, "country_model": "switzerland"},
-        "Bern": {"lat": 46.9480, "lon": 7.4474, "population": 134000, "country_model": "switzerland"},
+        "Zurich": {"lat": 47.3769, "lon": 8.5417, "population": 435000, "country_model": "Alpine Stability Model"},
+        "Geneva": {"lat": 46.2044, "lon": 6.1432, "population": 203000, "country_model": "Alpine Stability Model"},
+        "Bern": {"lat": 46.9480, "lon": 7.4474, "population": 134000, "country_model": "Alpine Stability Model"},
     },
     "Norway": {
-        "Oslo": {"lat": 59.9139, "lon": 10.7522, "population": 717000, "country_model": "norway"},
-        "Bergen": {"lat": 60.3913, "lon": 5.3221, "population": 289000, "country_model": "norway"},
-        "Trondheim": {"lat": 63.4305, "lon": 10.3951, "population": 214000, "country_model": "norway"},
+        "Oslo": {"lat": 59.9139, "lon": 10.7522, "population": 717000, "country_model": "Nordic Hydro Resilience Model"},
+        "Bergen": {"lat": 60.3913, "lon": 5.3221, "population": 289000, "country_model": "Nordic Hydro Resilience Model"},
+        "Trondheim": {"lat": 63.4305, "lon": 10.3951, "population": 214000, "country_model": "Nordic Hydro Resilience Model"},
     },
     "Germany": {
-        "Berlin": {"lat": 52.5200, "lon": 13.4050, "population": 3570000, "country_model": "germany"},
-        "Hamburg": {"lat": 53.5511, "lon": 9.9937, "population": 1910000, "country_model": "germany"},
-        "Munich": {"lat": 48.1351, "lon": 11.5820, "population": 1510000, "country_model": "germany"},
+        "Berlin": {"lat": 52.5200, "lon": 13.4050, "population": 3570000, "country_model": "Industrial Transition Model"},
+        "Hamburg": {"lat": 53.5511, "lon": 9.9937, "population": 1910000, "country_model": "Industrial Transition Model"},
+        "Munich": {"lat": 48.1351, "lon": 11.5820, "population": 1510000, "country_model": "Industrial Transition Model"},
     },
 }
 
@@ -99,6 +99,12 @@ st.markdown(
     .subtle-divider {
         margin-top: 0.35rem;
         margin-bottom: 0.85rem;
+    }
+    .sidebar-note {
+        font-size: 0.83rem;
+        opacity: 0.8;
+        margin-top: -0.35rem;
+        margin-bottom: 0.45rem;
     }
     </style>
     """,
@@ -278,14 +284,14 @@ def comparison_dataframe(inputs):
     for key in SCENARIOS.keys():
         r = compute_energy_supply(inputs, key)
         rows.append({
-            "Scenario": key,
-            "Demand": r["demand"],
-            "Renewable Supply": r["renewable_supply"],
-            "Final Supply": r["final_supply"],
-            "Shortfall": r["shortfall"],
-            "Renewable Ratio": r["renewable_ratio"],
-            "System Efficiency": r["system_efficiency"],
-            "Grid Dependency": r["grid_dependency"],
+            "Scenario": key.replace("_", " ").title(),
+            "Demand (MW)": r["demand"],
+            "Renewable Supply (MW)": r["renewable_supply"],
+            "Final Supply (MW)": r["final_supply"],
+            "Shortfall (MW)": r["shortfall"],
+            "Renewable Ratio (%)": r["renewable_ratio"],
+            "System Efficiency (%)": r["system_efficiency"],
+            "Grid Dependency (%)": r["grid_dependency"],
         })
     return pd.DataFrame(rows)
 
@@ -301,6 +307,8 @@ with st.sidebar:
     city_profile = CITY_DATA[country][city]
 
     population = st.slider("Population", 10000, 5000000, int(city_profile["population"]), step=10000)
+    st.markdown(f'<div class="sidebar-note">Selected population: {population:,}</div>', unsafe_allow_html=True)
+
     st.divider()
     st.subheader("Capacity Inputs (MW / MWh)")
     solar_capacity = st.slider("Solar Capacity", 0, 500, 120, 5)
@@ -364,7 +372,7 @@ with overview_col:
     with geo_b:
         mini_card("Longitude", f"{city_profile['lon']}")
     with geo_c:
-        mini_card("Country Model", city_profile["country_model"].title())
+        mini_card("Country Model", city_profile["country_model"])
 
 with summary_col:
     st.subheader("Input Summary")
@@ -383,14 +391,14 @@ with summary_col:
 st.markdown('<div class="subtle-divider"></div>', unsafe_allow_html=True)
 st.subheader("System Performance")
 perf_top = st.columns(4)
-perf_top[0].metric("Demand", results["demand"], help="Current modeled energy demand.")
-perf_top[1].metric("Renewable Supply", results["renewable_supply"], help="Modeled renewable generation under the selected settings.")
-perf_top[2].metric("Final Supply", results["final_supply"], help="Renewables plus battery dispatch.")
-perf_top[3].metric("Shortfall", results["shortfall"], help="Unmet supply after renewable and battery dispatch.")
+perf_top[0].metric("Demand", f"{results['demand']} MW", help="Current modeled energy demand.")
+perf_top[1].metric("Renewable Supply", f"{results['renewable_supply']} MW", help="Modeled renewable generation under the selected settings.")
+perf_top[2].metric("Final Supply", f"{results['final_supply']} MW", help="Renewables plus battery dispatch.")
+perf_top[3].metric("Shortfall", f"{results['shortfall']} MW", help="Unmet supply after renewable and battery dispatch.")
 
 st.subheader("Resilience Indicators")
 perf_bottom = st.columns(4)
-perf_bottom[0].metric("Battery Levels", results["battery_levels"], help="Remaining battery reserve after dispatch.")
+perf_bottom[0].metric("Battery Levels", f"{results['battery_levels']} MWh", help="Remaining battery reserve after dispatch.")
 perf_bottom[1].metric("Renewable Ratio", f"{results['renewable_ratio']}%", help="Share of final supply coming from renewables.")
 perf_bottom[2].metric("System Efficiency", f"{results['system_efficiency']}%", help="Proxy indicator of overall resilience performance.")
 perf_bottom[3].metric("Grid Dependency", f"{results['grid_dependency']}%", help="Residual dependency on external grid support.")
@@ -410,8 +418,26 @@ with tab2:
     with compare_left:
         st.subheader("Baseline vs Selected Scenario")
         baseline_compare = pd.DataFrame([
-            {"Mode": "Baseline Normal", **{k: baseline_results[k] for k in ["demand", "renewable_supply", "final_supply", "shortfall", "renewable_ratio", "system_efficiency", "grid_dependency"]}},
-            {"Mode": scenario_key.replace("_", " ").title(), **{k: results[k] for k in ["demand", "renewable_supply", "final_supply", "shortfall", "renewable_ratio", "system_efficiency", "grid_dependency"]}},
+            {
+                "Mode": "Baseline Normal",
+                "Demand (MW)": baseline_results["demand"],
+                "Renewable Supply (MW)": baseline_results["renewable_supply"],
+                "Final Supply (MW)": baseline_results["final_supply"],
+                "Shortfall (MW)": baseline_results["shortfall"],
+                "Renewable Ratio (%)": baseline_results["renewable_ratio"],
+                "System Efficiency (%)": baseline_results["system_efficiency"],
+                "Grid Dependency (%)": baseline_results["grid_dependency"],
+            },
+            {
+                "Mode": scenario_key.replace("_", " ").title(),
+                "Demand (MW)": results["demand"],
+                "Renewable Supply (MW)": results["renewable_supply"],
+                "Final Supply (MW)": results["final_supply"],
+                "Shortfall (MW)": results["shortfall"],
+                "Renewable Ratio (%)": results["renewable_ratio"],
+                "System Efficiency (%)": results["system_efficiency"],
+                "Grid Dependency (%)": results["grid_dependency"],
+            },
         ])
         st.dataframe(baseline_compare, use_container_width=True, hide_index=True)
     with compare_right:
