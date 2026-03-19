@@ -1,5 +1,5 @@
-
 from io import StringIO
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
@@ -51,12 +51,66 @@ SCENARIOS = {
     "typhoon": {"demand": 1.15, "solar": 0.35, "wind": 0.68, "hydro": 0.78, "geo": 1.00, "battery": 0.82},
 }
 
+st.markdown(
+    """
+    <style>
+    .block-container {padding-top: 1.25rem; padding-bottom: 2rem;}
+    .taivas-hero {
+        padding: 1rem 1.1rem 1rem 1.1rem;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(21,60,110,0.55), rgba(11,18,32,0.25));
+        margin-bottom: 1rem;
+    }
+    .taivas-hero h3 {
+        margin: 0 0 0.35rem 0;
+        font-size: 1.25rem;
+    }
+    .taivas-hero p {
+        margin: 0;
+        opacity: 0.9;
+        line-height: 1.55;
+    }
+    .section-note {
+        padding: 0.85rem 1rem;
+        border-radius: 14px;
+        background: rgba(59, 130, 246, 0.10);
+        border: 1px solid rgba(96, 165, 250, 0.20);
+        margin-bottom: 0.75rem;
+    }
+    .mini-card {
+        padding: 0.85rem 0.95rem;
+        border-radius: 14px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.06);
+        margin-bottom: 0.65rem;
+        min-height: 88px;
+    }
+    .mini-label {
+        font-size: 0.82rem;
+        opacity: 0.78;
+        margin-bottom: 0.3rem;
+    }
+    .mini-value {
+        font-size: 1.05rem;
+        font-weight: 600;
+        line-height: 1.3;
+    }
+    .subtle-divider {
+        margin-top: 0.35rem;
+        margin-bottom: 0.85rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
-def clamp(value, low, high):
+
+def clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
 
 
-def safe_div(a, b):
+def safe_div(a: float, b: float) -> float:
     return a / b if b not in (0, 0.0) else 0.0
 
 
@@ -67,18 +121,18 @@ def normalize_mix(parts):
     return {k: max(v, 0.0) / total for k, v in parts.items()}
 
 
-def base_demand_from_population(population):
+def base_demand_from_population(population: int) -> float:
     return 80 + population / 50000
 
 
-def weather_adjustment(temp, humidity, precipitation):
+def weather_adjustment(temp: float, humidity: float, precipitation: float) -> float:
     cooling = max(0.0, temp - 24) * 1.8
     humidity_load = max(0.0, humidity - 65) * 0.25
     rain_impact = precipitation * 0.08
     return 1.0 + (cooling + humidity_load + rain_impact) / 100.0
 
 
-def compute_energy_supply(inputs, scenario_key):
+def compute_energy_supply(inputs, scenario_key: str):
     scenario = SCENARIOS.get(scenario_key, SCENARIOS["normal"])
 
     temperature = clamp(inputs["temperature"], -30, 55)
@@ -138,7 +192,7 @@ def compute_energy_supply(inputs, scenario_key):
     }
 
 
-def recommendation_lines(results, scenario_key):
+def recommendation_lines(results, scenario_key: str):
     lines = []
     if results["shortfall"] > 0:
         lines.append("Increase storage and reserve capacity to reduce supply gaps under stressed conditions.")
@@ -153,7 +207,19 @@ def recommendation_lines(results, scenario_key):
     return lines
 
 
-def make_donut_chart(mix_pct):
+def mini_card(label: str, value: str):
+    st.markdown(
+        f"""
+        <div class="mini-card">
+            <div class="mini-label">{label}</div>
+            <div class="mini-value">{value}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def make_donut_chart(mix_pct, renewable_ratio: float):
     labels = list(mix_pct.keys())
     values = [mix_pct[k] for k in labels]
 
@@ -170,11 +236,21 @@ def make_donut_chart(mix_pct):
 
     ax.text(
         0,
-        0,
-        "Renewable\nMix",
+        0.08,
+        "Renewable",
         ha="center",
         va="center",
-        fontsize=18,
+        fontsize=20,
+        weight="bold",
+        color="white",
+    )
+    ax.text(
+        0,
+        -0.08,
+        f"{renewable_ratio:.1f}%",
+        ha="center",
+        va="center",
+        fontsize=17,
         weight="bold",
         color="white",
     )
@@ -202,14 +278,14 @@ def comparison_dataframe(inputs):
     for key in SCENARIOS.keys():
         r = compute_energy_supply(inputs, key)
         rows.append({
-            "scenario": key,
-            "demand": r["demand"],
-            "renewable_supply": r["renewable_supply"],
-            "final_supply": r["final_supply"],
-            "shortfall": r["shortfall"],
-            "renewable_ratio": r["renewable_ratio"],
-            "system_efficiency": r["system_efficiency"],
-            "grid_dependency": r["grid_dependency"],
+            "Scenario": key,
+            "Demand": r["demand"],
+            "Renewable Supply": r["renewable_supply"],
+            "Final Supply": r["final_supply"],
+            "Shortfall": r["shortfall"],
+            "Renewable Ratio": r["renewable_ratio"],
+            "System Efficiency": r["system_efficiency"],
+            "Grid Dependency": r["grid_dependency"],
         })
     return pd.DataFrame(rows)
 
@@ -266,70 +342,79 @@ results = compute_energy_supply(inputs, scenario_key)
 baseline_results = compute_energy_supply(inputs, "normal")
 scenario_df = comparison_dataframe(inputs)
 
-st.info(
-    "This control center combines country logic, city profiles, weather simulation, "
-    "scenario stress testing, and energy resilience dashboard outputs."
+st.markdown(
+    """
+    <div class="taivas-hero">
+        <h3>Operational Overview</h3>
+        <p>This control center combines country logic, city profiles, weather simulation, scenario stress testing, and energy resilience dashboard outputs.</p>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
 
-col1, col2 = st.columns([1.15, 1])
-with col1:
+overview_col, summary_col = st.columns([1.05, 1.1])
+
+with overview_col:
     st.subheader(f"Country Logic: {country}")
     st.write(COUNTRY_NOTES.get(country, "Regional energy model loaded."))
     st.subheader(f"City Profile: {city}")
-    st.write(f"Latitude: {city_profile['lat']}")
-    st.write(f"Longitude: {city_profile['lon']}")
-    st.write(f"Country Model: {city_profile['country_model']}")
-with col2:
+    geo_a, geo_b, geo_c = st.columns(3)
+    with geo_a:
+        mini_card("Latitude", f"{city_profile['lat']}")
+    with geo_b:
+        mini_card("Longitude", f"{city_profile['lon']}")
+    with geo_c:
+        mini_card("Country Model", city_profile["country_model"].title())
+
+with summary_col:
     st.subheader("Input Summary")
-    r1 = st.columns(2)
-    r1[0].metric("Country", country)
-    r1[1].metric("City", city)
+    sum_a, sum_b = st.columns(2)
+    with sum_a:
+        mini_card("Country", country)
+        mini_card("City", city)
+        mini_card("Population", f"{population:,}")
+        mini_card("Scenario", scenario_key.replace("_", " ").title())
+    with sum_b:
+        mini_card("Temperature", f"{temperature} °C")
+        mini_card("Wind Speed", f"{wind_speed} m/s")
+        mini_card("Solar Radiation", f"{solar_radiation} W/m²")
+        mini_card("Humidity", f"{humidity} %")
 
-    r2 = st.columns(2)
-    r2[0].metric("Population", f"{population:,}")
-    r2[1].metric("Scenario", scenario_key)
+st.markdown('<div class="subtle-divider"></div>', unsafe_allow_html=True)
+st.subheader("System Performance")
+perf_top = st.columns(4)
+perf_top[0].metric("Demand", results["demand"], help="Current modeled energy demand.")
+perf_top[1].metric("Renewable Supply", results["renewable_supply"], help="Modeled renewable generation under the selected settings.")
+perf_top[2].metric("Final Supply", results["final_supply"], help="Renewables plus battery dispatch.")
+perf_top[3].metric("Shortfall", results["shortfall"], help="Unmet supply after renewable and battery dispatch.")
 
-    r3 = st.columns(2)
-    r3[0].metric("Temperature", f"{temperature} °C")
-    r3[1].metric("Wind Speed", f"{wind_speed} m/s")
-
-    r4 = st.columns(2)
-    r4[0].metric("Solar Radiation", f"{solar_radiation} W/m²")
-    r4[1].metric("Precipitation", f"{precipitation} mm")
-
-    r5 = st.columns(2)
-    r5[0].metric("Humidity", f"{humidity}%")
-    r5[1].metric("Coordinates", f"{city_profile['lat']:.2f}, {city_profile['lon']:.2f}")
-
-st.divider()
-top = st.columns(4)
-top[0].metric("Demand", f"{results['demand']} MW")
-top[1].metric("Renewable Supply", f"{results['renewable_supply']} MW")
-top[2].metric("Final Supply", f"{results['final_supply']} MW")
-top[3].metric("Shortfall", f"{results['shortfall']} MW")
-
-bottom = st.columns(4)
-bottom[0].metric("Battery Levels", f"{results['battery_levels']} MWh")
-bottom[1].metric("Renewable Ratio", f"{results['renewable_ratio']}%")
-bottom[2].metric("System Efficiency", f"{results['system_efficiency']}%")
-bottom[3].metric("Grid Dependency", f"{results['grid_dependency']}%")
+st.subheader("Resilience Indicators")
+perf_bottom = st.columns(4)
+perf_bottom[0].metric("Battery Levels", results["battery_levels"], help="Remaining battery reserve after dispatch.")
+perf_bottom[1].metric("Renewable Ratio", f"{results['renewable_ratio']}%", help="Share of final supply coming from renewables.")
+perf_bottom[2].metric("System Efficiency", f"{results['system_efficiency']}%", help="Proxy indicator of overall resilience performance.")
+perf_bottom[3].metric("Grid Dependency", f"{results['grid_dependency']}%", help="Residual dependency on external grid support.")
 
 st.divider()
 tab1, tab2, tab3 = st.tabs(["Energy Mix", "Scenario Comparison", "AI Recommendation"])
 
 with tab1:
-    st.pyplot(make_donut_chart(results["energy_mix_pct"]), clear_figure=True)
+    st.markdown(
+        '<div class="section-note">This chart shows the modeled renewable contribution structure under the selected city, weather, and scenario settings.</div>',
+        unsafe_allow_html=True,
+    )
+    st.pyplot(make_donut_chart(results["energy_mix_pct"], results["renewable_ratio"]), clear_figure=True)
 
 with tab2:
-    compare_cols = st.columns(2)
-    with compare_cols[0]:
+    compare_left, compare_right = st.columns(2)
+    with compare_left:
         st.subheader("Baseline vs Selected Scenario")
         baseline_compare = pd.DataFrame([
-            {"mode": "baseline_normal", **{k: baseline_results[k] for k in ["demand", "renewable_supply", "final_supply", "shortfall", "renewable_ratio", "system_efficiency", "grid_dependency"]}},
-            {"mode": scenario_key, **{k: results[k] for k in ["demand", "renewable_supply", "final_supply", "shortfall", "renewable_ratio", "system_efficiency", "grid_dependency"]}},
+            {"Mode": "Baseline Normal", **{k: baseline_results[k] for k in ["demand", "renewable_supply", "final_supply", "shortfall", "renewable_ratio", "system_efficiency", "grid_dependency"]}},
+            {"Mode": scenario_key.replace("_", " ").title(), **{k: results[k] for k in ["demand", "renewable_supply", "final_supply", "shortfall", "renewable_ratio", "system_efficiency", "grid_dependency"]}},
         ])
         st.dataframe(baseline_compare, use_container_width=True, hide_index=True)
-    with compare_cols[1]:
+    with compare_right:
         st.subheader("All Scenarios")
         st.dataframe(scenario_df, use_container_width=True, hide_index=True)
 
