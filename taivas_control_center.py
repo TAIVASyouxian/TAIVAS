@@ -5,6 +5,7 @@ import streamlit as st
 
 from modules.charts import make_donut_chart
 from modules.recommendations import recommendation_lines
+from modules.energy_security import apply_energy_security_layer, ENERGY_SECURITY_SCENARIOS
 
 st.set_page_config(page_title="TAIVAS Energy Control Center", layout="wide")
 
@@ -59,32 +60,25 @@ st.markdown(
     .block-container {padding-top: 1.25rem; padding-bottom: 2rem;}
     .taivas-hero {
         padding: 1rem 1.1rem 1rem 1.1rem;
-        border: 1px solid rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.10);
         border-radius: 16px;
-        background: linear-gradient(135deg, rgba(21,60,110,0.55), rgba(11,18,32,0.25));
+        background: linear-gradient(135deg, rgba(21,60,110,0.58), rgba(11,18,32,0.28));
         margin-bottom: 1rem;
     }
-    .taivas-hero h3 {
-        margin: 0 0 0.35rem 0;
-        font-size: 1.25rem;
-    }
-    .taivas-hero p {
-        margin: 0;
-        opacity: 0.9;
-        line-height: 1.55;
-    }
+    .taivas-hero h3 { margin: 0 0 0.35rem 0; font-size: 1.25rem; }
+    .taivas-hero p { margin: 0; opacity: 0.92; line-height: 1.55; }
     .section-note {
         padding: 0.85rem 1rem;
         border-radius: 14px;
         background: rgba(59, 130, 246, 0.10);
-        border: 1px solid rgba(96, 165, 250, 0.20);
+        border: 1px solid rgba(96, 165, 250, 0.24);
         margin-bottom: 0.75rem;
     }
     .mini-card {
         padding: 0.85rem 0.95rem;
         border-radius: 14px;
-        background: rgba(255,255,255,0.03);
-        border: 1px solid rgba(255,255,255,0.06);
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.12);
         margin-bottom: 0.65rem;
         min-height: 88px;
     }
@@ -98,10 +92,7 @@ st.markdown(
         font-weight: 600;
         line-height: 1.3;
     }
-    .subtle-divider {
-        margin-top: 0.35rem;
-        margin-bottom: 0.85rem;
-    }
+    .subtle-divider { margin-top: 0.35rem; margin-bottom: 0.85rem; }
     .sidebar-note {
         font-size: 0.83rem;
         opacity: 0.8;
@@ -230,7 +221,7 @@ def comparison_dataframe(inputs):
 
 
 st.title("TAIVAS Energy Control Center")
-st.caption("AI-driven energy resilience and recovery dashboard")
+st.caption("AI-driven energy resilience, recovery, and energy-security dashboard")
 
 with st.sidebar:
     st.header("Controls")
@@ -259,7 +250,20 @@ with st.sidebar:
     humidity = st.slider("Humidity (%)", 0, 100, 73, 1)
 
     st.divider()
-    scenario_key = st.selectbox("Scenario", list(SCENARIOS.keys()), index=0)
+    scenario_key = st.selectbox("Weather Scenario", list(SCENARIOS.keys()), index=0)
+
+    st.divider()
+    st.subheader("Energy Security Inputs")
+    energy_security_scenario = st.selectbox(
+        "Energy Security Scenario",
+        list(ENERGY_SECURITY_SCENARIOS.keys()),
+        index=0,
+    )
+    import_dependency = st.slider("Import Dependency", 0.0, 1.0, 0.70, 0.01)
+    strategic_reserve_days = st.slider("Strategic Reserve Days", 0, 90, 20, 1)
+    critical_load_share = st.slider("Critical Load Share", 0.0, 1.0, 0.35, 0.01)
+    shipping_dependency = st.slider("Shipping Dependency", 0.0, 1.0, 0.85, 0.01)
+    infrastructure_damage_ratio = st.slider("Infrastructure Damage Ratio", 0.0, 1.0, 0.10, 0.01)
 
 inputs = {
     "country_key": country,
@@ -280,14 +284,34 @@ inputs = {
 }
 
 results = compute_energy_supply(inputs, scenario_key)
+results, energy_security_profile = apply_energy_security_layer(
+    base_results=results,
+    scenario_key=energy_security_scenario,
+    import_dependency=import_dependency,
+    strategic_reserve_days=strategic_reserve_days,
+    critical_load_share=critical_load_share,
+    shipping_dependency=shipping_dependency,
+    infrastructure_damage_ratio=infrastructure_damage_ratio,
+)
+
 baseline_results = compute_energy_supply(inputs, "normal")
+baseline_results, _ = apply_energy_security_layer(
+    base_results=baseline_results,
+    scenario_key="normal",
+    import_dependency=import_dependency,
+    strategic_reserve_days=strategic_reserve_days,
+    critical_load_share=critical_load_share,
+    shipping_dependency=shipping_dependency,
+    infrastructure_damage_ratio=0.0,
+)
+
 scenario_df = comparison_dataframe(inputs)
 
 st.markdown(
     """
     <div class="taivas-hero">
         <h3>Operational Overview</h3>
-        <p>This control center combines country logic, city profiles, weather simulation, scenario stress testing, and energy resilience dashboard outputs.</p>
+        <p>This control center combines country logic, city profiles, weather simulation, scenario stress testing, and an energy security layer for import disruption, reserves, and critical-load coverage.</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -314,12 +338,12 @@ with summary_col:
         mini_card("Country", country)
         mini_card("City", city)
         mini_card("Population", f"{population:,}")
-        mini_card("Scenario", scenario_key.replace("_", " ").title())
+        mini_card("Weather Scenario", scenario_key.replace("_", " ").title())
     with sum_b:
-        mini_card("Temperature", f"{temperature} °C")
-        mini_card("Wind Speed", f"{wind_speed} m/s")
-        mini_card("Solar Radiation", f"{solar_radiation} W/m²")
-        mini_card("Humidity", f"{humidity} %")
+        mini_card("Energy Security", energy_security_scenario.replace("_", " ").title())
+        mini_card("Import Dependency", f"{import_dependency * 100:.0f}%")
+        mini_card("Reserve Days", f"{strategic_reserve_days} days")
+        mini_card("Critical Load", f"{critical_load_share * 100:.0f}%")
 
 st.markdown('<div class="subtle-divider"></div>', unsafe_allow_html=True)
 st.subheader("System Performance")
@@ -337,7 +361,9 @@ perf_bottom[2].metric("System Efficiency", f"{results['system_efficiency']}%", h
 perf_bottom[3].metric("Grid Dependency", f"{results['grid_dependency']}%", help="Residual dependency on external grid support.")
 
 st.divider()
-tab1, tab2, tab3 = st.tabs(["Energy Mix", "Scenario Comparison", "AI Recommendation"])
+tab1, tab2, tab3, tab4 = st.tabs(
+    ["Energy Mix", "Scenario Comparison", "AI Recommendation", "Energy Security"]
+)
 
 with tab1:
     st.markdown(
@@ -362,7 +388,7 @@ with tab2:
                 "Grid Dependency (%)": baseline_results["grid_dependency"],
             },
             {
-                "Mode": scenario_key.replace("_", " ").title(),
+                "Mode": f"{scenario_key.replace('_', ' ').title()} + {energy_security_scenario.replace('_', ' ').title()}",
                 "Demand (MW)": results["demand"],
                 "Renewable Supply (MW)": results["renewable_supply"],
                 "Final Supply (MW)": results["final_supply"],
@@ -374,18 +400,45 @@ with tab2:
         ])
         st.dataframe(baseline_compare, use_container_width=True, hide_index=True)
     with compare_right:
-        st.subheader("All Scenarios")
+        st.subheader("All Weather Scenarios")
         st.dataframe(scenario_df, use_container_width=True, hide_index=True)
 
 with tab3:
     st.subheader("AI Recommendation Panel")
-    for idx, line in enumerate(recommendation_lines(results, scenario_key), 1):
+    for idx, line in enumerate(recommendation_lines(results, energy_security_scenario), 1):
         st.write(f"{idx}. {line}")
     st.subheader("Risk and Governance Notice")
     st.warning(
         "This product is a decision-support tool and not an unconditional guarantee. "
         "Model outputs may change when assumptions or parameters change."
     )
+
+with tab4:
+    st.subheader("Energy Security")
+    st.markdown(
+        '<div class="section-note">This section adds import exposure, reserve endurance, critical-load protection, and recovery indicators on top of the core resilience model.</div>',
+        unsafe_allow_html=True,
+    )
+    s1, s2, s3 = st.columns(3)
+    s1.metric("Import Disruption Score", f"{results['import_disruption_score']}%")
+    s2.metric("Reserve Days Remaining", f"{results['reserve_days_remaining']} days")
+    s3.metric("Fuel Cost Stress", f"{results['fuel_cost_stress']}%")
+
+    s4, s5 = st.columns(2)
+    s4.metric("Critical Load Coverage", f"{results['critical_load_coverage']}%")
+    s5.metric("Recovery Time Estimate", f"{results['recovery_time_estimate']} days")
+
+    st.subheader("Security Input Snapshot")
+    sec_a, sec_b, sec_c = st.columns(3)
+    with sec_a:
+        mini_card("Import Dependency", f"{import_dependency * 100:.0f}%")
+        mini_card("Shipping Dependency", f"{shipping_dependency * 100:.0f}%")
+    with sec_b:
+        mini_card("Reserve Days", f"{strategic_reserve_days} days")
+        mini_card("Critical Load Share", f"{critical_load_share * 100:.0f}%")
+    with sec_c:
+        mini_card("Security Scenario", energy_security_scenario.replace("_", " ").title())
+        mini_card("Infrastructure Damage", f"{infrastructure_damage_ratio * 100:.0f}%")
 
 csv_buffer = StringIO()
 scenario_df.to_csv(csv_buffer, index=False)
