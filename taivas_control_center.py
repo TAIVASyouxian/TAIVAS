@@ -6,6 +6,7 @@ import streamlit as st
 from modules.charts import make_donut_chart
 from modules.recommendations import recommendation_lines
 from modules.energy_security import apply_energy_security_layer, ENERGY_SECURITY_SCENARIOS
+from modules.survival_timeline import simulate_survival_timeline
 
 st.set_page_config(page_title="TAIVAS Energy Control Center", layout="wide")
 
@@ -221,7 +222,7 @@ def comparison_dataframe(inputs):
 
 
 st.title("TAIVAS Energy Control Center")
-st.caption("AI-driven energy resilience, recovery, and energy-security dashboard")
+st.caption("AI-driven energy resilience, recovery, energy-security, and survival-timeline dashboard")
 
 with st.sidebar:
     st.header("Controls")
@@ -265,6 +266,13 @@ with st.sidebar:
     shipping_dependency = st.slider("Shipping Dependency", 0.0, 1.0, 0.85, 0.01)
     infrastructure_damage_ratio = st.slider("Infrastructure Damage Ratio", 0.0, 1.0, 0.10, 0.01)
 
+    st.divider()
+    st.subheader("Survival Timeline Inputs")
+    simulation_hours = st.selectbox("Simulation Hours", [24, 72, 168], index=0)
+    primary_supply_failure_ratio = st.slider("Primary Supply Failure Ratio", 0.0, 1.0, 0.30, 0.01)
+    reserve_energy_per_day = st.slider("Reserve Energy per Day", 20.0, 300.0, 120.0, 5.0)
+    survival_mode = st.selectbox("Survival Mode", ["full_load", "critical_load_only"], index=0)
+
 inputs = {
     "country_key": country,
     "city_key": city,
@@ -294,6 +302,19 @@ results, energy_security_profile = apply_energy_security_layer(
     infrastructure_damage_ratio=infrastructure_damage_ratio,
 )
 
+timeline_results = simulate_survival_timeline(
+    demand=results["demand"],
+    renewable_supply=results["renewable_supply"],
+    battery_capacity=inputs["battery_capacity"],
+    strategic_reserve_days=strategic_reserve_days,
+    critical_load_share=critical_load_share,
+    weather_scenario=scenario_key,
+    simulation_hours=simulation_hours,
+    primary_supply_failure_ratio=primary_supply_failure_ratio,
+    reserve_energy_per_day=reserve_energy_per_day,
+    survival_mode=survival_mode,
+)
+
 baseline_results = compute_energy_supply(inputs, "normal")
 baseline_results, _ = apply_energy_security_layer(
     base_results=baseline_results,
@@ -306,12 +327,13 @@ baseline_results, _ = apply_energy_security_layer(
 )
 
 scenario_df = comparison_dataframe(inputs)
+timeline_df = pd.DataFrame(timeline_results["rows"])
 
 st.markdown(
     """
     <div class="taivas-hero">
         <h3>Operational Overview</h3>
-        <p>This control center combines country logic, city profiles, weather simulation, scenario stress testing, and an energy security layer for import disruption, reserves, and critical-load coverage.</p>
+        <p>This control center combines country logic, city profiles, weather simulation, scenario stress testing, energy security indicators, and a survival timeline layer for estimating how long the system can hold under supply disruption.</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -343,7 +365,7 @@ with summary_col:
         mini_card("Energy Security", energy_security_scenario.replace("_", " ").title())
         mini_card("Import Dependency", f"{import_dependency * 100:.0f}%")
         mini_card("Reserve Days", f"{strategic_reserve_days} days")
-        mini_card("Critical Load", f"{critical_load_share * 100:.0f}%")
+        mini_card("Timeline Horizon", f"{simulation_hours} hours")
 
 st.markdown('<div class="subtle-divider"></div>', unsafe_allow_html=True)
 st.subheader("System Performance")
@@ -361,8 +383,8 @@ perf_bottom[2].metric("System Efficiency", f"{results['system_efficiency']}%", h
 perf_bottom[3].metric("Grid Dependency", f"{results['grid_dependency']}%", help="Residual dependency on external grid support.")
 
 st.divider()
-tab1, tab2, tab3, tab4 = st.tabs(
-    ["Energy Mix", "Scenario Comparison", "AI Recommendation", "Energy Security"]
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
+    ["Energy Mix", "Scenario Comparison", "AI Recommendation", "Energy Security", "Survival Timeline"]
 )
 
 with tab1:
@@ -439,6 +461,36 @@ with tab4:
     with sec_c:
         mini_card("Security Scenario", energy_security_scenario.replace("_", " ").title())
         mini_card("Infrastructure Damage", f"{infrastructure_damage_ratio * 100:.0f}%")
+
+with tab5:
+    st.subheader("Survival Timeline")
+    st.markdown(
+        '<div class="section-note">This section estimates how long the system can continue operating under hourly demand/supply changes, battery depletion, reserve depletion, and primary-supply failure conditions.</div>',
+        unsafe_allow_html=True,
+    )
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Hours Until Shortfall", timeline_results["hours_until_shortfall"])
+    m2.metric("Hours Until Critical Failure", timeline_results["hours_until_critical_failure"])
+    m3.metric("Survival Mode Duration", timeline_results["survival_mode_duration"])
+
+    m4, m5 = st.columns(2)
+    m4.metric("Battery Depletion Hour", timeline_results["battery_depletion_hour"])
+    m5.metric("Reserve Depletion Hour", timeline_results["reserve_depletion_hour"])
+
+    st.subheader("Timeline Input Snapshot")
+    t1, t2, t3 = st.columns(3)
+    with t1:
+        mini_card("Simulation Hours", f"{simulation_hours} h")
+        mini_card("Survival Mode", survival_mode.replace("_", " ").title())
+    with t2:
+        mini_card("Primary Failure Ratio", f"{primary_supply_failure_ratio * 100:.0f}%")
+        mini_card("Reserve Energy / Day", f"{reserve_energy_per_day:.0f}")
+    with t3:
+        mini_card("Critical Load Share", f"{critical_load_share * 100:.0f}%")
+        mini_card("Weather Scenario", scenario_key.replace("_", " ").title())
+
+    st.subheader("Hourly Timeline Table")
+    st.dataframe(timeline_df, use_container_width=True, hide_index=True)
 
 csv_buffer = StringIO()
 scenario_df.to_csv(csv_buffer, index=False)
