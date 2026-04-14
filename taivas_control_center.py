@@ -1,8 +1,10 @@
 from io import StringIO
 
 import pandas as pd
-import plotly.express as px
 import streamlit as st
+import matplotlib.pyplot as plt
+
+from thermal_principle_component import render_thermal_principle_simulation
 
 from modules.charts import make_donut_chart
 from modules.recommendations import recommendation_lines
@@ -609,7 +611,7 @@ status_cols[2].metric("Grid Stress Status", status_grid)
 status_cols[3].metric("Reserve Status", status_reserve)
 
 st.divider()
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
     [
         "Energy Mix",
         "Scenario Comparison",
@@ -617,6 +619,7 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
         "AI Recommendation",
         "Energy Security",
         "Survival Timeline",
+        "Thermal Concept",
     ]
 )
 
@@ -634,27 +637,16 @@ with tab1:
     st.dataframe(mix_table, use_container_width=True, hide_index=True)
 
     st.subheader("Capacity Factors")
-    cf_chart_df = pd.DataFrame(
-        {
-            "Energy Source": list(results["capacity_factors"].keys()),
-            "Capacity Factor (%)": [round(v, 1) for v in results["capacity_factors"].values()],
-        }
-    )
-    fig_cf = px.bar(
-        cf_chart_df,
-        x="Energy Source",
-        y="Capacity Factor (%)",
-        text="Capacity Factor (%)",
-    )
-    fig_cf.update_traces(texttemplate="%{text:.1f}", textposition="outside")
-    fig_cf.update_xaxes(tickangle=0)
-    fig_cf.update_layout(
-        height=430,
-        margin=dict(l=20, r=20, t=10, b=20),
-        xaxis_title="",
-        yaxis_title="Capacity Factor (%)",
-    )
-    st.plotly_chart(fig_cf, use_container_width=True)
+    cf_fig, cf_ax = plt.subplots(figsize=(8.5, 3.8))
+    cf_labels = list(results["capacity_factors"].keys())
+    cf_values = [results["capacity_factors"][k] for k in cf_labels]
+    cf_ax.barh(cf_labels, cf_values)
+    cf_ax.set_xlabel("Capacity Factor (%)")
+    cf_ax.set_xlim(0, 100)
+    cf_ax.invert_yaxis()
+    cf_ax.grid(axis="x", alpha=0.25)
+    cf_fig.tight_layout()
+    st.pyplot(cf_fig, clear_figure=True)
     st.caption(f"Dominant modeled renewable source in the selected scenario: {results['dominant_source']}")
 
 with tab2:
@@ -765,6 +757,65 @@ with tab6:
 
     st.subheader("Hourly Timeline Table")
     st.dataframe(timeline_df, use_container_width=True, hide_index=True)
+
+
+with tab7:
+    st.subheader("Thermal Recovery Concept Module")
+    st.markdown(
+        '<div class="section-note">This concept module visualizes a heat-recovery / thermal-buffer principle for cold-climate resilience analysis. It is a conceptual simulation aid, not a validated hardware deployment model.</div>',
+        unsafe_allow_html=True,
+    )
+
+    tc1, tc2, tc3 = st.columns(3)
+    with tc1:
+        thermal_mode = st.selectbox(
+            "Thermal Concept Mode",
+            ["off", "basic_heat_recovery", "ice_buffer_concept", "advanced_thermal_buffer"],
+            index=1,
+            key="thermal_mode_tab",
+        )
+        fresh_air_temp_c = st.slider("Outside Air for Concept Panel (°C)", -30.0, 25.0, float(min(temperature, 12)), 0.5, key="thermal_fresh_air")
+    with tc2:
+        exhaust_air_temp_c = st.slider("Indoor Exhaust Air (°C)", 10.0, 35.0, 23.0, 0.5, key="thermal_exhaust_air")
+        thermal_recovery_efficiency = st.slider("Thermal Recovery Efficiency", 0.0, 1.0, 0.72, 0.01, key="thermal_efficiency")
+    with tc3:
+        airflow_speed = st.slider("Animation Speed", 0.4, 2.5, 1.0, 0.1, key="thermal_airflow_speed")
+        thermal_demand_offset = st.slider("Conceptual Demand Reduction (%)", 0, 35, 12, 1, key="thermal_demand_offset")
+
+    thermal_buffer_bonus_hours = round((thermal_recovery_efficiency * thermal_demand_offset) / 8.0, 1)
+    thermal_supply_temp = fresh_air_temp_c + (exhaust_air_temp_c - fresh_air_temp_c) * thermal_recovery_efficiency
+    conceptual_heat_retention = round(thermal_recovery_efficiency * 100, 1)
+
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("Thermal Mode", thermal_mode.replace("_", " ").title())
+    k2.metric("Concept Supply Temp", f"{thermal_supply_temp:.1f} °C")
+    k3.metric("Heat Retention Index", f"{conceptual_heat_retention:.1f}%")
+    k4.metric("Estimated Endurance Bonus", f"+{thermal_buffer_bonus_hours} h")
+
+    render_thermal_principle_simulation(
+        title="TAIVAS Thermal Recovery Principle (Concept Mode)",
+        height=560,
+        fresh_air_temp_c=fresh_air_temp_c,
+        exhaust_air_temp_c=exhaust_air_temp_c,
+        recovery_efficiency=thermal_recovery_efficiency,
+        airflow_speed=airflow_speed,
+    )
+
+    thermal_compare_df = pd.DataFrame(
+        [
+            {"Signal": "Current Demand (MW)", "Baseline": results["demand"], "With Thermal Concept": round(results["demand"] * (1 - thermal_demand_offset / 100), 2)},
+            {"Signal": "Hours Until Shortfall", "Baseline": timeline_results["hours_until_shortfall"], "With Thermal Concept": round(timeline_results["hours_until_shortfall"] + thermal_buffer_bonus_hours, 1)},
+            {"Signal": "Hours Until Critical Failure", "Baseline": timeline_results["hours_until_critical_failure"], "With Thermal Concept": round(timeline_results["hours_until_critical_failure"] + thermal_buffer_bonus_hours, 1)},
+            {"Signal": "Reserve Days Remaining", "Baseline": results.get("reserve_days_remaining", 0), "With Thermal Concept": round(results.get("reserve_days_remaining", 0) + thermal_recovery_efficiency * 1.2, 2)},
+        ]
+    )
+    st.subheader("Concept Comparison Snapshot")
+    st.dataframe(thermal_compare_df, use_container_width=True, hide_index=True)
+
+    st.caption(
+        "These thermal concept outputs are scenario assumptions for exploratory resilience modeling only. They should not be interpreted as a validated mechanical engineering design or deployment guarantee."
+    )
+
 
 csv_buffer = StringIO()
 scenario_df.to_csv(csv_buffer, index=False)
