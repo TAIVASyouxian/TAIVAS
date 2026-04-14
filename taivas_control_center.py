@@ -1,15 +1,15 @@
+
 from io import StringIO
 
+import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
-import matplotlib.pyplot as plt
-
-from thermal_principle_component import render_thermal_principle_simulation
 
 from modules.charts import make_donut_chart
 from modules.recommendations import recommendation_lines
 from modules.energy_security import apply_energy_security_layer, ENERGY_SECURITY_SCENARIOS
 from modules.survival_timeline import simulate_survival_timeline
+from thermal_principle_component import render_thermal_principle_simulation
 
 st.set_page_config(page_title="TAIVAS Energy Control Center", layout="wide")
 
@@ -197,7 +197,7 @@ def weather_adjustment(temp: float, humidity: float, precipitation: float) -> fl
     return 1.0 + (cooling + heating + humidity_load + rain_impact) / 100.0
 
 
-def build_status_label(value: float, thresholds: tuple[float, float], reverse: bool = False) -> str:
+def build_status_label(value: float, thresholds, reverse: bool = False) -> str:
     warn, critical = thresholds
     if reverse:
         if value <= critical:
@@ -245,7 +245,7 @@ def scenario_delta_df(baseline: dict, selected: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def recommendation_detail_lines(results: dict, energy_security_scenario: str, timeline_results: dict) -> list[str]:
+def recommendation_detail_lines(results: dict, energy_security_scenario: str, timeline_results: dict) -> list:
     lines = []
     if results["shortfall"] > 0:
         lines.append(
@@ -396,8 +396,62 @@ def compute_energy_supply(inputs, scenario_key: str, failure_ratios: dict, reser
     }
 
 
+def thermal_concept_adjustment(
+    enabled: bool,
+    demand: float,
+    reserve_days_remaining: float,
+    hours_until_shortfall: int,
+    hours_until_critical_failure: int,
+    fresh_air_temp_c: float,
+    exhaust_air_temp_c: float,
+    recovery_efficiency: float,
+):
+    if not enabled:
+        return {
+            "adjusted_demand": demand,
+            "adjusted_reserve_days": reserve_days_remaining,
+            "adjusted_hours_until_shortfall": hours_until_shortfall,
+            "adjusted_hours_until_critical_failure": hours_until_critical_failure,
+            "thermal_demand_reduction_pct": 0.0,
+            "delivered_supply_temp_c": fresh_air_temp_c,
+        }
+
+    thermal_gradient = max(exhaust_air_temp_c - fresh_air_temp_c, 0.0)
+    thermal_demand_reduction_pct = clamp((thermal_gradient / 40.0) * recovery_efficiency * 0.28, 0.0, 0.22)
+    adjusted_demand = round(demand * (1.0 - thermal_demand_reduction_pct), 2)
+
+    reserve_bonus_days = round(thermal_demand_reduction_pct * 9.0, 2)
+    shortfall_bonus_hours = int(round(thermal_demand_reduction_pct * 36.0))
+    critical_bonus_hours = int(round(thermal_demand_reduction_pct * 42.0))
+
+    return {
+        "adjusted_demand": adjusted_demand,
+        "adjusted_reserve_days": round(reserve_days_remaining + reserve_bonus_days, 2),
+        "adjusted_hours_until_shortfall": hours_until_shortfall + shortfall_bonus_hours,
+        "adjusted_hours_until_critical_failure": hours_until_critical_failure + critical_bonus_hours,
+        "thermal_demand_reduction_pct": round(thermal_demand_reduction_pct * 100, 2),
+        "delivered_supply_temp_c": round(fresh_air_temp_c + (exhaust_air_temp_c - fresh_air_temp_c) * recovery_efficiency, 2),
+    }
+
+
+def render_capacity_factor_chart(capacity_factors: dict):
+    labels = list(capacity_factors.keys())
+    values = [capacity_factors[k] for k in labels]
+
+    fig, ax = plt.subplots(figsize=(8.5, 3.8))
+    fig.patch.set_alpha(0.0)
+    ax.set_facecolor("none")
+    ax.barh(labels, values)
+    ax.set_xlabel("Capacity Factor (%)")
+    ax.set_xlim(0, 100)
+    ax.set_title("Capacity Factors")
+    ax.grid(axis="x", alpha=0.25)
+    plt.tight_layout()
+    st.pyplot(fig, clear_figure=True)
+
+
 st.title("TAIVAS Energy Control Center")
-st.caption("AI-driven energy resilience, recovery, energy-security, and survival-timeline dashboard")
+st.caption("AI-driven energy resilience, recovery, energy-security, survival-timeline, and thermal-concept dashboard")
 
 with st.sidebar:
     st.header("Controls")
@@ -465,6 +519,14 @@ with st.sidebar:
     reserve_energy_per_day = st.number_input("Reserve Energy per Day", min_value=20.0, max_value=300.0, value=float(preset.get("reserve_energy_per_day", 120.0)), step=5.0, format="%.1f")
     survival_mode = st.selectbox("Survival Mode", ["full_load", "critical_load_only"], index=0)
 
+    st.divider()
+    st.subheader("Thermal Concept Inputs")
+    thermal_concept_enabled = st.toggle("Enable Thermal Concept Mode", value=True)
+    fresh_air_temp_c = st.slider("Outside Air for Thermal Concept (°C)", -30.0, 20.0, -8.0, 0.5)
+    exhaust_air_temp_c = st.slider("Indoor Exhaust Air (°C)", 10.0, 35.0, 23.0, 0.5)
+    recovery_efficiency = st.slider("Thermal Recovery Efficiency", 0.0, 1.0, 0.72, 0.01)
+    thermal_animation_speed = st.slider("Thermal Animation Speed", 0.4, 2.5, 1.0, 0.1)
+
 failure_ratios = {
     "solar": solar_failure_ratio,
     "wind": wind_failure_ratio,
@@ -500,6 +562,7 @@ results, energy_security_profile = apply_energy_security_layer(
     critical_load_share=critical_load_share,
     shipping_dependency=shipping_dependency,
     infrastructure_damage_ratio=infrastructure_damage_ratio,
+    reserve_recovery_lag_days=reserve_recovery_lag_days,
 )
 
 timeline_results = simulate_survival_timeline(
@@ -524,6 +587,18 @@ baseline_results, _ = apply_energy_security_layer(
     critical_load_share=critical_load_share,
     shipping_dependency=shipping_dependency,
     infrastructure_damage_ratio=0.0,
+    reserve_recovery_lag_days=0.0,
+)
+
+thermal_results = thermal_concept_adjustment(
+    enabled=thermal_concept_enabled,
+    demand=results["demand"],
+    reserve_days_remaining=results.get("reserve_days_remaining", 0),
+    hours_until_shortfall=timeline_results["hours_until_shortfall"],
+    hours_until_critical_failure=timeline_results["hours_until_critical_failure"],
+    fresh_air_temp_c=fresh_air_temp_c,
+    exhaust_air_temp_c=exhaust_air_temp_c,
+    recovery_efficiency=recovery_efficiency,
 )
 
 scenario_df = comparison_dataframe(inputs, failure_ratios, reserve_recovery_lag_days)
@@ -551,7 +626,7 @@ st.markdown(
     """
     <div class="taivas-hero">
         <h3>Operational Overview</h3>
-        <p>This control center now separates installed capacity mix from actual modeled supply mix, adds multi-failure stress testing, baseline deltas, critical-load protection, recovery lag assumptions, and timeline visualization for more realistic resilience analysis.</p>
+        <p>This control center separates installed capacity mix from actual modeled supply mix, adds multi-failure stress testing, baseline deltas, critical-load protection, recovery lag assumptions, timeline visualization, and a conceptual thermal-recovery module for advanced resilience exploration.</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -628,25 +703,16 @@ with tab1:
     c1, c2 = st.columns(2)
     with c1:
         st.subheader("Installed Capacity Mix")
-        st.pyplot(make_donut_chart(results["installed_mix_pct"], 100.0), clear_figure=True)
+        st.pyplot(make_donut_chart(results["installed_mix_pct"], 100.0, title="Installed Capacity Mix"), clear_figure=True)
     with c2:
         st.subheader("Actual Renewable Supply Mix")
-        st.pyplot(make_donut_chart(results["actual_mix_pct"], results["renewable_ratio"]), clear_figure=True)
+        st.pyplot(make_donut_chart(results["actual_mix_pct"], results["renewable_ratio"], title="Actual Renewable Supply Mix"), clear_figure=True)
 
     st.subheader("Energy Source Table")
     st.dataframe(mix_table, use_container_width=True, hide_index=True)
 
     st.subheader("Capacity Factors")
-    cf_fig, cf_ax = plt.subplots(figsize=(8.5, 3.8))
-    cf_labels = list(results["capacity_factors"].keys())
-    cf_values = [results["capacity_factors"][k] for k in cf_labels]
-    cf_ax.barh(cf_labels, cf_values)
-    cf_ax.set_xlabel("Capacity Factor (%)")
-    cf_ax.set_xlim(0, 100)
-    cf_ax.invert_yaxis()
-    cf_ax.grid(axis="x", alpha=0.25)
-    cf_fig.tight_layout()
-    st.pyplot(cf_fig, clear_figure=True)
+    render_capacity_factor_chart(results["capacity_factors"])
     st.caption(f"Dominant modeled renewable source in the selected scenario: {results['dominant_source']}")
 
 with tab2:
@@ -666,15 +732,13 @@ with tab3:
     stress_df = pd.DataFrame(
         {
             "Failure Ratio": failure_ratios,
-            "Availability": {k: round((1 - v) * 100, 1) for k, v in failure_ratios.items()},
+            "Availability (%)": {k: round((1 - v) * 100, 1) for k, v in failure_ratios.items()},
         }
     )
-    st.dataframe(stress_df.reset_index().rename(columns={"index": "Subsystem", "Availability": "Availability (%)"}), use_container_width=True, hide_index=True)
+    st.dataframe(stress_df.reset_index().rename(columns={"index": "Subsystem"}), use_container_width=True, hide_index=True)
 
     availability_chart = pd.DataFrame(
-        {
-            "Availability (%)": {k.title(): round((1 - v) * 100, 1) for k, v in failure_ratios.items()}
-        }
+        {"Availability (%)": {k.title(): round((1 - v) * 100, 1) for k, v in failure_ratios.items()}}
     )
     st.bar_chart(availability_chart)
 
@@ -709,7 +773,7 @@ with tab4:
     st.dataframe(why_df, use_container_width=True, hide_index=True)
 
     st.subheader("Risk and Governance Notice")
-    st.warning("This product is a decision-support tool and not an unconditional guarantee. Model outputs may change when assumptions, failure ratios, or reserve recovery assumptions change.")
+    st.warning("This product is a decision-support tool and not an unconditional guarantee. Model outputs may change when assumptions, failure ratios, reserve recovery assumptions, or thermal concept settings change.")
 
 with tab5:
     st.subheader("Energy Security")
@@ -758,64 +822,47 @@ with tab6:
     st.subheader("Hourly Timeline Table")
     st.dataframe(timeline_df, use_container_width=True, hide_index=True)
 
-
 with tab7:
-    st.subheader("Thermal Recovery Concept Module")
-    st.markdown(
-        '<div class="section-note">This concept module visualizes a heat-recovery / thermal-buffer principle for cold-climate resilience analysis. It is a conceptual simulation aid, not a validated hardware deployment model.</div>',
-        unsafe_allow_html=True,
-    )
-
-    tc1, tc2, tc3 = st.columns(3)
-    with tc1:
-        thermal_mode = st.selectbox(
-            "Thermal Concept Mode",
-            ["off", "basic_heat_recovery", "ice_buffer_concept", "advanced_thermal_buffer"],
-            index=1,
-            key="thermal_mode_tab",
-        )
-        fresh_air_temp_c = st.slider("Outside Air for Concept Panel (°C)", -30.0, 25.0, float(min(temperature, 12)), 0.5, key="thermal_fresh_air")
-    with tc2:
-        exhaust_air_temp_c = st.slider("Indoor Exhaust Air (°C)", 10.0, 35.0, 23.0, 0.5, key="thermal_exhaust_air")
-        thermal_recovery_efficiency = st.slider("Thermal Recovery Efficiency", 0.0, 1.0, 0.72, 0.01, key="thermal_efficiency")
-    with tc3:
-        airflow_speed = st.slider("Animation Speed", 0.4, 2.5, 1.0, 0.1, key="thermal_airflow_speed")
-        thermal_demand_offset = st.slider("Conceptual Demand Reduction (%)", 0, 35, 12, 1, key="thermal_demand_offset")
-
-    thermal_buffer_bonus_hours = round((thermal_recovery_efficiency * thermal_demand_offset) / 8.0, 1)
-    thermal_supply_temp = fresh_air_temp_c + (exhaust_air_temp_c - fresh_air_temp_c) * thermal_recovery_efficiency
-    conceptual_heat_retention = round(thermal_recovery_efficiency * 100, 1)
-
-    k1, k2, k3, k4 = st.columns(4)
-    k1.metric("Thermal Mode", thermal_mode.replace("_", " ").title())
-    k2.metric("Concept Supply Temp", f"{thermal_supply_temp:.1f} °C")
-    k3.metric("Heat Retention Index", f"{conceptual_heat_retention:.1f}%")
-    k4.metric("Estimated Endurance Bonus", f"+{thermal_buffer_bonus_hours} h")
+    st.subheader("Thermal Concept")
+    st.markdown('<div class="section-note">This tab is a conceptual thermal-recovery and heat-buffer simulation layer. It visualizes how heat exchange could reduce electrical heating/cooling burden in extreme conditions. It is not a validated hardware deployment model.</div>', unsafe_allow_html=True)
 
     render_thermal_principle_simulation(
-        title="TAIVAS Thermal Recovery Principle (Concept Mode)",
-        height=560,
         fresh_air_temp_c=fresh_air_temp_c,
         exhaust_air_temp_c=exhaust_air_temp_c,
-        recovery_efficiency=thermal_recovery_efficiency,
-        airflow_speed=airflow_speed,
+        recovery_efficiency=recovery_efficiency,
+        airflow_speed=thermal_animation_speed,
     )
+
+    st.subheader("Thermal Concept Effect Summary")
+    t1, t2, t3 = st.columns(3)
+    t1.metric("Current Demand", f"{results['demand']} MW")
+    t2.metric("With Thermal Concept", f"{thermal_results['adjusted_demand']} MW", delta=f"-{thermal_results['thermal_demand_reduction_pct']}%")
+    t3.metric("Delivered Supply Temp", f"{thermal_results['delivered_supply_temp_c']} °C")
+
+    t4, t5, t6 = st.columns(3)
+    t4.metric("Reserve Days Remaining", f"{results.get('reserve_days_remaining', 0)} days")
+    t5.metric("With Thermal Concept", f"{thermal_results['adjusted_reserve_days']} days")
+    t6.metric("Concept Mode", "Enabled" if thermal_concept_enabled else "Off")
 
     thermal_compare_df = pd.DataFrame(
         [
-            {"Signal": "Current Demand (MW)", "Baseline": results["demand"], "With Thermal Concept": round(results["demand"] * (1 - thermal_demand_offset / 100), 2)},
-            {"Signal": "Hours Until Shortfall", "Baseline": timeline_results["hours_until_shortfall"], "With Thermal Concept": round(timeline_results["hours_until_shortfall"] + thermal_buffer_bonus_hours, 1)},
-            {"Signal": "Hours Until Critical Failure", "Baseline": timeline_results["hours_until_critical_failure"], "With Thermal Concept": round(timeline_results["hours_until_critical_failure"] + thermal_buffer_bonus_hours, 1)},
-            {"Signal": "Reserve Days Remaining", "Baseline": results.get("reserve_days_remaining", 0), "With Thermal Concept": round(results.get("reserve_days_remaining", 0) + thermal_recovery_efficiency * 1.2, 2)},
+            {
+                "Mode": "Current Model",
+                "Demand (MW)": results["demand"],
+                "Reserve Days Remaining": results.get("reserve_days_remaining", 0),
+                "Hours Until Shortfall": timeline_results["hours_until_shortfall"],
+                "Hours Until Critical Failure": timeline_results["hours_until_critical_failure"],
+            },
+            {
+                "Mode": "Thermal Concept Scenario",
+                "Demand (MW)": thermal_results["adjusted_demand"],
+                "Reserve Days Remaining": thermal_results["adjusted_reserve_days"],
+                "Hours Until Shortfall": thermal_results["adjusted_hours_until_shortfall"],
+                "Hours Until Critical Failure": thermal_results["adjusted_hours_until_critical_failure"],
+            },
         ]
     )
-    st.subheader("Concept Comparison Snapshot")
     st.dataframe(thermal_compare_df, use_container_width=True, hide_index=True)
-
-    st.caption(
-        "These thermal concept outputs are scenario assumptions for exploratory resilience modeling only. They should not be interpreted as a validated mechanical engineering design or deployment guarantee."
-    )
-
 
 csv_buffer = StringIO()
 scenario_df.to_csv(csv_buffer, index=False)
