@@ -1,6 +1,27 @@
 
 import streamlit.components.v1 as components
 
+try:
+    from thermal_principle_component import render_thermal_principle_simulation as _base_thermal_principle
+except Exception:
+    _base_thermal_principle = None
+
+
+def render_thermal_principle_simulation(*args, **kwargs):
+    if _base_thermal_principle is not None:
+        return _base_thermal_principle(*args, **kwargs)
+
+    fallback = """
+    <div style="font-family: Inter, Arial, sans-serif; color:#e5e7eb; padding:12px;">
+      <div style="font-size:26px; font-weight:800; margin-bottom:8px;">Thermal Recovery Principle (Concept Mode)</div>
+      <div style="font-size:14px; color:#cbd5e1; line-height:1.6;">
+        The thermal principle component could not be loaded. Please make sure
+        <b>thermal_principle_component.py</b> is in the project root next to your main app file.
+      </div>
+    </div>
+    """
+    components.html(fallback, height=220, scrolling=False)
+
 
 def _wrap_card(title: str, subtitle: str, svg_html: str, side_html: str = "", height: int = 700):
     html = f"""
@@ -67,18 +88,10 @@ def render_phase_change_buffer_concept(
       <path d="M 90 430 H 460" fill="none" stroke="url(#pcmRed)" stroke-width="26" stroke-linecap="round"/>
       <path d="M 740 430 H 1110" fill="none" stroke="url(#pcmBlue)" stroke-width="26" stroke-linecap="round"/>
 
-      <circle r="10" fill="#7dd3fc">
-        <animateMotion dur="5.5s" repeatCount="indefinite" path="M 90 240 H 460"/>
-      </circle>
-      <circle r="10" fill="#fda4af">
-        <animateMotion dur="5.5s" repeatCount="indefinite" path="M 740 240 H 1110"/>
-      </circle>
-      <circle r="10" fill="#f87171">
-        <animateMotion dur="5.5s" begin="1.2s" repeatCount="indefinite" path="M 90 430 H 460"/>
-      </circle>
-      <circle r="10" fill="#7dd3fc">
-        <animateMotion dur="5.5s" begin="1.2s" repeatCount="indefinite" path="M 740 430 H 1110"/>
-      </circle>
+      <circle r="10" fill="#7dd3fc"><animateMotion dur="5.5s" repeatCount="indefinite" path="M 90 240 H 460"/></circle>
+      <circle r="10" fill="#fda4af"><animateMotion dur="5.5s" repeatCount="indefinite" path="M 740 240 H 1110"/></circle>
+      <circle r="10" fill="#f87171"><animateMotion dur="5.5s" begin="1.2s" repeatCount="indefinite" path="M 90 430 H 460"/></circle>
+      <circle r="10" fill="#7dd3fc"><animateMotion dur="5.5s" begin="1.2s" repeatCount="indefinite" path="M 740 430 H 1110"/></circle>
 
       <rect x="120" y="110" width="{core_w}" height="132" rx="22" fill="#0d1e30" stroke="#4f89c6" stroke-width="3"/>
       <text x="{120 + core_w/2}" y="160" text-anchor="middle" fill="#f8fafc" font-size="28" font-weight="800">Server Core</text>
@@ -99,13 +112,9 @@ def render_phase_change_buffer_concept(
       <text x="953" y="543" text-anchor="middle" fill="#fca5a5" font-size="16" font-weight="800">Peak smoothing active</text>
     </svg>
     """
-    _wrap_card(
-        "Phase-Change Thermal Buffer (Concept)",
-        "Conceptual latent-heat buffering and charge/discharge visualization.",
-        svg,
-        side_html,
-        height=height,
-    )
+    _wrap_card("Phase-Change Thermal Buffer (Concept)",
+               "Conceptual latent-heat buffering and charge/discharge visualization.",
+               svg, side_html, height=height)
 
 
 def render_ground_thermal_sink_concept(
@@ -144,12 +153,8 @@ def render_ground_thermal_sink_concept(
 
       <path d="M 460 220 C 460 290, 460 300, 460 440" fill="none" stroke="#7dd3fc" stroke-width="22" stroke-linecap="round"/>
       <path d="M 740 220 C 740 290, 740 300, 740 440" fill="none" stroke="#7dd3fc" stroke-width="22" stroke-linecap="round"/>
-      <circle r="10" fill="#7dd3fc">
-        <animateMotion dur="4.8s" repeatCount="indefinite" path="M 460 220 C 460 290, 460 300, 460 440"/>
-      </circle>
-      <circle r="10" fill="#7dd3fc">
-        <animateMotion dur="4.8s" begin="1.5s" repeatCount="indefinite" path="M 740 220 C 740 290, 740 300, 740 440"/>
-      </circle>
+      <circle r="10" fill="#7dd3fc"><animateMotion dur="4.8s" repeatCount="indefinite" path="M 460 220 C 460 290, 460 300, 460 440"/></circle>
+      <circle r="10" fill="#7dd3fc"><animateMotion dur="4.8s" begin="1.5s" repeatCount="indefinite" path="M 740 220 C 740 290, 740 300, 740 440"/></circle>
 
       <rect x="110" y="540" width="980" height="36" rx="10" fill="#0d1e30" stroke="#264c75" stroke-width="1.5"/>
       <rect x="120" y="546" width="{max(40, int(960 * sink_utilization_pct / 100))}" height="24" rx="8" fill="#38bdf8"/>
@@ -162,13 +167,9 @@ def render_ground_thermal_sink_concept(
       <text x="950" y="267" text-anchor="middle" fill="#fca5a5" font-size="16" font-weight="800">Saturation risk: {saturation_risk_pct:.0f}%</text>
     </svg>
     """
-    _wrap_card(
-        "Ground Thermal Sink (Concept)",
-        "Conceptual ground-coupled cooling and subsurface heat buffering visualization.",
-        svg,
-        side_html,
-        height=height,
-    )
+    _wrap_card("Ground Thermal Sink (Concept)",
+               "Conceptual ground-coupled cooling and subsurface heat buffering visualization.",
+               svg, side_html, height=height)
 
 
 def render_distributed_thermal_control_concept(
@@ -199,8 +200,6 @@ def render_distributed_thermal_control_concept(
     <svg viewBox="0 0 1200 620" width="100%" height="100%">
       <rect x="20" y="20" width="1160" height="580" rx="22" fill="#081220" stroke="#274a72" stroke-width="3"/>
       <rect x="70" y="90" width="1060" height="360" rx="20" fill="#07111f" stroke="#31567f" stroke-width="2"/>
-
-      <!-- grid edges -->
       <g stroke="#64748b" stroke-width="10" stroke-linecap="round" opacity="0.75">
         <line x1="160" y1="180" x2="340" y2="180"/><line x1="340" y1="180" x2="520" y2="180"/><line x1="520" y1="180" x2="700" y2="180"/><line x1="700" y1="180" x2="880" y2="180"/>
         <line x1="160" y1="300" x2="340" y2="300"/><line x1="340" y1="300" x2="520" y2="300"/><line x1="520" y1="300" x2="700" y2="300"/><line x1="700" y1="300" x2="880" y2="300"/>
@@ -211,20 +210,14 @@ def render_distributed_thermal_control_concept(
         <line x1="700" y1="180" x2="700" y2="300"/><line x1="700" y1="300" x2="700" y2="420"/>
         <line x1="880" y1="180" x2="880" y2="300"/><line x1="880" y1="300" x2="880" y2="420"/>
       </g>
-
-      <!-- active paths -->
       <g stroke-linecap="round" fill="none">
         <path d="M 160 180 H 340 L 520 300 H 700 H 880" stroke="#7dd3fc" stroke-width="18"/>
         <path d="M 160 420 H 340 L 520 300 L 700 180 H 880" stroke="#fca5a5" stroke-width="18"/>
       </g>
-
-      <!-- failure indicators: subtle and single -->
       <g stroke="#7f1d1d" stroke-width="8" opacity="0.5">
         <line x1="314" y1="274" x2="366" y2="326"/><line x1="366" y1="274" x2="314" y2="326"/>
         <line x1="674" y1="394" x2="726" y2="446"/><line x1="726" y1="394" x2="674" y2="446"/>
       </g>
-
-      <!-- nodes -->
       <g>
         <circle cx="160" cy="180" r="28" fill="#1e293b" stroke="#94a3b8" stroke-width="4"/>
         <circle cx="340" cy="180" r="28" fill="#1e293b" stroke="#94a3b8" stroke-width="4"/>
@@ -243,26 +236,20 @@ def render_distributed_thermal_control_concept(
         <circle cx="880" cy="420" r="28" fill="#1e293b" stroke="#94a3b8" stroke-width="4"/>
       </g>
       <text x="520" y="308" text-anchor="middle" fill="#07111f" font-size="18" font-weight="900">CORE</text>
-
       <rect x="60" y="488" width="1080" height="72" rx="16" fill="#091827" stroke="#1e3a5f" stroke-width="2"/>
       <rect x="85" y="503" width="250" height="42" rx="10" fill="#0d1e30" stroke="#264c75" stroke-width="1.5"/>
       <rect x="360" y="503" width="250" height="42" rx="10" fill="#0d1e30" stroke="#264c75" stroke-width="1.5"/>
       <rect x="635" y="503" width="250" height="42" rx="10" fill="#0d1e30" stroke="#264c75" stroke-width="1.5"/>
       <rect x="910" y="503" width="205" height="42" rx="10" fill="#0d1e30" stroke="#264c75" stroke-width="1.5"/>
-
       <text x="210" y="530" text-anchor="middle" fill="#ecfccb" font-size="16" font-weight="800">Node availability: {node_availability_pct:.0f}%</text>
       <text x="485" y="530" text-anchor="middle" fill="#bfdbfe" font-size="16" font-weight="800">Rerouting efficiency: {rerouting_efficiency_pct:.0f}%</text>
       <text x="760" y="530" text-anchor="middle" fill="#fca5a5" font-size="16" font-weight="800">Damage ratio: {damage_ratio_pct:.0f}%</text>
       <text x="1012" y="530" text-anchor="middle" fill="#86efac" font-size="16" font-weight="800">Core safe: {protected_core_pct:.0f}%</text>
     </svg>
     """
-    _wrap_card(
-        "Distributed Thermal Control Layer (Concept)",
-        "Conceptual modular routing and partial-damage tolerance visualization.",
-        svg,
-        side_html,
-        height=height,
-    )
+    _wrap_card("Distributed Thermal Control Layer (Concept)",
+               "Conceptual modular routing and partial-damage tolerance visualization.",
+               svg, side_html, height=height)
 
 
 def render_distributed_harvesting_buffering_concept(
@@ -324,10 +311,11 @@ def render_distributed_harvesting_buffering_concept(
       <text x="1010" y="566" text-anchor="middle" fill="#86efac" font-size="16" font-weight="800">Core preserved: {core_preservation_hours:.1f} h</text>
     </svg>
     """
-    _wrap_card(
-        "Distributed Energy Harvesting & Buffering (Concept)",
-        "Conceptual multi-source harvesting and critical-core preservation visualization.",
-        svg,
-        side_html,
-        height=height,
-    )
+    _wrap_card("Distributed Energy Harvesting & Buffering (Concept)",
+               "Conceptual multi-source harvesting and critical-core preservation visualization.",
+               svg, side_html, height=height)
+
+
+# compatibility alias
+def render_distributed_energy_harvesting_buffering_concept(*args, **kwargs):
+    return render_distributed_harvesting_buffering_concept(*args, **kwargs)
