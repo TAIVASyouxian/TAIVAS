@@ -10,6 +10,12 @@ from modules.recommendations import recommendation_lines
 from modules.energy_security import apply_energy_security_layer, ENERGY_SECURITY_SCENARIOS
 from modules.survival_timeline import simulate_survival_timeline
 from thermal_principle_component import render_thermal_principle_simulation
+from concept_lab_components import (
+    render_phase_change_buffer,
+    render_ground_thermal_sink,
+    render_distributed_thermal_control,
+    render_harvesting_buffering,
+)
 
 st.set_page_config(page_title="TAIVAS Energy Control Center", layout="wide")
 
@@ -434,6 +440,50 @@ def thermal_concept_adjustment(
     }
 
 
+
+def concept_phase_change_effect(demand: float, reserve_days: float, buffer_charge: float, recovery_efficiency: float):
+    reduction_pct = clamp(0.03 + buffer_charge * recovery_efficiency * 0.14, 0.0, 0.20)
+    return {
+        "adjusted_demand": round(demand * (1.0 - reduction_pct), 2),
+        "reserve_bonus_days": round(reduction_pct * 8.0, 2),
+        "reduction_pct": round(reduction_pct * 100, 2),
+    }
+
+
+def concept_ground_sink_effect(server_heat_load: float, sink_utilization: float, extraction_support: float):
+    cooling_offset = round(server_heat_load * (0.18 + 0.42 * sink_utilization), 2)
+    extraction_bonus = round(extraction_support * 6.0, 2)
+    saturation_risk = round(max(sink_utilization * 100 - extraction_support * 25, 0.0), 1)
+    return {
+        "cooling_offset_mw": cooling_offset,
+        "extraction_bonus_hours": extraction_bonus,
+        "saturation_risk_index": saturation_risk,
+    }
+
+
+def concept_distributed_control_effect(hours_until_critical_failure: int, node_availability: float, rerouting_efficiency: float, damage_ratio: float):
+    protection_bonus = max((node_availability * rerouting_efficiency - damage_ratio * 0.6), 0.0)
+    delay_hours = int(round(protection_bonus * 18.0))
+    protected_core_pct = round(clamp((node_availability * 0.6 + rerouting_efficiency * 0.4 - damage_ratio * 0.4) * 100, 0.0, 100.0), 1)
+    return {
+        "critical_failure_delay_hours": delay_hours,
+        "protected_core_pct": protected_core_pct,
+        "adjusted_hours_until_critical_failure": hours_until_critical_failure + delay_hours,
+    }
+
+
+def concept_harvesting_buffer_effect(shortfall: float, reserve_days: float, wind_input: float, solar_input: float, hydro_input: float, buffer_fill: float, priority_shift: float):
+    diversification = (wind_input + solar_input + hydro_input) / 3.0
+    shortfall_reduction_pct = clamp(diversification * 0.16 + buffer_fill * 0.12 + priority_shift * 0.10, 0.0, 0.30)
+    reserve_gain = round((buffer_fill * 0.6 + priority_shift * 0.4) * 5.0, 2)
+    return {
+        "adjusted_shortfall": round(max(shortfall * (1.0 - shortfall_reduction_pct), 0.0), 2),
+        "reserve_gain_days": reserve_gain,
+        "diversification_score": round(diversification * 100, 1),
+        "priority_shift_pct": round(priority_shift * 100, 1),
+    }
+
+
 def render_capacity_factor_chart(capacity_factors: dict):
     labels = list(capacity_factors.keys())
     values = [capacity_factors[k] for k in labels]
@@ -527,6 +577,20 @@ with st.sidebar:
     recovery_efficiency = st.slider("Thermal Recovery Efficiency", 0.0, 1.0, 0.72, 0.01)
     thermal_animation_speed = st.slider("Thermal Animation Speed", 0.4, 2.5, 1.0, 0.1)
 
+    st.divider()
+    st.subheader("Concept Lab Inputs")
+    phase_buffer_charge = st.slider("Phase-Change Buffer Charge", 0.0, 1.0, 0.68, 0.01)
+    ground_sink_utilization = st.slider("Ground Sink Utilization", 0.0, 1.0, 0.62, 0.01)
+    ground_extraction_support = st.slider("Ground Extraction Support", 0.0, 1.0, 0.48, 0.01)
+    distributed_node_availability = st.slider("Distributed Node Availability", 0.0, 1.0, 0.82, 0.01)
+    distributed_rerouting_efficiency = st.slider("Rerouting Efficiency", 0.0, 1.0, 0.74, 0.01)
+    distributed_damage_ratio = st.slider("Distributed Damage Ratio", 0.0, 1.0, 0.18, 0.01)
+    harvesting_wind_input = st.slider("Harvesting Wind Input", 0.0, 1.0, 0.66, 0.01)
+    harvesting_solar_input = st.slider("Harvesting Solar Input", 0.0, 1.0, 0.58, 0.01)
+    harvesting_hydro_input = st.slider("Harvesting Hydro Input", 0.0, 1.0, 0.61, 0.01)
+    harvesting_buffer_fill = st.slider("Shared Buffer Fill", 0.0, 1.0, 0.72, 0.01)
+    harvesting_priority_shift = st.slider("Critical Priority Shift", 0.0, 1.0, 0.64, 0.01)
+
 failure_ratios = {
     "solar": solar_failure_ratio,
     "wind": wind_failure_ratio,
@@ -599,6 +663,36 @@ thermal_results = thermal_concept_adjustment(
     fresh_air_temp_c=fresh_air_temp_c,
     exhaust_air_temp_c=exhaust_air_temp_c,
     recovery_efficiency=recovery_efficiency,
+)
+
+phase_change_results = concept_phase_change_effect(
+    demand=results["demand"],
+    reserve_days=results.get("reserve_days_remaining", 0),
+    buffer_charge=phase_buffer_charge,
+    recovery_efficiency=recovery_efficiency,
+)
+
+ground_sink_results = concept_ground_sink_effect(
+    server_heat_load=max(results["renewable_supply"] * 0.18, 1.0),
+    sink_utilization=ground_sink_utilization,
+    extraction_support=ground_extraction_support,
+)
+
+distributed_control_results = concept_distributed_control_effect(
+    hours_until_critical_failure=timeline_results["hours_until_critical_failure"],
+    node_availability=distributed_node_availability,
+    rerouting_efficiency=distributed_rerouting_efficiency,
+    damage_ratio=distributed_damage_ratio,
+)
+
+harvesting_buffer_results = concept_harvesting_buffer_effect(
+    shortfall=results["shortfall"],
+    reserve_days=results.get("reserve_days_remaining", 0),
+    wind_input=harvesting_wind_input,
+    solar_input=harvesting_solar_input,
+    hydro_input=harvesting_hydro_input,
+    buffer_fill=harvesting_buffer_fill,
+    priority_shift=harvesting_priority_shift,
 )
 
 scenario_df = comparison_dataframe(inputs, failure_ratios, reserve_recovery_lag_days)
@@ -686,7 +780,7 @@ status_cols[2].metric("Grid Stress Status", status_grid)
 status_cols[3].metric("Reserve Status", status_reserve)
 
 st.divider()
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(
     [
         "Energy Mix",
         "Scenario Comparison",
@@ -695,6 +789,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
         "Energy Security",
         "Survival Timeline",
         "Thermal Concept",
+        "Concept Lab",
     ]
 )
 
@@ -863,6 +958,67 @@ with tab7:
         ]
     )
     st.dataframe(thermal_compare_df, use_container_width=True, hide_index=True)
+
+with tab8:
+    st.subheader("Concept Lab")
+    st.markdown('<div class="section-note">These modules visualize advanced resilience concepts as scenario mechanisms. They are conceptual simulations only and do not represent validated hardware deployments.</div>', unsafe_allow_html=True)
+
+    ctab1, ctab2, ctab3, ctab4 = st.tabs(
+        [
+            "Phase-Change Buffer",
+            "Ground Thermal Sink",
+            "Distributed Thermal Control",
+            "Harvesting & Buffering",
+        ]
+    )
+
+    with ctab1:
+        render_phase_change_buffer(
+            outside_temp_c=fresh_air_temp_c,
+            indoor_temp_c=exhaust_air_temp_c,
+            charge_level=phase_buffer_charge,
+            recovery_efficiency=recovery_efficiency,
+        )
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Current Demand", f"{results['demand']} MW")
+        c2.metric("With Phase-Change Concept", f"{phase_change_results['adjusted_demand']} MW", delta=f"-{phase_change_results['reduction_pct']}%")
+        c3.metric("Reserve Bonus", f"{phase_change_results['reserve_bonus_days']} days")
+
+    with ctab2:
+        render_ground_thermal_sink(
+            server_heat_load=max(results["renewable_supply"] * 0.18, 1.0),
+            sink_utilization=ground_sink_utilization,
+            extraction_support=ground_extraction_support,
+        )
+        g1, g2, g3 = st.columns(3)
+        g1.metric("Cooling Offset", f"{ground_sink_results['cooling_offset_mw']} MW")
+        g2.metric("Extraction Support Bonus", f"{ground_sink_results['extraction_bonus_hours']} h")
+        g3.metric("Saturation Risk Index", f"{ground_sink_results['saturation_risk_index']}")
+
+    with ctab3:
+        render_distributed_thermal_control(
+            node_availability=distributed_node_availability,
+            rerouting_efficiency=distributed_rerouting_efficiency,
+            damage_ratio=distributed_damage_ratio,
+        )
+        d1, d2, d3 = st.columns(3)
+        d1.metric("Protected Core", f"{distributed_control_results['protected_core_pct']}%")
+        d2.metric("Critical Failure Delay", f"{distributed_control_results['critical_failure_delay_hours']} h")
+        d3.metric("Adjusted Critical Failure", distributed_control_results["adjusted_hours_until_critical_failure"])
+
+    with ctab4:
+        render_harvesting_buffering(
+            wind_input=harvesting_wind_input,
+            solar_input=harvesting_solar_input,
+            hydro_input=harvesting_hydro_input,
+            buffer_fill=harvesting_buffer_fill,
+            priority_shift=harvesting_priority_shift,
+        )
+        h1, h2, h3 = st.columns(3)
+        h1.metric("Adjusted Shortfall", f"{harvesting_buffer_results['adjusted_shortfall']} MW")
+        h2.metric("Reserve Gain", f"{harvesting_buffer_results['reserve_gain_days']} days")
+        h3.metric("Diversification Score", f"{harvesting_buffer_results['diversification_score']}")
+
 
 csv_buffer = StringIO()
 scenario_df.to_csv(csv_buffer, index=False)
