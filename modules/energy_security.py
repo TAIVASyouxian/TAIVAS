@@ -1,5 +1,5 @@
 """
-TAIVAS V1.2 energy security layer
+TAIVAS V1.3 energy security layer
 Directly pluggable helpers for import dependency, reserve days,
 critical load coverage, and geopolitical disruption scenarios.
 """
@@ -44,6 +44,18 @@ ENERGY_SECURITY_SCENARIOS: Dict[str, Dict[str, float]] = {
         "infrastructure_factor": 0.72,
         "import_penalty": 1.25,
     },
+    "high_risk": {
+        "fuel_price_index": 1.45,
+        "shipping_access_factor": 0.76,
+        "infrastructure_factor": 0.82,
+        "import_penalty": 1.16,
+    },
+    "severe_disruption": {
+        "fuel_price_index": 1.72,
+        "shipping_access_factor": 0.58,
+        "infrastructure_factor": 0.66,
+        "import_penalty": 1.30,
+    },
 }
 
 
@@ -76,12 +88,15 @@ def compute_reserve_days_remaining(
     strategic_reserve_days: float,
     import_dependency: float,
     profile: Dict[str, float],
+    reserve_recovery_lag_days: float = 0.0,
 ) -> float:
     strategic_reserve_days = clamp(strategic_reserve_days, 0.0, 365.0)
     import_dependency = clamp(import_dependency, 0.0, 1.0)
+    reserve_recovery_lag_days = clamp(reserve_recovery_lag_days, 0.0, 60.0)
 
     daily_draw = profile["import_penalty"] * (0.55 + import_dependency * 0.75)
     days_remaining = strategic_reserve_days / daily_draw if daily_draw > 0 else strategic_reserve_days
+    days_remaining -= reserve_recovery_lag_days * 0.15
     return round(max(days_remaining, 0.0), 2)
 
 
@@ -108,13 +123,16 @@ def compute_critical_load_coverage(
 def estimate_recovery_time(
     profile: Dict[str, float],
     infrastructure_damage_ratio: float,
+    reserve_recovery_lag_days: float = 0.0,
 ) -> float:
     infrastructure_damage_ratio = clamp(infrastructure_damage_ratio, 0.0, 1.0)
+    reserve_recovery_lag_days = clamp(reserve_recovery_lag_days, 0.0, 60.0)
     days = (
         2.0
         + (1.0 - profile["shipping_access_factor"]) * 8.0
         + (1.0 - profile["infrastructure_factor"]) * 7.0
         + infrastructure_damage_ratio * 10.0
+        + reserve_recovery_lag_days * 0.25
     )
     return round(days, 1)
 
@@ -127,6 +145,7 @@ def apply_energy_security_layer(
     critical_load_share: float,
     shipping_dependency: float = 0.8,
     infrastructure_damage_ratio: float = 0.0,
+    reserve_recovery_lag_days: float = 0.0,
 ) -> Tuple[Dict[str, float], Dict[str, float]]:
     profile = get_energy_security_profile(scenario_key)
 
@@ -140,6 +159,7 @@ def apply_energy_security_layer(
         strategic_reserve_days=strategic_reserve_days,
         import_dependency=import_dependency,
         profile=profile,
+        reserve_recovery_lag_days=reserve_recovery_lag_days,
     )
 
     fuel_cost_stress = compute_fuel_cost_stress(profile)
@@ -153,6 +173,7 @@ def apply_energy_security_layer(
     recovery_time_estimate = estimate_recovery_time(
         profile=profile,
         infrastructure_damage_ratio=infrastructure_damage_ratio,
+        reserve_recovery_lag_days=reserve_recovery_lag_days,
     )
 
     updated = dict(base_results)
@@ -161,5 +182,6 @@ def apply_energy_security_layer(
     updated["fuel_cost_stress"] = fuel_cost_stress
     updated["critical_load_coverage"] = critical_load_coverage
     updated["recovery_time_estimate"] = recovery_time_estimate
+    updated["reserve_recovery_lag_days"] = round(clamp(reserve_recovery_lag_days, 0.0, 60.0), 1)
 
     return updated, profile
