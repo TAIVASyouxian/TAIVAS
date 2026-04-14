@@ -6,6 +6,7 @@ import streamlit as st
 from modules.charts import make_donut_chart
 from modules.recommendations import recommendation_lines
 from modules.energy_security import apply_energy_security_layer, ENERGY_SECURITY_SCENARIOS
+from modules.survival_timeline import simulate_survival_timeline
 
 st.set_page_config(page_title="TAIVAS Energy Control Center", layout="wide")
 
@@ -60,55 +61,32 @@ st.markdown(
     .block-container {padding-top: 1.25rem; padding-bottom: 2rem;}
     .taivas-hero {
         padding: 1rem 1.1rem 1rem 1.1rem;
-        border: 1px solid rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.10);
         border-radius: 16px;
-        background: linear-gradient(135deg, rgba(21,60,110,0.55), rgba(11,18,32,0.25));
+        background: linear-gradient(135deg, rgba(21,60,110,0.58), rgba(11,18,32,0.28));
         margin-bottom: 1rem;
     }
-    .taivas-hero h3 {
-        margin: 0 0 0.35rem 0;
-        font-size: 1.25rem;
-    }
-    .taivas-hero p {
-        margin: 0;
-        opacity: 0.9;
-        line-height: 1.55;
-    }
+    .taivas-hero h3 { margin: 0 0 0.35rem 0; font-size: 1.25rem; }
+    .taivas-hero p { margin: 0; opacity: 0.92; line-height: 1.55; }
     .section-note {
         padding: 0.85rem 1rem;
         border-radius: 14px;
         background: rgba(59, 130, 246, 0.10);
-        border: 1px solid rgba(96, 165, 250, 0.20);
+        border: 1px solid rgba(96, 165, 250, 0.24);
         margin-bottom: 0.75rem;
     }
     .mini-card {
         padding: 0.85rem 0.95rem;
         border-radius: 14px;
-        background: rgba(255,255,255,0.06);
-        border: 1px solid rgba(255,255,255,0.10);
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.12);
         margin-bottom: 0.65rem;
         min-height: 88px;
     }
-    .mini-label {
-        font-size: 0.82rem;
-        opacity: 0.78;
-        margin-bottom: 0.3rem;
-    }
-    .mini-value {
-        font-size: 1.05rem;
-        font-weight: 600;
-        line-height: 1.3;
-    }
-    .subtle-divider {
-        margin-top: 0.35rem;
-        margin-bottom: 0.85rem;
-    }
-    .sidebar-note {
-        font-size: 0.83rem;
-        opacity: 0.8;
-        margin-top: -0.35rem;
-        margin-bottom: 0.45rem;
-    }
+    .mini-label { font-size: 0.82rem; opacity: 0.78; margin-bottom: 0.3rem; }
+    .mini-value { font-size: 1.05rem; font-weight: 600; line-height: 1.3; }
+    .subtle-divider { margin-top: 0.35rem; margin-bottom: 0.85rem; }
+    .sidebar-note { font-size: 0.83rem; opacity: 0.8; margin-top: -0.35rem; margin-bottom: 0.45rem; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -180,13 +158,28 @@ def compute_energy_supply(inputs, scenario_key: str):
     grid_dependency = safe_div(shortfall, demand) * 100 if demand > 0 else 0.0
     battery_levels = max(0.0, battery_capacity - battery_dispatch)
 
-    energy_mix_raw = {
+    actual_mix_raw = {
         "Solar": solar_supply,
         "Wind": wind_supply,
         "Geothermal": geo_supply,
         "Hydro": hydro_supply,
     }
-    energy_mix_pct = {k: v * 100 for k, v in normalize_mix(energy_mix_raw).items()}
+    actual_mix_pct = {k: v * 100 for k, v in normalize_mix(actual_mix_raw).items()}
+
+    installed_mix_raw = {
+        "Solar": solar_capacity,
+        "Wind": wind_capacity,
+        "Geothermal": geothermal_capacity,
+        "Hydro": hydro_capacity,
+    }
+    installed_mix_pct = {k: v * 100 for k, v in normalize_mix(installed_mix_raw).items()}
+
+    capacity_factors = {
+        "Solar": round(solar_cf * scenario["solar"] * 100, 1),
+        "Wind": round(wind_cf * scenario["wind"] * 100, 1),
+        "Geothermal": round(geo_cf * scenario["geo"] * 100, 1),
+        "Hydro": round(hydro_cf * scenario["hydro"] * 100, 1),
+    }
 
     return {
         "demand": round(demand, 2),
@@ -197,7 +190,11 @@ def compute_energy_supply(inputs, scenario_key: str):
         "renewable_ratio": round(renewable_ratio, 2),
         "system_efficiency": round(system_efficiency, 2),
         "grid_dependency": round(grid_dependency, 2),
-        "energy_mix_pct": energy_mix_pct,
+        "actual_mix_pct": actual_mix_pct,
+        "installed_mix_pct": installed_mix_pct,
+        "actual_mix_mw": {k: round(v, 2) for k, v in actual_mix_raw.items()},
+        "installed_mix_mw": {k: round(v, 2) for k, v in installed_mix_raw.items()},
+        "capacity_factors": capacity_factors,
     }
 
 
@@ -231,7 +228,8 @@ def comparison_dataframe(inputs):
 
 
 st.title("TAIVAS Energy Control Center")
-st.caption("AI-driven energy resilience, recovery, and energy-security dashboard")
+st.caption("AI-driven energy resilience, recovery, energy-security, and survival-timeline dashboard")
+st.info("This revised main file preserves your original module-based structure while separating installed capacity mix from actual supply mix for clearer interpretation.")
 
 with st.sidebar:
     st.header("Controls")
@@ -264,16 +262,19 @@ with st.sidebar:
 
     st.divider()
     st.subheader("Energy Security Inputs")
-    energy_security_scenario = st.selectbox(
-        "Energy Security Scenario",
-        list(ENERGY_SECURITY_SCENARIOS.keys()),
-        index=0,
-    )
-    import_dependency = st.slider("Import Dependency", 0.0, 1.0, 0.70, 0.01)
-    strategic_reserve_days = st.slider("Strategic Reserve Days", 0, 90, 20, 1)
-    critical_load_share = st.slider("Critical Load Share", 0.0, 1.0, 0.35, 0.01)
-    shipping_dependency = st.slider("Shipping Dependency", 0.0, 1.0, 0.85, 0.01)
-    infrastructure_damage_ratio = st.slider("Infrastructure Damage Ratio", 0.0, 1.0, 0.10, 0.01)
+    energy_security_scenario = st.selectbox("Energy Security Scenario", list(ENERGY_SECURITY_SCENARIOS.keys()), index=0)
+    import_dependency = st.number_input("Import Dependency", min_value=0.0, max_value=1.0, value=0.70, step=0.01, format="%.2f")
+    strategic_reserve_days = st.number_input("Strategic Reserve Days", min_value=0, max_value=365, value=20, step=1)
+    critical_load_share = st.number_input("Critical Load Share", min_value=0.0, max_value=1.0, value=0.35, step=0.01, format="%.2f")
+    shipping_dependency = st.number_input("Shipping Dependency", min_value=0.0, max_value=1.0, value=0.85, step=0.01, format="%.2f")
+    infrastructure_damage_ratio = st.number_input("Infrastructure Damage Ratio", min_value=0.0, max_value=1.0, value=0.10, step=0.01, format="%.2f")
+
+    st.divider()
+    st.subheader("Survival Timeline Inputs")
+    simulation_hours = st.selectbox("Simulation Hours", [24, 72, 168], index=0)
+    primary_supply_failure_ratio = st.number_input("Primary Supply Failure Ratio", min_value=0.0, max_value=1.0, value=0.30, step=0.01, format="%.2f")
+    reserve_energy_per_day = st.number_input("Reserve Energy per Day", min_value=20.0, max_value=300.0, value=120.0, step=5.0, format="%.1f")
+    survival_mode = st.selectbox("Survival Mode", ["full_load", "critical_load_only"], index=0)
 
 inputs = {
     "country_key": country,
@@ -304,6 +305,19 @@ results, energy_security_profile = apply_energy_security_layer(
     infrastructure_damage_ratio=infrastructure_damage_ratio,
 )
 
+timeline_results = simulate_survival_timeline(
+    demand=results["demand"],
+    renewable_supply=results["renewable_supply"],
+    battery_capacity=inputs["battery_capacity"],
+    strategic_reserve_days=strategic_reserve_days,
+    critical_load_share=critical_load_share,
+    weather_scenario=scenario_key,
+    simulation_hours=simulation_hours,
+    primary_supply_failure_ratio=primary_supply_failure_ratio,
+    reserve_energy_per_day=reserve_energy_per_day,
+    survival_mode=survival_mode,
+)
+
 baseline_results = compute_energy_supply(inputs, "normal")
 baseline_results, _ = apply_energy_security_layer(
     base_results=baseline_results,
@@ -316,12 +330,13 @@ baseline_results, _ = apply_energy_security_layer(
 )
 
 scenario_df = comparison_dataframe(inputs)
+timeline_df = pd.DataFrame(timeline_results["rows"])
 
 st.markdown(
     """
     <div class="taivas-hero">
         <h3>Operational Overview</h3>
-        <p>This control center combines country logic, city profiles, weather simulation, scenario stress testing, and an energy security layer for import disruption, reserves, and critical-load coverage.</p>
+        <p>This control center combines country logic, city profiles, weather simulation, scenario stress testing, energy security indicators, and a survival timeline layer for estimating how long the system can hold under supply disruption.</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -353,34 +368,60 @@ with summary_col:
         mini_card("Energy Security", energy_security_scenario.replace("_", " ").title())
         mini_card("Import Dependency", f"{import_dependency * 100:.0f}%")
         mini_card("Reserve Days", f"{strategic_reserve_days} days")
-        mini_card("Critical Load", f"{critical_load_share * 100:.0f}%")
+        mini_card("Timeline Horizon", f"{simulation_hours} hours")
 
 st.markdown('<div class="subtle-divider"></div>', unsafe_allow_html=True)
 st.subheader("System Performance")
 perf_top = st.columns(4)
-perf_top[0].metric("Demand", f"{results['demand']} MW", help="Current modeled energy demand.")
-perf_top[1].metric("Renewable Supply", f"{results['renewable_supply']} MW", help="Modeled renewable generation under the selected settings.")
-perf_top[2].metric("Final Supply", f"{results['final_supply']} MW", help="Renewables plus battery dispatch.")
-perf_top[3].metric("Shortfall", f"{results['shortfall']} MW", help="Unmet supply after renewable and battery dispatch.")
+perf_top[0].metric("Demand", f"{results['demand']} MW")
+perf_top[1].metric("Renewable Supply", f"{results['renewable_supply']} MW")
+perf_top[2].metric("Final Supply", f"{results['final_supply']} MW")
+perf_top[3].metric("Shortfall", f"{results['shortfall']} MW")
 
 st.subheader("Resilience Indicators")
 perf_bottom = st.columns(4)
-perf_bottom[0].metric("Battery Levels", f"{results['battery_levels']} MWh", help="Remaining battery reserve after dispatch.")
-perf_bottom[1].metric("Renewable Ratio", f"{results['renewable_ratio']}%", help="Share of final supply coming from renewables.")
-perf_bottom[2].metric("System Efficiency", f"{results['system_efficiency']}%", help="Proxy indicator of overall resilience performance.")
-perf_bottom[3].metric("Grid Dependency", f"{results['grid_dependency']}%", help="Residual dependency on external grid support.")
+perf_bottom[0].metric("Battery Levels", f"{results['battery_levels']} MWh")
+perf_bottom[1].metric("Renewable Ratio", f"{results['renewable_ratio']}%")
+perf_bottom[2].metric("System Efficiency", f"{results['system_efficiency']}%")
+perf_bottom[3].metric("Grid Dependency", f"{results['grid_dependency']}%")
 
 st.divider()
-tab1, tab2, tab3, tab4 = st.tabs(
-    ["Energy Mix", "Scenario Comparison", "AI Recommendation", "Energy Security"]
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
+    ["Energy Mix", "Scenario Comparison", "AI Recommendation", "Energy Security", "Survival Timeline"]
 )
 
 with tab1:
-    st.markdown(
-        '<div class="section-note">This chart shows the modeled renewable contribution structure under the selected city, weather, and scenario settings.</div>',
-        unsafe_allow_html=True,
-    )
-    st.pyplot(make_donut_chart(results["energy_mix_pct"], results["renewable_ratio"]), clear_figure=True)
+    st.markdown('<div class="section-note">This chart shows the modeled renewable contribution structure under the selected city, weather, and scenario settings.</div>', unsafe_allow_html=True)
+    mix_left, mix_right = st.columns(2)
+    with mix_left:
+        st.markdown("**Installed Capacity Mix**")
+        st.caption("This chart follows the capacity sliders on the left sidebar.")
+        st.pyplot(make_donut_chart(results["installed_mix_pct"], 100), clear_figure=True)
+        st.dataframe(
+            pd.DataFrame([
+                {"Source": k, "Installed Capacity (MW)": v, "Share (%)": round(results["installed_mix_pct"][k], 2)}
+                for k, v in results["installed_mix_mw"].items()
+            ]),
+            use_container_width=True,
+            hide_index=True,
+        )
+    with mix_right:
+        st.markdown("**Actual Renewable Supply Mix**")
+        st.caption("This chart changes with weather inputs, scenario modifiers, and current capacity settings.")
+        st.pyplot(make_donut_chart(results["actual_mix_pct"], results["renewable_ratio"]), clear_figure=True)
+        st.dataframe(
+            pd.DataFrame([
+                {
+                    "Source": k,
+                    "Modeled Output (MW)": v,
+                    "Share (%)": round(results["actual_mix_pct"][k], 2),
+                    "Effective Factor (%)": results["capacity_factors"][k],
+                }
+                for k, v in results["actual_mix_mw"].items()
+            ]),
+            use_container_width=True,
+            hide_index=True,
+        )
 
 with tab2:
     compare_left, compare_right = st.columns(2)
@@ -415,40 +456,63 @@ with tab2:
 
 with tab3:
     st.subheader("AI Recommendation Panel")
-    for idx, line in enumerate(recommendation_lines(results, energy_security_scenario), 1):
+    recommendation_output = recommendation_lines(results, energy_security_scenario)
+    for idx, line in enumerate(recommendation_output, 1):
         st.write(f"{idx}. {line}")
+
+    rec_left, rec_right = st.columns(2)
+    with rec_left:
+        st.markdown("**Why the recommendation appears**")
+        why_lines = []
+        if results["shortfall"] > 0:
+            why_lines.append(f"Shortfall is present at {results['shortfall']} MW.")
+        if results["grid_dependency"] >= 10:
+            why_lines.append(f"Grid dependency is elevated at {results['grid_dependency']}%.")
+        if results.get("import_disruption_score", 0) >= 40:
+            why_lines.append(f"Import disruption pressure is high at {results['import_disruption_score']}%.")
+        if timeline_results["hours_until_shortfall"] not in ("None within horizon", None) and str(timeline_results["hours_until_shortfall"]).isdigit():
+            why_lines.append(f"Timeline model shows shortfall beginning by hour {timeline_results['hours_until_shortfall']}.")
+        if not why_lines:
+            why_lines.append("Current settings are relatively stable under the selected scenario horizon.")
+        for item in why_lines:
+            st.write(f"- {item}")
+
+    with rec_right:
+        st.markdown("**Expected effect focus**")
+        effect_rows = [
+            {"Metric": "Renewable Ratio", "Current": f"{results['renewable_ratio']}%"},
+            {"Metric": "System Efficiency", "Current": f"{results['system_efficiency']}%"},
+            {"Metric": "Reserve Days Remaining", "Current": f"{results['reserve_days_remaining']} days"},
+            {"Metric": "Hours Until Critical Failure", "Current": f"{timeline_results['hours_until_critical_failure']}"},
+        ]
+        st.dataframe(pd.DataFrame(effect_rows), use_container_width=True, hide_index=True)
+
     st.subheader("Risk and Governance Notice")
-    st.warning(
-        "This product is a decision-support tool and not an unconditional guarantee. "
-        "Model outputs may change when assumptions or parameters change."
-    )
+    st.warning("This product is a decision-support tool and not an unconditional guarantee. Model outputs may change when assumptions or parameters change.")
 
 with tab4:
     st.subheader("Energy Security")
-    st.markdown(
-        '<div class="section-note">This section adds import exposure, reserve endurance, critical-load protection, and recovery indicators on top of the core resilience model.</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="section-note">This section adds import exposure, reserve endurance, critical-load protection, and recovery indicators on top of the core resilience model.</div>', unsafe_allow_html=True)
     s1, s2, s3 = st.columns(3)
     s1.metric("Import Disruption Score", f"{results['import_disruption_score']}%")
     s2.metric("Reserve Days Remaining", f"{results['reserve_days_remaining']} days")
     s3.metric("Fuel Cost Stress", f"{results['fuel_cost_stress']}%")
-
     s4, s5 = st.columns(2)
     s4.metric("Critical Load Coverage", f"{results['critical_load_coverage']}%")
     s5.metric("Recovery Time Estimate", f"{results['recovery_time_estimate']} days")
 
-    st.subheader("Security Input Snapshot")
-    sec_a, sec_b, sec_c = st.columns(3)
-    with sec_a:
-        mini_card("Import Dependency", f"{import_dependency * 100:.0f}%")
-        mini_card("Shipping Dependency", f"{shipping_dependency * 100:.0f}%")
-    with sec_b:
-        mini_card("Reserve Days", f"{strategic_reserve_days} days")
-        mini_card("Critical Load Share", f"{critical_load_share * 100:.0f}%")
-    with sec_c:
-        mini_card("Security Scenario", energy_security_scenario.replace("_", " ").title())
-        mini_card("Infrastructure Damage", f"{infrastructure_damage_ratio * 100:.0f}%")
+with tab5:
+    st.subheader("Survival Timeline")
+    st.markdown('<div class="section-note">This section estimates how long the system can continue operating under hourly demand/supply changes, battery depletion, reserve depletion, and primary-supply failure conditions.</div>', unsafe_allow_html=True)
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Hours Until Shortfall", timeline_results["hours_until_shortfall"])
+    m2.metric("Hours Until Critical Failure", timeline_results["hours_until_critical_failure"])
+    m3.metric("Survival Mode Duration", timeline_results["survival_mode_duration"])
+    m4, m5 = st.columns(2)
+    m4.metric("Battery Depletion Hour", timeline_results["battery_depletion_hour"])
+    m5.metric("Reserve Depletion Hour", timeline_results["reserve_depletion_hour"])
+    st.subheader("Hourly Timeline Table")
+    st.dataframe(timeline_df, use_container_width=True, hide_index=True)
 
 csv_buffer = StringIO()
 scenario_df.to_csv(csv_buffer, index=False)
