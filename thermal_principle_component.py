@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 
 def render_thermal_principle_simulation(
     title: str = "Thermal Recovery Principle (Concept Mode)",
-    height: int = 520,
+    height: int = 680,
     fresh_air_temp_c: float = -5.0,
     exhaust_air_temp_c: float = 24.0,
     recovery_efficiency: float = 0.72,
@@ -13,21 +13,6 @@ def render_thermal_principle_simulation(
 ):
     """
     Render an animated conceptual heat-recovery / thermal-exchange diagram in Streamlit.
-
-    Parameters
-    ----------
-    title : str
-        Component title shown above the animated diagram.
-    height : int
-        Height of the HTML component.
-    fresh_air_temp_c : float
-        Outside incoming air temperature.
-    exhaust_air_temp_c : float
-        Indoor exhaust air temperature.
-    recovery_efficiency : float
-        0.0 to 1.0 conceptual heat recovery effectiveness.
-    airflow_speed : float
-        0.5 to 2.0 animation speed multiplier.
     """
     recovery_efficiency = max(0.0, min(1.0, float(recovery_efficiency)))
     airflow_speed = max(0.4, min(2.5, float(airflow_speed)))
@@ -39,7 +24,7 @@ def render_thermal_principle_simulation(
     pulse_duration = 3.8 / airflow_speed
 
     html = f"""
-    <div style="font-family: Inter, Arial, sans-serif; color: #e5e7eb;">
+    <div style="font-family: Inter, Arial, sans-serif; color: #e5e7eb; padding-bottom: 12px;">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
         <div style="font-size:28px; font-weight:800;">{title}</div>
         <div style="font-size:13px; color:#94a3b8;">Conceptual animated diagram for TAIVAS thermal-resilience mode</div>
@@ -47,7 +32,7 @@ def render_thermal_principle_simulation(
 
       <div style="display:grid; grid-template-columns: 1fr 320px; gap:18px; align-items:start;">
         <div style="background:#07111f; border:1px solid #17304d; border-radius:18px; padding:14px;">
-          <svg viewBox="0 0 1200 720" width="100%" height="100%" aria-label="animated heat recovery diagram">
+          <svg viewBox="0 0 1200 760" width="100%" height="100%" aria-label="animated heat recovery diagram">
             <defs>
               <linearGradient id="coldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stop-color="#38bdf8"/>
@@ -83,21 +68,18 @@ def render_thermal_principle_simulation(
               </marker>
             </defs>
 
-            <rect x="28" y="24" width="1144" height="650" rx="22" fill="#081220" stroke="#1f3b5a" stroke-width="3"/>
+            <rect x="28" y="24" width="1144" height="706" rx="22" fill="#081220" stroke="#1f3b5a" stroke-width="3"/>
             <text x="70" y="82" fill="#f8fafc" font-size="34" font-weight="800">Conceptual Heat Recovery / Thermal Buffer Flow</text>
             <text x="70" y="118" fill="#94a3b8" font-size="18">Outside air is pre-conditioned by exchange with indoor exhaust before delivery to the protected zone.</text>
 
-            <!-- Main housing -->
             <rect x="250" y="180" width="700" height="360" rx="24" fill="#0b1828" stroke="#39526f" stroke-width="4"/>
             <rect x="270" y="200" width="660" height="320" rx="18" fill="#0d1e30" stroke="#243b53" stroke-width="2"/>
 
-            <!-- Internal sections -->
             <rect x="292" y="220" width="280" height="120" rx="14" fill="#0c2940" stroke="#21557a" stroke-width="2"/>
             <rect x="292" y="380" width="280" height="120" rx="14" fill="#0c2940" stroke="#21557a" stroke-width="2"/>
             <rect x="628" y="220" width="280" height="120" rx="14" fill="#3a1719" stroke="#7f1d1d" stroke-width="2"/>
             <rect x="628" y="380" width="280" height="120" rx="14" fill="#3a1719" stroke="#7f1d1d" stroke-width="2"/>
 
-            <!-- Heat exchanger core -->
             <g transform="translate(600,360) rotate(45)">
               <rect x="-120" y="-120" width="240" height="240" rx="12" fill="#2a2a35" stroke="url(#exchangeGrad)" stroke-width="8"/>
               <rect x="-95" y="-95" width="190" height="190" rx="10" fill="#f8fafc" opacity="0.95"/>
@@ -107,19 +89,16 @@ def render_thermal_principle_simulation(
               <path d="M -80 -40 L 80 -40" stroke="#cbd5e1" stroke-width="6" opacity="0.9"/>
             </g>
 
-            <!-- Duct paths -->
             <path d="M 60 260 L 250 260 L 430 260 L 560 320" fill="none" stroke="url(#coldGrad)" stroke-width="26" stroke-linecap="round" marker-end="url(#arrowBlue)" filter="url(#glowBlue)"/>
             <path d="M 640 400 L 770 460 L 950 460 L 1140 460" fill="none" stroke="url(#warmGrad)" stroke-width="26" stroke-linecap="round" marker-end="url(#arrowRed)" filter="url(#glowRed)"/>
             <path d="M 1140 260 L 950 260 L 770 260 L 640 320" fill="none" stroke="url(#warmGrad)" stroke-width="26" stroke-linecap="round" marker-end="url(#arrowRed)" filter="url(#glowRed)"/>
             <path d="M 560 400 L 430 460 L 250 460 L 60 460" fill="none" stroke="url(#coldGrad)" stroke-width="26" stroke-linecap="round" marker-end="url(#arrowBlue)" filter="url(#glowBlue)"/>
 
-            <!-- Direction labels -->
             <text x="58" y="230" fill="#7dd3fc" font-size="22" font-weight="700">Fresh air from outside</text>
             <text x="825" y="228" fill="#fca5a5" font-size="22" font-weight="700">Warm exhaust from inside</text>
             <text x="818" y="502" fill="#fca5a5" font-size="22" font-weight="700">Pre-warmed supply to inside</text>
             <text x="58" y="503" fill="#7dd3fc" font-size="22" font-weight="700">Cooled exhaust to outside</text>
 
-            <!-- Animated particles -->
             <circle r="10" fill="#7dd3fc">
               <animateMotion dur="{dot_duration}s" repeatCount="indefinite" path="M 60 260 L 250 260 L 430 260 L 560 320"/>
             </circle>
@@ -140,23 +119,21 @@ def render_thermal_principle_simulation(
               <animateMotion dur="{dot_duration}s" begin="2.8s" repeatCount="indefinite" path="M 640 400 L 770 460 L 950 460 L 1140 460"/>
             </circle>
 
-            <!-- Exchange pulse -->
             <circle cx="600" cy="360" r="55" fill="#f59e0b" opacity="0.15">
               <animate attributeName="r" values="48;78;48" dur="{pulse_duration}s" repeatCount="indefinite"/>
               <animate attributeName="opacity" values="0.22;0.06;0.22" dur="{pulse_duration}s" repeatCount="indefinite"/>
             </circle>
 
-            <!-- Mini gauges -->
-            <rect x="74" y="560" width="1060" height="78" rx="16" fill="#091827" stroke="#1e3a5f" stroke-width="2"/>
+            <rect x="74" y="560" width="1060" height="108" rx="16" fill="#091827" stroke="#1e3a5f" stroke-width="2"/>
             <text x="110" y="608" fill="#e5e7eb" font-size="20" font-weight="700">Outside air</text>
             <text x="350" y="608" fill="#e5e7eb" font-size="20" font-weight="700">Indoor exhaust</text>
             <text x="635" y="608" fill="#e5e7eb" font-size="20" font-weight="700">Recovery efficiency</text>
             <text x="900" y="608" fill="#e5e7eb" font-size="20" font-weight="700">Delivered supply</text>
 
-            <text x="112" y="635" fill="#7dd3fc" font-size="24" font-weight="800">{fresh_air_temp_c:.1f} °C</text>
-            <text x="350" y="635" fill="#fca5a5" font-size="24" font-weight="800">{exhaust_air_temp_c:.1f} °C</text>
-            <text x="664" y="635" fill="#fde68a" font-size="24" font-weight="800">{recovery_efficiency*100:.0f}%</text>
-            <text x="905" y="635" fill="#f9fafb" font-size="24" font-weight="800">{delivered_temp:.1f} °C</text>
+            <text x="112" y="640" fill="#7dd3fc" font-size="24" font-weight="800">{fresh_air_temp_c:.1f} °C</text>
+            <text x="350" y="640" fill="#fca5a5" font-size="24" font-weight="800">{exhaust_air_temp_c:.1f} °C</text>
+            <text x="664" y="640" fill="#fde68a" font-size="24" font-weight="800">{recovery_efficiency*100:.0f}%</text>
+            <text x="905" y="640" fill="#f9fafb" font-size="24" font-weight="800">{delivered_temp:.1f} °C</text>
           </svg>
         </div>
 
