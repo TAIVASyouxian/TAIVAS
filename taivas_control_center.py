@@ -1,6 +1,7 @@
 from io import StringIO
 
 import pandas as pd
+import plotly.express as px
 import streamlit as st
 
 from modules.charts import make_donut_chart
@@ -633,10 +634,27 @@ with tab1:
     st.dataframe(mix_table, use_container_width=True, hide_index=True)
 
     st.subheader("Capacity Factors")
-    cf_df = pd.DataFrame(
-        {"Capacity Factor (%)": results["capacity_factors"]}
+    cf_chart_df = pd.DataFrame(
+        {
+            "Energy Source": list(results["capacity_factors"].keys()),
+            "Capacity Factor (%)": [round(v, 1) for v in results["capacity_factors"].values()],
+        }
     )
-    st.bar_chart(cf_df)
+    fig_cf = px.bar(
+        cf_chart_df,
+        x="Energy Source",
+        y="Capacity Factor (%)",
+        text="Capacity Factor (%)",
+    )
+    fig_cf.update_traces(texttemplate="%{text:.1f}", textposition="outside")
+    fig_cf.update_xaxes(tickangle=0)
+    fig_cf.update_layout(
+        height=430,
+        margin=dict(l=20, r=20, t=10, b=20),
+        xaxis_title="",
+        yaxis_title="Capacity Factor (%)",
+    )
+    st.plotly_chart(fig_cf, use_container_width=True)
     st.caption(f"Dominant modeled renewable source in the selected scenario: {results['dominant_source']}")
 
 with tab2:
