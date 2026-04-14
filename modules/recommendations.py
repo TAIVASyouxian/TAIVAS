@@ -1,92 +1,66 @@
 """
 TAIVAS recommendations module
-Enhanced V1.2 rule-based recommendation helpers for dashboard explanation.
+Rule-based recommendations for resilience and energy security interpretation.
 """
 
 from typing import Dict, List
 
 
-def recommendation_lines(results: Dict[str, float], scenario_key: str) -> List[str]:
+def recommendation_lines(results: Dict[str, float], energy_security_scenario: str = "normal") -> List[str]:
     lines: List[str] = []
 
-    shortfall = results.get("shortfall", 0)
-    grid_dependency = results.get("grid_dependency", 0)
-    renewable_ratio = results.get("renewable_ratio", 100)
-    import_disruption_score = results.get("import_disruption_score", 0)
-    reserve_days_remaining = results.get("reserve_days_remaining", 999)
-    fuel_cost_stress = results.get("fuel_cost_stress", 0)
-    critical_load_coverage = results.get("critical_load_coverage", 100)
-    recovery_time_estimate = results.get("recovery_time_estimate", 0)
+    shortfall = float(results.get("shortfall", 0.0))
+    renewable_ratio = float(results.get("renewable_ratio", 0.0))
+    battery_levels = float(results.get("battery_levels", 0.0))
+    grid_dependency = float(results.get("grid_dependency", 0.0))
+    import_disruption_score = float(results.get("import_disruption_score", 0.0))
+    reserve_days_remaining = float(results.get("reserve_days_remaining", 0.0))
+    critical_load_coverage = float(results.get("critical_load_coverage", 100.0))
+    recovery_time_estimate = float(results.get("recovery_time_estimate", 0.0))
 
-    if shortfall > 0:
-        lines.append(
-            "Increase storage and reserve capacity to reduce supply gaps under stressed conditions."
-        )
-
-    if grid_dependency > 15:
-        lines.append(
-            "Grid dependency is elevated. Strengthen local diversified supply and backup planning."
-        )
+    if shortfall <= 0:
+        lines.append("System balance is currently stable under the selected scenario. Maintain monitoring and compare against more severe weather and security conditions.")
+    else:
+        lines.append(f"Current modeled shortfall is {shortfall:.2f} MW. Consider increasing dispatchable support, storage, or reducing demand in survival mode.")
 
     if renewable_ratio < 60:
-        lines.append(
-            "Renewable contribution is modest. Consider increasing solar, wind, hydro, or geothermal capacity."
-        )
+        lines.append(f"Renewable ratio is {renewable_ratio:.1f}%, which suggests weaker self-reliance. Review solar, wind, hydro, and geothermal balance for this scenario.")
+    else:
+        lines.append(f"Renewable ratio remains {renewable_ratio:.1f}%, indicating comparatively strong renewable contribution in the current setup.")
 
-    if scenario_key in {"typhoon", "storm", "blizzard"}:
-        lines.append(
-            "Severe-weather scenario selected. Prioritize resilience, backup dispatch, and critical-load continuity."
-        )
+    if battery_levels < 0.2 * max(battery_levels + results.get("shortfall", 0.0), 1.0):
+        lines.append("Battery headroom is limited after dispatch. Consider increasing battery capacity or reducing early-hour discharge pressure.")
+    else:
+        lines.append("Battery reserve remains available after dispatch, which improves near-term resilience against follow-on shocks.")
 
-    if scenario_key in {
-        "fuel_price_shock",
-        "strait_disruption",
-        "lng_terminal_attack",
-        "regional_infrastructure_damage",
-        "compound_crisis",
-    }:
-        lines.append(
-            "Geopolitical stress detected. Review import exposure, reserve planning, and fuel diversification strategy."
-        )
+    if grid_dependency > 15:
+        lines.append(f"Grid dependency is {grid_dependency:.1f}%, which may become a vulnerability during external disruption. Test lower-import or higher-storage configurations.")
+    else:
+        lines.append(f"Grid dependency is relatively low at {grid_dependency:.1f}%, which supports resilience under constrained external supply conditions.")
 
     if import_disruption_score >= 60:
-        lines.append(
-            "Import disruption risk is high. Reduce single-route dependence and prepare alternative supply access."
-        )
+        lines.append(f"Import disruption exposure is high at {import_disruption_score:.1f}%. Strengthen strategic reserves and stress-test shipping and infrastructure bottlenecks.")
+    elif import_disruption_score >= 35:
+        lines.append(f"Import disruption exposure is moderate at {import_disruption_score:.1f}%. Compare this setup against a more conservative reserve strategy.")
+    else:
+        lines.append(f"Import disruption exposure remains manageable at {import_disruption_score:.1f}% under the selected energy security scenario.")
 
     if reserve_days_remaining < 7:
-        lines.append(
-            "Reserve endurance is critically low. Expand strategic reserve planning and emergency procurement options."
-        )
-    elif reserve_days_remaining < 14:
-        lines.append(
-            "Reserve endurance is limited. Review consumption controls and replenishment timelines."
-        )
+        lines.append(f"Reserve endurance is low at {reserve_days_remaining:.1f} days. Consider raising strategic reserve days or lowering import dependence.")
+    else:
+        lines.append(f"Reserve endurance is {reserve_days_remaining:.1f} days, giving the system a workable security buffer.")
 
-    if fuel_cost_stress >= 30:
-        lines.append(
-            "Fuel cost pressure is significant. Prepare affordability measures and prioritize efficient backup dispatch."
-        )
+    if critical_load_coverage < 100:
+        lines.append(f"Critical-load coverage falls to {critical_load_coverage:.1f}%. Prioritize medical, heating, water, and communications loads in degraded operation mode.")
+    else:
+        lines.append("Critical-load coverage remains intact in the current simulation, which is favorable for essential-service continuity.")
 
-    if critical_load_coverage < 80:
-        lines.append(
-            "Critical-load protection may be insufficient. Reallocate backup resources toward hospitals, communications, and water systems."
-        )
+    if recovery_time_estimate >= 7:
+        lines.append(f"Estimated recovery time is {recovery_time_estimate:.1f} days. Build contingency plans for prolonged disruption and slower restoration.")
+    else:
+        lines.append(f"Estimated recovery time is {recovery_time_estimate:.1f} days under the selected disruption profile.")
 
-    if recovery_time_estimate >= 10:
-        lines.append(
-            "Recovery time is extended. Strengthen restoration planning, logistics coordination, and staged restart protocols."
-        )
+    if energy_security_scenario not in ("normal", ""):
+        lines.append(f"The active energy security scenario is '{energy_security_scenario}', so all recommendations should be interpreted within that disruption context.")
 
-    if not lines:
-        lines.append(
-            "System balance is currently stable. Maintain monitoring and compare against more severe resilience and security scenarios."
-        )
-
-    # de-duplicate while preserving order
-    deduped: List[str] = []
-    for line in lines:
-        if line not in deduped:
-            deduped.append(line)
-
-    return deduped
+    return lines
