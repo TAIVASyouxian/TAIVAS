@@ -150,8 +150,8 @@ def render_ground_thermal_sink_concept(
       <div style="font-size:14px; line-height:1.65; color:#cbd5e1;">
         <b>Upper chamber:</b> facility thermal load zone.<br>
         <b>Lower bedrock:</b> conceptual ground thermal sink.<br>
-        <b>Blue liquid columns:</b> heat rejection into subsurface mass.<br><br>
-        The liquid is clipped inside vertical conduits so it reads like <b>sealed coolant flow</b>.
+        <b>Blue vertical conduits:</b> contained coolant being directed downward into the subsurface exchange zone.<br><br>
+        This version emphasizes <b>downward guided flow</b> instead of flashing conduit light, so it reads more like a thermal-transfer loop.
       </div>
       <div style="margin-top:16px; border-top:1px solid #17304d; padding-top:14px;">
         <div style="font-size:16px; font-weight:800; margin-bottom:8px;">Derived concept outputs</div>
@@ -162,52 +162,99 @@ def render_ground_thermal_sink_concept(
         </div>
       </div>
     """
+
     util_width = max(40, int(960 * sink_utilization_pct / 100))
+    pulse_opacity = max(0.18, min(0.55, 0.20 + sink_utilization_pct / 220))
+
     svg = f"""
     <svg viewBox="0 0 1200 620" width="100%" height="100%">
       <defs>
-        <linearGradient id="groundPipe" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stop-color="#082f49"/><stop offset="100%" stop-color="#0c4a6e"/>
+        <linearGradient id="groundPipeShell" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#082f49"/>
+          <stop offset="100%" stop-color="#0c4a6e"/>
         </linearGradient>
-        <linearGradient id="groundLiquid" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stop-color="#0ea5e9"/>
-          <stop offset="25%" stop-color="#67e8f9"/>
-          <stop offset="50%" stop-color="#ecfeff"/>
-          <stop offset="75%" stop-color="#7dd3fc"/>
-          <stop offset="100%" stop-color="#0284c7"/>
-          <animateTransform attributeName="gradientTransform" type="translate" values="0 -180;0 180;0 -180" dur="2.8s" repeatCount="indefinite"/>
+
+        <linearGradient id="groundLiquidDown" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#8be9ff"/>
+          <stop offset="30%" stop-color="#38bdf8"/>
+          <stop offset="65%" stop-color="#0ea5e9"/>
+          <stop offset="100%" stop-color="#0369a1"/>
         </linearGradient>
-        <mask id="groundMaskL"><rect x="449" y="220" width="22" height="220" rx="11" fill="white"/></mask>
-        <mask id="groundMaskR"><rect x="729" y="220" width="22" height="220" rx="11" fill="white"/></mask>
+
+        <filter id="groundGlow">
+          <feGaussianBlur stdDeviation="3.2" result="blur"/>
+          <feMerge>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+
+        <mask id="sinkMaskL">
+          <rect x="446" y="214" width="28" height="228" rx="14" fill="white"/>
+        </mask>
+        <mask id="sinkMaskR">
+          <rect x="726" y="214" width="28" height="228" rx="14" fill="white"/>
+        </mask>
       </defs>
+
       <rect x="20" y="20" width="1160" height="580" rx="22" fill="#081220" stroke="#274a72" stroke-width="3"/>
-      <rect x="90" y="80" width="1020" height="150" rx="22" fill="#0d1e30" stroke="#4f89c6" stroke-width="3"/>
-      <text x="145" y="130" fill="#f8fafc" font-size="30" font-weight="800">Facility Thermal Zone</text>
+
+      <rect x="90" y="78" width="1020" height="150" rx="22" fill="#0d1e30" stroke="#4f89c6" stroke-width="3"/>
+      <rect x="90" y="300" width="1020" height="220" rx="22" fill="#111827" stroke="#334155" stroke-width="2"/>
+
+      <rect x="446" y="214" width="28" height="228" rx="14" fill="url(#groundPipeShell)"/>
+      <rect x="726" y="214" width="28" height="228" rx="14" fill="url(#groundPipeShell)"/>
+
+      <rect x="451" y="120" width="18" height="120" rx="9" fill="url(#groundLiquidDown)" opacity="0.20"/>
+      <rect x="731" y="120" width="18" height="120" rx="9" fill="url(#groundLiquidDown)" opacity="0.20"/>
+
+      <g mask="url(#sinkMaskL)">
+        <rect x="451" y="120" width="18" height="86" rx="9" fill="url(#groundLiquidDown)" filter="url(#groundGlow)">
+          <animate attributeName="y" values="118;386;118" dur="2.9s" repeatCount="indefinite"/>
+        </rect>
+        <rect x="451" y="10" width="18" height="72" rx="9" fill="url(#groundLiquidDown)" opacity="0.85" filter="url(#groundGlow)">
+          <animate attributeName="y" values="5;338;5" dur="2.9s" begin="1.45s" repeatCount="indefinite"/>
+        </rect>
+      </g>
+
+      <g mask="url(#sinkMaskR)">
+        <rect x="731" y="120" width="18" height="86" rx="9" fill="url(#groundLiquidDown)" filter="url(#groundGlow)">
+          <animate attributeName="y" values="118;386;118" dur="2.9s" begin="0.5s" repeatCount="indefinite"/>
+        </rect>
+        <rect x="731" y="10" width="18" height="72" rx="9" fill="url(#groundLiquidDown)" opacity="0.85" filter="url(#groundGlow)">
+          <animate attributeName="y" values="5;338;5" dur="2.9s" begin="1.9s" repeatCount="indefinite"/>
+        </rect>
+      </g>
+
+      <ellipse cx="600" cy="430" rx="118" ry="34" fill="#0ea5e9" opacity="{pulse_opacity:.2f}" filter="url(#groundGlow)">
+        <animate attributeName="rx" values="96;128;96" dur="3.4s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="{pulse_opacity:.2f};0.10;{pulse_opacity:.2f}" dur="3.4s" repeatCount="indefinite"/>
+      </ellipse>
+
+      <text x="145" y="128" fill="#f8fafc" font-size="30" font-weight="800">Facility Thermal Zone</text>
       <text x="145" y="170" fill="#fca5a5" font-size="22" font-weight="700">Waste heat routed downward for buffering</text>
 
-      <rect x="90" y="300" width="1020" height="220" rx="22" fill="#111827" stroke="#334155" stroke-width="2"/>
-      <text x="145" y="350" fill="#e5e7eb" font-size="30" font-weight="800">Ground Thermal Sink</text>
-      <text x="145" y="390" fill="#93c5fd" font-size="22" font-weight="700">Subsurface heat absorption concept</text>
+      <rect x="95" y="240" width="300" height="42" rx="10" fill="#0d1e30" stroke="#264c75" stroke-width="1.5"/>
+      <text x="245" y="267" text-anchor="middle" fill="#d9f99d" font-size="16" font-weight="800">Cooling offset: {cooling_offset_pct:.1f}%</text>
 
-      <rect x="449" y="220" width="22" height="220" rx="11" fill="url(#groundPipe)"/>
-      <rect x="729" y="220" width="22" height="220" rx="11" fill="url(#groundPipe)"/>
-      <rect x="452" y="223" width="16" height="214" rx="8" fill="url(#groundLiquid)" mask="url(#groundMaskL)"/>
-      <rect x="732" y="223" width="16" height="214" rx="8" fill="url(#groundLiquid)" mask="url(#groundMaskR)"/>
+      <rect x="805" y="240" width="270" height="42" rx="10" fill="#0d1e30" stroke="#264c75" stroke-width="1.5"/>
+      <text x="940" y="267" text-anchor="middle" fill="#fca5a5" font-size="16" font-weight="800">Saturation risk: {saturation_risk_pct:.0f}%</text>
+
+      <text x="145" y="350" fill="#f8fafc" font-size="30" font-weight="800">Ground Thermal Sink</text>
+      <text x="145" y="392" fill="#93c5fd" font-size="22" font-weight="700">Subsurface heat absorption concept</text>
 
       <rect x="110" y="540" width="980" height="36" rx="10" fill="#0d1e30" stroke="#264c75" stroke-width="1.5"/>
       <rect x="120" y="546" width="{util_width}" height="24" rx="8" fill="#0ea5e9"/>
       <text x="600" y="565" text-anchor="middle" fill="#e5e7eb" font-size="16" font-weight="800">Sink utilization {sink_utilization_pct:.0f}%</text>
-
-      <rect x="95" y="240" width="280" height="42" rx="10" fill="#0d1e30" stroke="#264c75" stroke-width="1.5"/>
-      <text x="235" y="267" text-anchor="middle" fill="#d9f99d" font-size="16" font-weight="800">Cooling offset: {cooling_offset_pct:.1f}%</text>
-
-      <rect x="825" y="240" width="250" height="42" rx="10" fill="#0d1e30" stroke="#264c75" stroke-width="1.5"/>
-      <text x="950" y="267" text-anchor="middle" fill="#fca5a5" font-size="16" font-weight="800">Saturation risk: {saturation_risk_pct:.0f}%</text>
     </svg>
     """
-    _wrap_card("Ground Thermal Sink (Concept)",
-               "Conceptual ground-coupled cooling and subsurface heat buffering visualization.",
-               svg, side_html, height=height)
+    _wrap_card(
+        "Ground Thermal Sink (Concept)",
+        "Conceptual ground-coupled cooling and subsurface heat buffering visualization.",
+        svg,
+        side_html,
+        height=height,
+    )
 
 
 def render_distributed_thermal_control_concept(
