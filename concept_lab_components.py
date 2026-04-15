@@ -1,3 +1,4 @@
+
 import streamlit.components.v1 as components
 
 try:
@@ -22,7 +23,7 @@ def render_thermal_principle_simulation(*args, **kwargs):
     components.html(fallback, height=220, scrolling=False)
 
 
-def _wrap_card(title: str, subtitle: str, svg_html: str, side_html: str = "", height: int = 700):
+def _wrap_card(title: str, subtitle: str, svg_html: str, side_html: str = "", height: int = 720):
     html = f"""
     <div style="font-family: Inter, Arial, sans-serif; color:#e5e7eb; padding-bottom:12px;">
       <div style="margin-bottom:10px;">
@@ -47,16 +48,17 @@ def render_phase_change_buffer_concept(
     buffer_state_pct: float = 72.0,
     demand_reduction_pct: float = 11.0,
     reserve_bonus_hours: float = 6.0,
-    height: int = 690,
+    height: int = 720,
 ):
     core_w = 220
     side_html = f"""
       <div style="font-size:18px; font-weight:800; margin-bottom:10px;">How to interpret this panel</div>
       <div style="font-size:14px; line-height:1.65; color:#cbd5e1;">
-        <b>Blue loop:</b> cold-side storage path.<br>
-        <b>Red loop:</b> heat recovery / discharge path.<br>
+        <b>Blue liquid loop:</b> cold-side storage circulation.<br>
+        <b>Red liquid loop:</b> heat recovery / discharge circulation.<br>
         <b>Center tank:</b> conceptual phase-change storage block.<br><br>
-        This is a <b>conceptual simulation graphic</b> showing how a latent-heat buffer could smooth thermal load and reduce electrical demand spikes.
+        The liquid fill is clipped inside the conduit boundary so it reads like
+        <b>contained coolant flow</b>, not particles or leakage.
       </div>
       <div style="margin-top:16px; border-top:1px solid #17304d; padding-top:14px;">
         <div style="font-size:16px; font-weight:800; margin-bottom:8px;">Derived concept outputs</div>
@@ -70,27 +72,48 @@ def render_phase_change_buffer_concept(
     svg = f"""
     <svg viewBox="0 0 1200 620" width="100%" height="100%" aria-label="phase change thermal buffer concept">
       <defs>
-        <linearGradient id="pcmBlue" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#7dd3fc"/>
+        <linearGradient id="pcmBluePipe" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#082f49"/><stop offset="100%" stop-color="#0c4a6e"/>
         </linearGradient>
-        <linearGradient id="pcmRed" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#fda4af"/><stop offset="100%" stop-color="#ef4444"/>
+        <linearGradient id="pcmRedPipe" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#4c0519"/><stop offset="100%" stop-color="#7f1d1d"/>
         </linearGradient>
+        <linearGradient id="pcmBlueLiquid" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#0ea5e9"/>
+          <stop offset="25%" stop-color="#67e8f9"/>
+          <stop offset="50%" stop-color="#ecfeff"/>
+          <stop offset="75%" stop-color="#7dd3fc"/>
+          <stop offset="100%" stop-color="#0284c7"/>
+          <animateTransform attributeName="gradientTransform" type="translate" values="-220 0;220 0;-220 0" dur="3.0s" repeatCount="indefinite"/>
+        </linearGradient>
+        <linearGradient id="pcmRedLiquid" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#ef4444"/>
+          <stop offset="25%" stop-color="#fda4af"/>
+          <stop offset="50%" stop-color="#fff1f2"/>
+          <stop offset="75%" stop-color="#fb7185"/>
+          <stop offset="100%" stop-color="#be123c"/>
+          <animateTransform attributeName="gradientTransform" type="translate" values="220 0;-220 0;220 0" dur="3.0s" repeatCount="indefinite"/>
+        </linearGradient>
+        <mask id="pcmTopBlueMask"><rect x="90" y="226" width="370" height="28" rx="14" fill="white"/></mask>
+        <mask id="pcmTopRedMask"><rect x="740" y="226" width="370" height="28" rx="14" fill="white"/></mask>
+        <mask id="pcmBottomRedMask"><rect x="90" y="416" width="370" height="28" rx="14" fill="white"/></mask>
+        <mask id="pcmBottomBlueMask"><rect x="740" y="416" width="370" height="28" rx="14" fill="white"/></mask>
       </defs>
+
       <rect x="20" y="20" width="1160" height="580" rx="22" fill="#081220" stroke="#274a72" stroke-width="3"/>
       <rect x="460" y="170" width="280" height="230" rx="26" fill="#0c1a2c" stroke="#4f7cac" stroke-width="4"/>
       <text x="600" y="220" text-anchor="middle" fill="#f8fafc" font-size="34" font-weight="800">PCM Buffer</text>
       <text x="600" y="258" text-anchor="middle" fill="#93c5fd" font-size="22" font-weight="700">Latent heat storage</text>
 
-      <path d="M 90 240 H 460" fill="none" stroke="url(#pcmBlue)" stroke-width="26" stroke-linecap="round"/>
-      <path d="M 740 240 H 1110" fill="none" stroke="url(#pcmRed)" stroke-width="26" stroke-linecap="round"/>
-      <path d="M 90 430 H 460" fill="none" stroke="url(#pcmRed)" stroke-width="26" stroke-linecap="round"/>
-      <path d="M 740 430 H 1110" fill="none" stroke="url(#pcmBlue)" stroke-width="26" stroke-linecap="round"/>
+      <rect x="90" y="226" width="370" height="28" rx="14" fill="url(#pcmBluePipe)"/>
+      <rect x="740" y="226" width="370" height="28" rx="14" fill="url(#pcmRedPipe)"/>
+      <rect x="90" y="416" width="370" height="28" rx="14" fill="url(#pcmRedPipe)"/>
+      <rect x="740" y="416" width="370" height="28" rx="14" fill="url(#pcmBluePipe)"/>
 
-      <circle r="10" fill="#7dd3fc"><animateMotion dur="5.5s" repeatCount="indefinite" path="M 90 240 H 460"/></circle>
-      <circle r="10" fill="#fda4af"><animateMotion dur="5.5s" repeatCount="indefinite" path="M 740 240 H 1110"/></circle>
-      <circle r="10" fill="#f87171"><animateMotion dur="5.5s" begin="1.2s" repeatCount="indefinite" path="M 90 430 H 460"/></circle>
-      <circle r="10" fill="#7dd3fc"><animateMotion dur="5.5s" begin="1.2s" repeatCount="indefinite" path="M 740 430 H 1110"/></circle>
+      <rect x="92" y="230" width="366" height="20" rx="10" fill="url(#pcmBlueLiquid)" mask="url(#pcmTopBlueMask)"/>
+      <rect x="742" y="230" width="366" height="20" rx="10" fill="url(#pcmRedLiquid)" mask="url(#pcmTopRedMask)"/>
+      <rect x="92" y="420" width="366" height="20" rx="10" fill="url(#pcmRedLiquid)" mask="url(#pcmBottomRedMask)"/>
+      <rect x="742" y="420" width="366" height="20" rx="10" fill="url(#pcmBlueLiquid)" mask="url(#pcmBottomBlueMask)"/>
 
       <rect x="120" y="110" width="{core_w}" height="132" rx="22" fill="#0d1e30" stroke="#4f89c6" stroke-width="3"/>
       <text x="{120 + core_w/2}" y="160" text-anchor="middle" fill="#f8fafc" font-size="28" font-weight="800">Server Core</text>
@@ -120,15 +143,15 @@ def render_ground_thermal_sink_concept(
     cooling_offset_pct: float = 14.0,
     sink_utilization_pct: float = 63.0,
     saturation_risk_pct: float = 21.0,
-    height: int = 690,
+    height: int = 720,
 ):
     side_html = f"""
       <div style="font-size:18px; font-weight:800; margin-bottom:10px;">How to interpret this panel</div>
       <div style="font-size:14px; line-height:1.65; color:#cbd5e1;">
         <b>Upper chamber:</b> facility thermal load zone.<br>
         <b>Lower bedrock:</b> conceptual ground thermal sink.<br>
-        <b>Blue descent:</b> heat rejection into subsurface mass.<br><br>
-        This visualization shows a <b>ground-coupled thermal sink concept</b> for cooling support and thermal buffering.
+        <b>Blue liquid columns:</b> heat rejection into subsurface mass.<br><br>
+        The liquid is clipped inside vertical conduits so it reads like <b>sealed coolant flow</b>.
       </div>
       <div style="margin-top:16px; border-top:1px solid #17304d; padding-top:14px;">
         <div style="font-size:16px; font-weight:800; margin-bottom:8px;">Derived concept outputs</div>
@@ -139,8 +162,24 @@ def render_ground_thermal_sink_concept(
         </div>
       </div>
     """
+    util_width = max(40, int(960 * sink_utilization_pct / 100))
     svg = f"""
     <svg viewBox="0 0 1200 620" width="100%" height="100%">
+      <defs>
+        <linearGradient id="groundPipe" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#082f49"/><stop offset="100%" stop-color="#0c4a6e"/>
+        </linearGradient>
+        <linearGradient id="groundLiquid" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#0ea5e9"/>
+          <stop offset="25%" stop-color="#67e8f9"/>
+          <stop offset="50%" stop-color="#ecfeff"/>
+          <stop offset="75%" stop-color="#7dd3fc"/>
+          <stop offset="100%" stop-color="#0284c7"/>
+          <animateTransform attributeName="gradientTransform" type="translate" values="0 -180;0 180;0 -180" dur="2.8s" repeatCount="indefinite"/>
+        </linearGradient>
+        <mask id="groundMaskL"><rect x="449" y="220" width="22" height="220" rx="11" fill="white"/></mask>
+        <mask id="groundMaskR"><rect x="729" y="220" width="22" height="220" rx="11" fill="white"/></mask>
+      </defs>
       <rect x="20" y="20" width="1160" height="580" rx="22" fill="#081220" stroke="#274a72" stroke-width="3"/>
       <rect x="90" y="80" width="1020" height="150" rx="22" fill="#0d1e30" stroke="#4f89c6" stroke-width="3"/>
       <text x="145" y="130" fill="#f8fafc" font-size="30" font-weight="800">Facility Thermal Zone</text>
@@ -150,13 +189,13 @@ def render_ground_thermal_sink_concept(
       <text x="145" y="350" fill="#e5e7eb" font-size="30" font-weight="800">Ground Thermal Sink</text>
       <text x="145" y="390" fill="#93c5fd" font-size="22" font-weight="700">Subsurface heat absorption concept</text>
 
-      <path d="M 460 220 C 460 290, 460 300, 460 440" fill="none" stroke="#7dd3fc" stroke-width="22" stroke-linecap="round"/>
-      <path d="M 740 220 C 740 290, 740 300, 740 440" fill="none" stroke="#7dd3fc" stroke-width="22" stroke-linecap="round"/>
-      <circle r="10" fill="#7dd3fc"><animateMotion dur="4.8s" repeatCount="indefinite" path="M 460 220 C 460 290, 460 300, 460 440"/></circle>
-      <circle r="10" fill="#7dd3fc"><animateMotion dur="4.8s" begin="1.5s" repeatCount="indefinite" path="M 740 220 C 740 290, 740 300, 740 440"/></circle>
+      <rect x="449" y="220" width="22" height="220" rx="11" fill="url(#groundPipe)"/>
+      <rect x="729" y="220" width="22" height="220" rx="11" fill="url(#groundPipe)"/>
+      <rect x="452" y="223" width="16" height="214" rx="8" fill="url(#groundLiquid)" mask="url(#groundMaskL)"/>
+      <rect x="732" y="223" width="16" height="214" rx="8" fill="url(#groundLiquid)" mask="url(#groundMaskR)"/>
 
       <rect x="110" y="540" width="980" height="36" rx="10" fill="#0d1e30" stroke="#264c75" stroke-width="1.5"/>
-      <rect x="120" y="546" width="{max(40, int(960 * sink_utilization_pct / 100))}" height="24" rx="8" fill="#38bdf8"/>
+      <rect x="120" y="546" width="{util_width}" height="24" rx="8" fill="#0ea5e9"/>
       <text x="600" y="565" text-anchor="middle" fill="#e5e7eb" font-size="16" font-weight="800">Sink utilization {sink_utilization_pct:.0f}%</text>
 
       <rect x="95" y="240" width="280" height="42" rx="10" fill="#0d1e30" stroke="#264c75" stroke-width="1.5"/>
@@ -176,15 +215,15 @@ def render_distributed_thermal_control_concept(
     rerouting_efficiency_pct: float = 74.0,
     damage_ratio_pct: float = 18.0,
     protected_core_pct: float = 86.0,
-    height: int = 690,
+    height: int = 720,
 ):
     side_html = f"""
       <div style="font-size:18px; font-weight:800; margin-bottom:10px;">How to interpret this panel</div>
       <div style="font-size:14px; line-height:1.65; color:#cbd5e1;">
-        <b>Blue links:</b> active cooling / control paths.<br>
-        <b>Red links:</b> overloaded or emergency routing paths.<br>
-        <b>Muted gray links:</b> inactive network branches.<br><br>
-        This panel shows a <b>distributed thermal control concept</b> where some nodes fail, but routing shifts to protect the central core.
+        <b>Blue liquid links:</b> primary active control paths.<br>
+        <b>Red liquid links:</b> emergency rerouting paths.<br>
+        <b>Muted gray links:</b> inactive branches.<br><br>
+        Fault marks are softened so the routing remains visually dominant.
       </div>
       <div style="margin-top:16px; border-top:1px solid #17304d; padding-top:14px;">
         <div style="font-size:16px; font-weight:800; margin-bottom:8px;">Derived concept outputs</div>
@@ -197,8 +236,27 @@ def render_distributed_thermal_control_concept(
     """
     svg = f"""
     <svg viewBox="0 0 1200 620" width="100%" height="100%">
+      <defs>
+        <linearGradient id="ctrlBlueLiquid" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#0ea5e9"/>
+          <stop offset="25%" stop-color="#67e8f9"/>
+          <stop offset="50%" stop-color="#ecfeff"/>
+          <stop offset="75%" stop-color="#7dd3fc"/>
+          <stop offset="100%" stop-color="#0284c7"/>
+          <animateTransform attributeName="gradientTransform" type="translate" values="-220 0;220 0;-220 0" dur="2.6s" repeatCount="indefinite"/>
+        </linearGradient>
+        <linearGradient id="ctrlRedLiquid" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#ef4444"/>
+          <stop offset="25%" stop-color="#fda4af"/>
+          <stop offset="50%" stop-color="#fff1f2"/>
+          <stop offset="75%" stop-color="#fb7185"/>
+          <stop offset="100%" stop-color="#be123c"/>
+          <animateTransform attributeName="gradientTransform" type="translate" values="220 0;-220 0;220 0" dur="2.6s" repeatCount="indefinite"/>
+        </linearGradient>
+      </defs>
       <rect x="20" y="20" width="1160" height="580" rx="22" fill="#081220" stroke="#274a72" stroke-width="3"/>
       <rect x="70" y="90" width="1060" height="360" rx="20" fill="#07111f" stroke="#31567f" stroke-width="2"/>
+
       <g stroke="#64748b" stroke-width="10" stroke-linecap="round" opacity="0.75">
         <line x1="160" y1="180" x2="340" y2="180"/><line x1="340" y1="180" x2="520" y2="180"/><line x1="520" y1="180" x2="700" y2="180"/><line x1="700" y1="180" x2="880" y2="180"/>
         <line x1="160" y1="300" x2="340" y2="300"/><line x1="340" y1="300" x2="520" y2="300"/><line x1="520" y1="300" x2="700" y2="300"/><line x1="700" y1="300" x2="880" y2="300"/>
@@ -209,14 +267,17 @@ def render_distributed_thermal_control_concept(
         <line x1="700" y1="180" x2="700" y2="300"/><line x1="700" y1="300" x2="700" y2="420"/>
         <line x1="880" y1="180" x2="880" y2="300"/><line x1="880" y1="300" x2="880" y2="420"/>
       </g>
-      <g stroke-linecap="round" fill="none">
-        <path d="M 160 180 H 340 L 520 300 H 700 H 880" stroke="#7dd3fc" stroke-width="18"/>
-        <path d="M 160 420 H 340 L 520 300 L 700 180 H 880" stroke="#fca5a5" stroke-width="18"/>
-      </g>
-      <g stroke="#7f1d1d" stroke-width="8" opacity="0.5">
+
+      <path d="M 160 180 H 340 L 520 300 H 700 H 880" stroke="#0a4765" stroke-width="18" fill="none" stroke-linecap="round"/>
+      <path d="M 160 420 H 340 L 520 300 L 700 180 H 880" stroke="#5b141f" stroke-width="18" fill="none" stroke-linecap="round"/>
+      <path d="M 160 180 H 340 L 520 300 H 700 H 880" stroke="url(#ctrlBlueLiquid)" stroke-width="12" fill="none" stroke-linecap="round"/>
+      <path d="M 160 420 H 340 L 520 300 L 700 180 H 880" stroke="url(#ctrlRedLiquid)" stroke-width="12" fill="none" stroke-linecap="round"/>
+
+      <g stroke="#7f1d1d" stroke-width="5" opacity="0.18">
         <line x1="314" y1="274" x2="366" y2="326"/><line x1="366" y1="274" x2="314" y2="326"/>
         <line x1="674" y1="394" x2="726" y2="446"/><line x1="726" y1="394" x2="674" y2="446"/>
       </g>
+
       <g>
         <circle cx="160" cy="180" r="28" fill="#1e293b" stroke="#94a3b8" stroke-width="4"/>
         <circle cx="340" cy="180" r="28" fill="#1e293b" stroke="#94a3b8" stroke-width="4"/>
@@ -234,12 +295,15 @@ def render_distributed_thermal_control_concept(
         <circle cx="700" cy="420" r="28" fill="#1e293b" stroke="#94a3b8" stroke-width="4"/>
         <circle cx="880" cy="420" r="28" fill="#1e293b" stroke="#94a3b8" stroke-width="4"/>
       </g>
+
       <text x="520" y="308" text-anchor="middle" fill="#07111f" font-size="18" font-weight="900">CORE</text>
+
       <rect x="60" y="488" width="1080" height="72" rx="16" fill="#091827" stroke="#1e3a5f" stroke-width="2"/>
       <rect x="85" y="503" width="250" height="42" rx="10" fill="#0d1e30" stroke="#264c75" stroke-width="1.5"/>
       <rect x="360" y="503" width="250" height="42" rx="10" fill="#0d1e30" stroke="#264c75" stroke-width="1.5"/>
       <rect x="635" y="503" width="250" height="42" rx="10" fill="#0d1e30" stroke="#264c75" stroke-width="1.5"/>
       <rect x="910" y="503" width="205" height="42" rx="10" fill="#0d1e30" stroke="#264c75" stroke-width="1.5"/>
+
       <text x="210" y="530" text-anchor="middle" fill="#ecfccb" font-size="16" font-weight="800">Node availability: {node_availability_pct:.0f}%</text>
       <text x="485" y="530" text-anchor="middle" fill="#bfdbfe" font-size="16" font-weight="800">Rerouting efficiency: {rerouting_efficiency_pct:.0f}%</text>
       <text x="760" y="530" text-anchor="middle" fill="#fca5a5" font-size="16" font-weight="800">Damage ratio: {damage_ratio_pct:.0f}%</text>
@@ -256,15 +320,15 @@ def render_distributed_harvesting_buffering_concept(
     reserve_gain_hours: float = 7.5,
     shortfall_reduction_pct: float = 16.0,
     core_preservation_hours: float = 18.0,
-    height: int = 690,
+    height: int = 720,
 ):
     side_html = f"""
       <div style="font-size:18px; font-weight:800; margin-bottom:10px;">How to interpret this panel</div>
       <div style="font-size:14px; line-height:1.65; color:#cbd5e1;">
-        <b>Source nodes:</b> solar, wind, hydro, and reserve inputs.<br>
+        <b>Source conduits:</b> solar, wind, hydro, and reserve inputs.<br>
         <b>Buffer pool:</b> central balancing and storage layer.<br>
         <b>Priority stream:</b> preserved flow into the critical core.<br><br>
-        This concept visualizes <b>distributed harvesting and buffering</b> under stressed conditions with priority preservation logic.
+        Source streams use stronger liquid colors so each path reads more clearly at a glance.
       </div>
       <div style="margin-top:16px; border-top:1px solid #17304d; padding-top:14px;">
         <div style="font-size:16px; font-weight:800; margin-bottom:8px;">Derived concept outputs</div>
@@ -277,12 +341,47 @@ def render_distributed_harvesting_buffering_concept(
     """
     svg = f"""
     <svg viewBox="0 0 1200 620" width="100%" height="100%">
+      <defs>
+        <linearGradient id="harvestGold" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#f59e0b"/>
+          <stop offset="25%" stop-color="#fcd34d"/>
+          <stop offset="50%" stop-color="#fff7d6"/>
+          <stop offset="75%" stop-color="#fbbf24"/>
+          <stop offset="100%" stop-color="#b45309"/>
+          <animateTransform attributeName="gradientTransform" type="translate" values="-180 0;180 0;-180 0" dur="2.7s" repeatCount="indefinite"/>
+        </linearGradient>
+        <linearGradient id="harvestWind" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#0ea5e9"/>
+          <stop offset="25%" stop-color="#67e8f9"/>
+          <stop offset="50%" stop-color="#ecfeff"/>
+          <stop offset="75%" stop-color="#7dd3fc"/>
+          <stop offset="100%" stop-color="#0284c7"/>
+          <animateTransform attributeName="gradientTransform" type="translate" values="-180 0;180 0;-180 0" dur="2.5s" repeatCount="indefinite"/>
+        </linearGradient>
+        <linearGradient id="harvestHydro" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#2563eb"/>
+          <stop offset="25%" stop-color="#93c5fd"/>
+          <stop offset="50%" stop-color="#eff6ff"/>
+          <stop offset="75%" stop-color="#60a5fa"/>
+          <stop offset="100%" stop-color="#1d4ed8"/>
+          <animateTransform attributeName="gradientTransform" type="translate" values="-180 0;180 0;-180 0" dur="2.9s" repeatCount="indefinite"/>
+        </linearGradient>
+        <linearGradient id="harvestCore" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#22c55e"/>
+          <stop offset="25%" stop-color="#86efac"/>
+          <stop offset="50%" stop-color="#f0fdf4"/>
+          <stop offset="75%" stop-color="#4ade80"/>
+          <stop offset="100%" stop-color="#15803d"/>
+          <animateTransform attributeName="gradientTransform" type="translate" values="-180 0;180 0;-180 0" dur="2.2s" repeatCount="indefinite"/>
+        </linearGradient>
+      </defs>
       <rect x="20" y="20" width="1160" height="580" rx="22" fill="#081220" stroke="#274a72" stroke-width="3"/>
-      <circle cx="180" cy="170" r="58" fill="#0d1e30" stroke="#fbbf24" stroke-width="4"/>
+
+      <circle cx="180" cy="170" r="58" fill="#0d1e30" stroke="#f59e0b" stroke-width="4"/>
       <text x="180" y="177" text-anchor="middle" fill="#fef3c7" font-size="22" font-weight="800">Solar</text>
-      <circle cx="180" cy="330" r="58" fill="#0d1e30" stroke="#7dd3fc" stroke-width="4"/>
+      <circle cx="180" cy="330" r="58" fill="#0d1e30" stroke="#0ea5e9" stroke-width="4"/>
       <text x="180" y="337" text-anchor="middle" fill="#dbeafe" font-size="22" font-weight="800">Wind</text>
-      <circle cx="180" cy="490" r="58" fill="#0d1e30" stroke="#60a5fa" stroke-width="4"/>
+      <circle cx="180" cy="490" r="58" fill="#0d1e30" stroke="#2563eb" stroke-width="4"/>
       <text x="180" y="497" text-anchor="middle" fill="#dbeafe" font-size="22" font-weight="800">Hydro</text>
 
       <rect x="430" y="180" width="260" height="250" rx="28" fill="#0d1e30" stroke="#4f89c6" stroke-width="4"/>
@@ -293,15 +392,15 @@ def render_distributed_harvesting_buffering_concept(
       <text x="985" y="288" text-anchor="middle" fill="#ecfdf5" font-size="26" font-weight="800">Critical Core</text>
       <text x="985" y="326" text-anchor="middle" fill="#86efac" font-size="18" font-weight="700">Preserved output</text>
 
-      <path d="M 240 170 C 310 170, 340 210, 430 245" fill="none" stroke="#fbbf24" stroke-width="16" stroke-linecap="round"/>
-      <path d="M 240 330 C 310 330, 340 320, 430 305" fill="none" stroke="#7dd3fc" stroke-width="16" stroke-linecap="round"/>
-      <path d="M 240 490 C 310 490, 340 410, 430 365" fill="none" stroke="#60a5fa" stroke-width="16" stroke-linecap="round"/>
-      <path d="M 690 305 C 760 305, 800 305, 890 305" fill="none" stroke="#86efac" stroke-width="18" stroke-linecap="round"/>
+      <path d="M 240 170 C 310 170, 340 210, 430 245" fill="none" stroke="#6b4d13" stroke-width="16" stroke-linecap="round"/>
+      <path d="M 240 330 C 310 330, 340 320, 430 305" fill="none" stroke="#0a4765" stroke-width="16" stroke-linecap="round"/>
+      <path d="M 240 490 C 310 490, 340 410, 430 365" fill="none" stroke="#1e40af" stroke-width="16" stroke-linecap="round"/>
+      <path d="M 690 305 C 760 305, 800 305, 890 305" fill="none" stroke="#166534" stroke-width="18" stroke-linecap="round"/>
 
-      <circle r="9" fill="#fde68a"><animateMotion dur="5.0s" repeatCount="indefinite" path="M 240 170 C 310 170, 340 210, 430 245"/></circle>
-      <circle r="9" fill="#7dd3fc"><animateMotion dur="4.4s" repeatCount="indefinite" path="M 240 330 C 310 330, 340 320, 430 305"/></circle>
-      <circle r="9" fill="#60a5fa"><animateMotion dur="4.8s" repeatCount="indefinite" path="M 240 490 C 310 490, 340 410, 430 365"/></circle>
-      <circle r="9" fill="#86efac"><animateMotion dur="3.8s" repeatCount="indefinite" path="M 690 305 C 760 305, 800 305, 890 305"/></circle>
+      <path d="M 240 170 C 310 170, 340 210, 430 245" fill="none" stroke="url(#harvestGold)" stroke-width="10" stroke-linecap="round"/>
+      <path d="M 240 330 C 310 330, 340 320, 430 305" fill="none" stroke="url(#harvestWind)" stroke-width="10" stroke-linecap="round"/>
+      <path d="M 240 490 C 310 490, 340 410, 430 365" fill="none" stroke="url(#harvestHydro)" stroke-width="10" stroke-linecap="round"/>
+      <path d="M 690 305 C 760 305, 800 305, 890 305" fill="none" stroke="url(#harvestCore)" stroke-width="12" stroke-linecap="round"/>
 
       <rect x="70" y="540" width="1060" height="40" rx="12" fill="#091827" stroke="#1e3a5f" stroke-width="2"/>
       <text x="205" y="566" text-anchor="middle" fill="#fde68a" font-size="16" font-weight="800">Diversification: {diversification_score:.0f}</text>
@@ -315,6 +414,5 @@ def render_distributed_harvesting_buffering_concept(
                svg, side_html, height=height)
 
 
-# compatibility alias
 def render_distributed_energy_harvesting_buffering_concept(*args, **kwargs):
     return render_distributed_harvesting_buffering_concept(*args, **kwargs)
