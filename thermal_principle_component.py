@@ -14,9 +14,9 @@ def render_thermal_principle_simulation(
     Render an animated conceptual heat-recovery / thermal-exchange diagram in Streamlit.
 
     Upgrades in this version:
-    1) Liquid speed is linked to the airflow_speed parameter.
-    2) Heat-exchange intensity is made more visible and scales with recovery_efficiency.
-    3) Flow thickness / visible flow rate scales with airflow_speed.
+    1) liquid slug speed links to airflow_speed
+    2) heat-exchange zone is more visually obvious
+    3) conduit thickness / slug size syncs with flow rate
     """
     recovery_efficiency = max(0.0, min(1.0, float(recovery_efficiency)))
     airflow_speed = max(0.4, min(2.5, float(airflow_speed)))
@@ -24,39 +24,32 @@ def render_thermal_principle_simulation(
     delivered_temp = fresh_air_temp_c + (exhaust_air_temp_c - fresh_air_temp_c) * recovery_efficiency
     exhaust_after_exchange = exhaust_air_temp_c - (exhaust_air_temp_c - fresh_air_temp_c) * recovery_efficiency
 
-    # Animation speeds
-    duration = 4.8 / airflow_speed
-    pulse_duration = 3.8 / max(0.8, airflow_speed * 0.9)
+    # Flow-linked visual parameters
+    flow_ratio = (airflow_speed - 0.4) / (2.5 - 0.4)  # 0 → 1
+    pipe_w = 22 + flow_ratio * 16                      # ~22 → 38
+    pipe_w = round(pipe_w, 1)
+    inner_w = pipe_w - 10                              # liquid thickness within pipe
+    inner_w = max(10, inner_w)
 
-    # Flow thickness linked to airflow speed
-    speed_norm = (airflow_speed - 0.4) / (2.5 - 0.4)
-    inner_thickness = 12 + speed_norm * 10      # 12 → 22 px
-    inner_round = inner_thickness / 2
-    top_inner_y = 261 - inner_thickness / 2
-    top_inner_h = inner_thickness
+    top_pipe_h = pipe_w
+    top_liquid_h = inner_w
+    top_y = 260 - top_pipe_h / 2
+    top_inner_y = 260 - top_liquid_h / 2
 
-    # Slug length linked to airflow speed
-    slug_len = 120 + speed_norm * 70            # 120 → 190 px
+    bottom_y = 458
+    bottom_w = pipe_w
+    bottom_liquid_w = inner_w
 
-    # Heat exchange visibility linked to efficiency
-    exch_norm = recovery_efficiency
-    pulse_base_radius = 46 + exch_norm * 18
-    pulse_max_radius = 74 + exch_norm * 26
-    pulse_base_opacity = 0.12 + exch_norm * 0.12
-    exch_arrow_opacity = 0.15 + exch_norm * 0.55
-    exch_arrow_count = 2 + int(round(exch_norm * 3))   # 2 → 5
+    slug_len = 80 + flow_ratio * 95                    # longer slugs at higher flow
+    slug_gap = 210 - flow_ratio * 70                   # smaller gap at higher flow
+    dash_total = slug_len + slug_gap
 
-    # Useful strings for SVG interpolation
-    outer_stroke = 30
-    outer_radius = outer_stroke / 2
+    duration = 5.4 / airflow_speed                    # faster flow → quicker motion
+    pulse_duration = 3.4 - flow_ratio * 1.2           # stronger/faster exchange visual
 
-    def eff_label(eff):
-        if eff >= 0.8:
-            return "High thermal recovery"
-        elif eff >= 0.55:
-            return "Moderate thermal recovery"
-        else:
-            return "Low thermal recovery"
+    # More noticeable heat-transfer arrows/intensity with higher recovery
+    heat_strength = 0.35 + recovery_efficiency * 0.45
+    heat_lines_opacity = 0.20 + recovery_efficiency * 0.45
 
     html = f"""
     <div style="font-family: Inter, Arial, sans-serif; color:#e5e7eb; padding-bottom:12px;">
@@ -98,10 +91,10 @@ def render_thermal_principle_simulation(
                 <stop offset="100%" stop-color="#f59e0b"/>
               </linearGradient>
 
-              <linearGradient id="exchangeArrow" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#fca5a5"/>
+              <linearGradient id="crossTransfer" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#38bdf8"/>
                 <stop offset="50%" stop-color="#fde68a"/>
-                <stop offset="100%" stop-color="#93c5fd"/>
+                <stop offset="100%" stop-color="#fb7185"/>
               </linearGradient>
 
               <filter id="blueGlow">
@@ -120,8 +113,8 @@ def render_thermal_principle_simulation(
                 </feMerge>
               </filter>
 
-              <filter id="goldGlow">
-                <feGaussianBlur stdDeviation="6" result="blur"/>
+              <filter id="amberGlow">
+                <feGaussianBlur stdDeviation="4" result="blur"/>
                 <feMerge>
                   <feMergeNode in="blur"/>
                   <feMergeNode in="SourceGraphic"/>
@@ -129,35 +122,34 @@ def render_thermal_principle_simulation(
               </filter>
 
               <clipPath id="clipTopCold">
-                <rect x="52" y="246" width="508" height="30" rx="15"/>
+                <rect x="52" y="{top_y:.1f}" width="508" height="{top_pipe_h:.1f}" rx="{top_pipe_h/2:.1f}"/>
               </clipPath>
               <clipPath id="clipTopWarm">
-                <rect x="640" y="246" width="508" height="30" rx="15"/>
+                <rect x="640" y="{top_y:.1f}" width="508" height="{top_pipe_h:.1f}" rx="{top_pipe_h/2:.1f}"/>
               </clipPath>
               <clipPath id="clipBottomCold">
-                <path d="M52 438 H420 L560 360 V392 L426 468 H52 Z"/>
+                <path d="M52 {bottom_y - bottom_w/2:.1f} H420 L560 {376 - bottom_w/2:.1f} V{376 + bottom_w/2:.1f} L426 {bottom_y + bottom_w/2:.1f} H52 Z"/>
               </clipPath>
               <clipPath id="clipBottomWarm">
-                <path d="M640 360 L774 438 H1148 V468 H768 L640 392 Z"/>
+                <path d="M640 {376 - bottom_w/2:.1f} L774 {bottom_y - bottom_w/2:.1f} H1148 V{bottom_y + bottom_w/2:.1f} H768 L640 {376 + bottom_w/2:.1f} Z"/>
               </clipPath>
             </defs>
 
             <rect x="28" y="24" width="1144" height="726" rx="22" fill="#081220" stroke="#1f3b5a" stroke-width="3"/>
             <text x="70" y="82" fill="#f8fafc" font-size="34" font-weight="800">Conceptual Heat Recovery / Thermal Buffer Flow</text>
-            <text x="70" y="118" fill="#94a3b8" font-size="18">
-              Outside air is pre-conditioned by exchange with indoor exhaust before delivery to the protected zone.
-            </text>
+            <text x="70" y="118" fill="#94a3b8" font-size="18">Outside air is pre-conditioned by exchange with indoor exhaust before delivery to the protected zone.</text>
 
+            <!-- Protected frame -->
             <rect x="250" y="180" width="700" height="360" rx="24" fill="#0b1828" stroke="#39526f" stroke-width="4"/>
             <rect x="270" y="200" width="660" height="320" rx="18" fill="#0d1e30" stroke="#243b53" stroke-width="2"/>
 
-            <!-- Side zones -->
+            <!-- Side chambers -->
             <rect x="292" y="220" width="280" height="120" rx="14" fill="#0c2940" stroke="#21557a" stroke-width="2"/>
             <rect x="292" y="380" width="280" height="120" rx="14" fill="#0c2940" stroke="#21557a" stroke-width="2"/>
             <rect x="628" y="220" width="280" height="120" rx="14" fill="#3a1719" stroke="#7f1d1d" stroke-width="2"/>
             <rect x="628" y="380" width="280" height="120" rx="14" fill="#3a1719" stroke="#7f1d1d" stroke-width="2"/>
 
-            <!-- Heat exchanger core -->
+            <!-- Central exchanger -->
             <g transform="translate(600,360) rotate(45)">
               <rect x="-120" y="-120" width="240" height="240" rx="12" fill="#2a2a35" stroke="url(#exchangeGrad)" stroke-width="8"/>
               <rect x="-95" y="-95" width="190" height="190" rx="10" fill="#f8fafc" opacity="0.96"/>
@@ -167,104 +159,120 @@ def render_thermal_principle_simulation(
               <path d="M -80 50 L 80 50" stroke="#cbd5e1" stroke-width="6" opacity="0.9"/>
             </g>
 
-            <!-- Pipe shells -->
-            <rect x="52" y="246" width="508" height="30" rx="15" fill="url(#coldPipeBase)"/>
-            <rect x="640" y="246" width="508" height="30" rx="15" fill="url(#warmPipeBase)"/>
-            <path d="M52 453 H420 L560 376" fill="none" stroke="url(#coldPipeBase)" stroke-width="{outer_stroke}" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M640 376 L774 453 H1148" fill="none" stroke="url(#warmPipeBase)" stroke-width="{outer_stroke}" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- Stronger heat-transfer core -->
+            <circle cx="600" cy="360" r="54" fill="#f59e0b" opacity="{heat_strength:.2f}" filter="url(#amberGlow)">
+              <animate attributeName="r" values="48;88;48" dur="{pulse_duration:.2f}s" repeatCount="indefinite"/>
+              <animate attributeName="opacity" values="{heat_strength:.2f};0.10;{heat_strength:.2f}" dur="{pulse_duration:.2f}s" repeatCount="indefinite"/>
+            </circle>
 
-            <!-- Static inner flow base (thickness follows airflow_speed) -->
-            <rect x="57" y="{top_inner_y:.1f}" width="498" height="{top_inner_h:.1f}" rx="{inner_round:.1f}" fill="#0ea5e9" opacity="0.26"/>
-            <rect x="645" y="{top_inner_y:.1f}" width="498" height="{top_inner_h:.1f}" rx="{inner_round:.1f}" fill="#fb7185" opacity="0.26"/>
-            <path d="M57 453 H420 L560 376" fill="none" stroke="#7dd3fc" stroke-width="{inner_thickness:.1f}" stroke-linecap="round" stroke-linejoin="round" opacity="0.24"/>
-            <path d="M640 376 L774 453 H1143" fill="none" stroke="#fda4af" stroke-width="{inner_thickness:.1f}" stroke-linecap="round" stroke-linejoin="round" opacity="0.24"/>
+            <!-- Cross-transfer arrows / animated effect -->
+            <g opacity="{heat_lines_opacity:.2f}">
+              <path d="M545 304 Q580 332 600 360 Q620 388 655 416" fill="none" stroke="url(#crossTransfer)" stroke-width="8" stroke-linecap="round">
+                <animate attributeName="opacity" values="0.1;0.85;0.1" dur="{pulse_duration:.2f}s" repeatCount="indefinite"/>
+              </path>
+              <path d="M655 304 Q620 332 600 360 Q580 388 545 416" fill="none" stroke="url(#crossTransfer)" stroke-width="8" stroke-linecap="round">
+                <animate attributeName="opacity" values="0.85;0.1;0.85" dur="{pulse_duration:.2f}s" repeatCount="indefinite"/>
+              </path>
+            </g>
 
-            <!-- Moving liquid slugs (speed follows airflow_speed) -->
+            <!-- Small directional arrows showing energy transfer -->
+            <g opacity="{0.28 + recovery_efficiency * 0.45:.2f}">
+              <path d="M 554 330 L 566 320 L 566 327 L 582 327 L 582 333 L 566 333 L 566 340 Z" fill="#fde68a">
+                <animate attributeName="opacity" values="0.2;0.95;0.2" dur="{pulse_duration:.2f}s" repeatCount="indefinite"/>
+              </path>
+              <path d="M 646 390 L 634 400 L 634 393 L 618 393 L 618 387 L 634 387 L 634 380 Z" fill="#fde68a">
+                <animate attributeName="opacity" values="0.95;0.2;0.95" dur="{pulse_duration:.2f}s" repeatCount="indefinite"/>
+              </path>
+            </g>
+
+            <!-- Pipe shells (thickness depends on airflow_speed) -->
+            <rect x="52" y="{top_y:.1f}" width="508" height="{top_pipe_h:.1f}" rx="{top_pipe_h/2:.1f}" fill="url(#coldPipeBase)"/>
+            <rect x="640" y="{top_y:.1f}" width="508" height="{top_pipe_h:.1f}" rx="{top_pipe_h/2:.1f}" fill="url(#warmPipeBase)"/>
+            <path d="M52 {bottom_y:.1f} H420 L560 376" fill="none" stroke="url(#coldPipeBase)" stroke-width="{bottom_w:.1f}" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M640 376 L774 {bottom_y:.1f} H1148" fill="none" stroke="url(#warmPipeBase)" stroke-width="{bottom_w:.1f}" stroke-linecap="round" stroke-linejoin="round"/>
+
+            <!-- Static inner fluid base -->
+            <rect x="57" y="{top_inner_y:.1f}" width="498" height="{top_liquid_h:.1f}" rx="{top_liquid_h/2:.1f}" fill="#0ea5e9" opacity="0.24"/>
+            <rect x="645" y="{top_inner_y:.1f}" width="498" height="{top_liquid_h:.1f}" rx="{top_liquid_h/2:.1f}" fill="#fb7185" opacity="0.24"/>
+            <path d="M57 {bottom_y:.1f} H420 L560 376" fill="none" stroke="#7dd3fc" stroke-width="{bottom_liquid_w:.1f}" stroke-linecap="round" stroke-linejoin="round" opacity="0.24"/>
+            <path d="M640 376 L774 {bottom_y:.1f} H1143" fill="none" stroke="#fda4af" stroke-width="{bottom_liquid_w:.1f}" stroke-linecap="round" stroke-linejoin="round" opacity="0.24"/>
+
+            <!-- Clearly moving liquid slugs; speed + slug size link to airflow_speed -->
             <g clip-path="url(#clipTopCold)">
-              <rect x="-240" y="{top_inner_y:.1f}" width="{slug_len:.1f}" height="{top_inner_h:.1f}" rx="{inner_round:.1f}" fill="url(#coldSlug)" filter="url(#blueGlow)">
-                <animate attributeName="x" from="-240" to="620" dur="{duration:.2f}s" repeatCount="indefinite"/>
+              <rect x="-200" y="{top_inner_y:.1f}" width="{slug_len:.1f}" height="{top_liquid_h:.1f}" rx="{top_liquid_h/2:.1f}" fill="url(#coldSlug)" filter="url(#blueGlow)">
+                <animate attributeName="x" from="-200" to="630" dur="{duration:.2f}s" repeatCount="indefinite"/>
               </rect>
-              <rect x="-560" y="{top_inner_y:.1f}" width="{slug_len*0.92:.1f}" height="{top_inner_h:.1f}" rx="{inner_round:.1f}" fill="url(#coldSlug)" opacity="0.85" filter="url(#blueGlow)">
-                <animate attributeName="x" from="-560" to="620" dur="{duration:.2f}s" begin="{duration/2:.2f}s" repeatCount="indefinite"/>
+              <rect x="-540" y="{top_inner_y:.1f}" width="{slug_len * 0.92:.1f}" height="{top_liquid_h:.1f}" rx="{top_liquid_h/2:.1f}" fill="url(#coldSlug)" opacity="0.88" filter="url(#blueGlow)">
+                <animate attributeName="x" from="-540" to="630" dur="{duration:.2f}s" begin="{duration/2:.2f}s" repeatCount="indefinite"/>
               </rect>
             </g>
 
             <g clip-path="url(#clipTopWarm)">
-              <rect x="1240" y="{top_inner_y:.1f}" width="{slug_len:.1f}" height="{top_inner_h:.1f}" rx="{inner_round:.1f}" fill="url(#warmSlug)" filter="url(#redGlow)">
+              <rect x="1240" y="{top_inner_y:.1f}" width="{slug_len:.1f}" height="{top_liquid_h:.1f}" rx="{top_liquid_h/2:.1f}" fill="url(#warmSlug)" filter="url(#redGlow)">
                 <animate attributeName="x" from="1240" to="520" dur="{duration:.2f}s" repeatCount="indefinite"/>
               </rect>
-              <rect x="1560" y="{top_inner_y:.1f}" width="{slug_len*0.92:.1f}" height="{top_inner_h:.1f}" rx="{inner_round:.1f}" fill="url(#warmSlug)" opacity="0.85" filter="url(#redGlow)">
-                <animate attributeName="x" from="1560" to="520" dur="{duration:.2f}s" begin="{duration/2:.2f}s" repeatCount="indefinite"/>
+              <rect x="1510" y="{top_inner_y:.1f}" width="{slug_len * 0.92:.1f}" height="{top_liquid_h:.1f}" rx="{top_liquid_h/2:.1f}" fill="url(#warmSlug)" opacity="0.88" filter="url(#redGlow)">
+                <animate attributeName="x" from="1510" to="520" dur="{duration:.2f}s" begin="{duration/2:.2f}s" repeatCount="indefinite"/>
               </rect>
             </g>
 
+            <!-- Bottom paths; slug spacing and thickness link to airflow_speed -->
             <g clip-path="url(#clipBottomCold)">
-              <path d="M52 453 H420 L560 376" fill="none" stroke="url(#coldSlug)" stroke-width="{inner_thickness:.1f}" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="{slug_len:.1f} 360" filter="url(#blueGlow)">
-                <animate attributeName="stroke-dashoffset" from="0" to="-520" dur="{duration:.2f}s" repeatCount="indefinite"/>
+              <path d="M52 {bottom_y:.1f} H420 L560 376" fill="none" stroke="url(#coldSlug)" stroke-width="{bottom_liquid_w:.1f}" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="{slug_len:.1f} {slug_gap:.1f}" filter="url(#blueGlow)">
+                <animate attributeName="stroke-dashoffset" from="0" to="-{dash_total:.1f}" dur="{duration:.2f}s" repeatCount="indefinite"/>
               </path>
-              <path d="M52 453 H420 L560 376" fill="none" stroke="url(#coldSlug)" stroke-width="{inner_thickness:.1f}" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="{slug_len*0.92:.1f} 360" opacity="0.8" filter="url(#blueGlow)">
-                <animate attributeName="stroke-dashoffset" from="-260" to="-780" dur="{duration:.2f}s" repeatCount="indefinite"/>
+              <path d="M52 {bottom_y:.1f} H420 L560 376" fill="none" stroke="url(#coldSlug)" stroke-width="{bottom_liquid_w:.1f}" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="{slug_len * 0.92:.1f} {slug_gap:.1f}" opacity="0.84" filter="url(#blueGlow)">
+                <animate attributeName="stroke-dashoffset" from="-{dash_total/2:.1f}" to="-{dash_total * 1.5:.1f}" dur="{duration:.2f}s" repeatCount="indefinite"/>
               </path>
             </g>
 
             <g clip-path="url(#clipBottomWarm)">
-              <path d="M640 376 L774 453 H1148" fill="none" stroke="url(#warmSlug)" stroke-width="{inner_thickness:.1f}" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="{slug_len:.1f} 360" filter="url(#redGlow)">
-                <animate attributeName="stroke-dashoffset" from="0" to="520" dur="{duration:.2f}s" repeatCount="indefinite"/>
+              <path d="M640 376 L774 {bottom_y:.1f} H1148" fill="none" stroke="url(#warmSlug)" stroke-width="{bottom_liquid_w:.1f}" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="{slug_len:.1f} {slug_gap:.1f}" filter="url(#redGlow)">
+                <animate attributeName="stroke-dashoffset" from="0" to="{dash_total:.1f}" dur="{duration:.2f}s" repeatCount="indefinite"/>
               </path>
-              <path d="M640 376 L774 453 H1148" fill="none" stroke="url(#warmSlug)" stroke-width="{inner_thickness:.1f}" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="{slug_len*0.92:.1f} 360" opacity="0.8" filter="url(#redGlow)">
-                <animate attributeName="stroke-dashoffset" from="260" to="780" dur="{duration:.2f}s" repeatCount="indefinite"/>
+              <path d="M640 376 L774 {bottom_y:.1f} H1148" fill="none" stroke="url(#warmSlug)" stroke-width="{bottom_liquid_w:.1f}" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="{slug_len * 0.92:.1f} {slug_gap:.1f}" opacity="0.84" filter="url(#redGlow)">
+                <animate attributeName="stroke-dashoffset" from="{dash_total/2:.1f}" to="{dash_total * 1.5:.1f}" dur="{duration:.2f}s" repeatCount="indefinite"/>
               </path>
             </g>
 
             <!-- Labels -->
-            <text x="58" y="230" fill="#7dd3fc" font-size="22" font-weight="700">Fresh air from outside</text>
-            <text x="722" y="228" fill="#fca5a5" font-size="22" font-weight="700">Warm exhaust from inside</text>
-            <text x="710" y="502" fill="#fca5a5" font-size="22" font-weight="700">Pre-warmed supply to inside</text>
-            <text x="58" y="503" fill="#7dd3fc" font-size="22" font-weight="700">Cooled exhaust to outside</text>
+            <text x="58" y="228" fill="#7dd3fc" font-size="22" font-weight="700">Fresh air from outside</text>
+            <text x="722" y="226" fill="#fca5a5" font-size="22" font-weight="700">Warm exhaust from inside</text>
+            <text x="720" y="515" fill="#fca5a5" font-size="22" font-weight="700">Pre-warmed supply to inside</text>
+            <text x="58" y="516" fill="#7dd3fc" font-size="22" font-weight="700">Cooled exhaust to outside</text>
 
-            <!-- Heat exchange intensification (scales with recovery_efficiency) -->
-            <circle cx="600" cy="360" r="{pulse_base_radius:.1f}" fill="#f59e0b" opacity="{pulse_base_opacity:.2f}" filter="url(#goldGlow)">
-              <animate attributeName="r" values="{pulse_base_radius:.1f};{pulse_max_radius:.1f};{pulse_base_radius:.1f}" dur="{pulse_duration:.2f}s" repeatCount="indefinite"/>
-              <animate attributeName="opacity" values="{pulse_base_opacity:.2f};{max(0.05, pulse_base_opacity*0.35):.2f};{pulse_base_opacity:.2f}" dur="{pulse_duration:.2f}s" repeatCount="indefinite"/>
-            </circle>
+            <!-- Small numeric transformation markers -->
+            <rect x="498" y="196" width="122" height="34" rx="9" fill="#102234" stroke="#284b74" stroke-width="1.5"/>
+            <text x="559" y="218" text-anchor="middle" fill="#fde68a" font-size="15" font-weight="800">
+              η = {recovery_efficiency*100:.0f}%
+            </text>
 
-            <!-- Cross-exchanger energy transfer arrows -->
-            <g opacity="{exch_arrow_opacity:.2f}" filter="url(#goldGlow)">
-              <path d="M 690 280 L 620 320" stroke="url(#exchangeArrow)" stroke-width="8" stroke-linecap="round" fill="none"/>
-              <polygon points="615,323 626,311 629,326" fill="#fde68a"/>
+            <rect x="424" y="528" width="150" height="36" rx="10" fill="#102234" stroke="#284b74" stroke-width="1.5"/>
+            <text x="499" y="551" text-anchor="middle" fill="#93c5fd" font-size="15" font-weight="800">
+              exhaust → {exhaust_after_exchange:.1f} °C
+            </text>
 
-              <path d="M 720 330 L 640 360" stroke="url(#exchangeArrow)" stroke-width="8" stroke-linecap="round" fill="none"/>
-              <polygon points="635,362 646,351 648,366" fill="#fde68a"/>
-            </g>
+            <rect x="662" y="528" width="158" height="36" rx="10" fill="#231519" stroke="#7f1d1d" stroke-width="1.5"/>
+            <text x="741" y="551" text-anchor="middle" fill="#fecaca" font-size="15" font-weight="800">
+              supply → {delivered_temp:.1f} °C
+            </text>
 
-            {"<g opacity='{:.2f}' filter='url(#goldGlow)'><path d='M 705 390 L 620 402' stroke='url(#exchangeArrow)' stroke-width='8' stroke-linecap='round' fill='none'/><polygon points='615,402 628,394 628,409' fill='#fde68a'/></g>".format(exch_arrow_opacity*0.95) if exch_arrow_count >= 3 else ""}
+            <!-- Bottom metrics -->
+            <rect x="74" y="600" width="1060" height="114" rx="16" fill="#091827" stroke="#1e3a5f" stroke-width="2"/>
+            <text x="110" y="647" fill="#e5e7eb" font-size="20" font-weight="700">Outside air</text>
+            <text x="350" y="647" fill="#e5e7eb" font-size="20" font-weight="700">Indoor exhaust</text>
+            <text x="635" y="647" fill="#e5e7eb" font-size="20" font-weight="700">Recovery efficiency</text>
+            <text x="900" y="647" fill="#e5e7eb" font-size="20" font-weight="700">Delivered supply</text>
 
-            {"<g opacity='{:.2f}' filter='url(#goldGlow)'><path d='M 660 245 L 600 290' stroke='url(#exchangeArrow)' stroke-width='7' stroke-linecap='round' fill='none'/><polygon points='596,294 607,282 610,297' fill='#fde68a'/></g>".format(exch_arrow_opacity*0.85) if exch_arrow_count >= 4 else ""}
+            <text x="112" y="679" fill="#7dd3fc" font-size="24" font-weight="800">{fresh_air_temp_c:.1f} °C</text>
+            <text x="350" y="679" fill="#fca5a5" font-size="24" font-weight="800">{exhaust_air_temp_c:.1f} °C</text>
+            <text x="664" y="679" fill="#fde68a" font-size="24" font-weight="800">{recovery_efficiency*100:.0f}%</text>
+            <text x="905" y="679" fill="#f9fafb" font-size="24" font-weight="800">{delivered_temp:.1f} °C</text>
 
-            {"<g opacity='{:.2f}' filter='url(#goldGlow)'><path d='M 745 438 L 650 420' stroke='url(#exchangeArrow)' stroke-width='7' stroke-linecap='round' fill='none'/><polygon points='646,419 660,414 657,429' fill='#fde68a'/></g>".format(exch_arrow_opacity*0.85) if exch_arrow_count >= 5 else ""}
-
-            <!-- Indicator bars showing parameter-linked behavior -->
-            <rect x="78" y="564" width="1040" height="134" rx="16" fill="#091827" stroke="#1e3a5f" stroke-width="2"/>
-
-            <text x="110" y="600" fill="#e5e7eb" font-size="20" font-weight="700">Outside air</text>
-            <text x="314" y="600" fill="#e5e7eb" font-size="20" font-weight="700">Indoor exhaust</text>
-            <text x="555" y="600" fill="#e5e7eb" font-size="20" font-weight="700">Recovery efficiency</text>
-            <text x="806" y="600" fill="#e5e7eb" font-size="20" font-weight="700">Airflow speed</text>
-            <text x="980" y="600" fill="#e5e7eb" font-size="20" font-weight="700">Delivered supply</text>
-
-            <text x="112" y="632" fill="#7dd3fc" font-size="24" font-weight="800">{fresh_air_temp_c:.1f} °C</text>
-            <text x="318" y="632" fill="#fca5a5" font-size="24" font-weight="800">{exhaust_air_temp_c:.1f} °C</text>
-            <text x="560" y="632" fill="#fde68a" font-size="24" font-weight="800">{recovery_efficiency*100:.0f}%</text>
-            <text x="813" y="632" fill="#c4b5fd" font-size="24" font-weight="800">{airflow_speed:.2f}×</text>
-            <text x="988" y="632" fill="#f9fafb" font-size="24" font-weight="800">{delivered_temp:.1f} °C</text>
-
-            <text x="555" y="666" fill="#93c5fd" font-size="15" font-weight="700">{eff_label(recovery_efficiency)}</text>
-            <text x="790" y="666" fill="#93c5fd" font-size="15" font-weight="700">Faster speed → quicker / thicker flow</text>
-
-            <!-- Airflow / flow thickness indicator -->
-            <rect x="756" y="676" width="208" height="10" rx="5" fill="#152739" stroke="#284b74" stroke-width="1"/>
-            <rect x="756" y="676" width="{208 * speed_norm:.1f}" height="10" rx="5" fill="#a78bfa"/>
-            <text x="970" y="685" fill="#94a3b8" font-size="12">flow rate / thickness</text>
+            <text x="110" y="704" fill="#94a3b8" font-size="15">Flow rate visual: {airflow_speed:.2f}×</text>
+            <text x="350" y="704" fill="#94a3b8" font-size="15">Conduit thickness: {pipe_w:.0f}px</text>
+            <text x="635" y="704" fill="#94a3b8" font-size="15">Slug length: {slug_len:.0f}px</text>
+            <text x="900" y="704" fill="#94a3b8" font-size="15">Exchange pulse linked to η</text>
           </svg>
         </div>
 
@@ -273,25 +281,17 @@ def render_thermal_principle_simulation(
           <div style="font-size:14px; line-height:1.65; color:#cbd5e1;">
             <b>Blue liquid slugs:</b> outside fresh air entering the protected system.<br>
             <b>Red liquid slugs:</b> warmer indoor exhaust donating thermal energy across the exchanger core.<br>
-            <b>Gold pulse + arrows:</b> conceptual heat-transfer intensity, linked to <b>recovery_efficiency</b>.<br><br>
-            This is an <b>illustrative simulation graphic</b> for TAIVAS concept mode. It visualizes thermal recovery logic and how a heat-buffer layer could reduce electrical heating/cooling burden during extreme climate scenarios.
+            <b>Gold core + cross arrows:</b> more visible heat transfer / exchange intensity.<br><br>
+            This upgraded panel ties <b>flow speed</b>, <b>conduit thickness</b>, and <b>slug size</b> to the system parameter <b>airflow_speed</b>, while the <b>heat-exchange effect</b> scales with <b>recovery_efficiency</b>.
           </div>
 
           <div style="margin-top:16px; border-top:1px solid #17304d; padding-top:14px;">
-            <div style="font-size:16px; font-weight:800; margin-bottom:8px;">Parameter-linked behavior</div>
+            <div style="font-size:16px; font-weight:800; margin-bottom:8px;">Linked visual parameters</div>
             <div style="font-size:14px; line-height:1.75; color:#cbd5e1;">
-              <b>Airflow speed</b> increases:
-              <ul style="margin-top:6px; margin-bottom:10px; padding-left:18px;">
-                <li>liquid slug movement speed</li>
-                <li>visible flow thickness</li>
-                <li>slug length / flow-rate impression</li>
-              </ul>
-              <b>Recovery efficiency</b> increases:
-              <ul style="margin-top:6px; margin-bottom:0; padding-left:18px;">
-                <li>heat-exchange pulse intensity</li>
-                <li>cross-core transfer arrows</li>
-                <li>delivered supply temperature</li>
-              </ul>
+              Airflow speed: <b>{airflow_speed:.2f}×</b><br>
+              Conduit thickness: <b>{pipe_w:.0f}px</b><br>
+              Liquid slug length: <b>{slug_len:.0f}px</b><br>
+              Recovery efficiency: <b>{recovery_efficiency*100:.0f}%</b>
             </div>
           </div>
 
@@ -300,8 +300,7 @@ def render_thermal_principle_simulation(
             <div style="font-size:14px; line-height:1.7; color:#cbd5e1;">
               Exhaust after exchange: <b>{exhaust_after_exchange:.1f} °C</b><br>
               Conceptual delivered supply: <b>{delivered_temp:.1f} °C</b><br>
-              Liquid animation duration: <b>{duration:.2f} s</b><br>
-              Visible flow thickness: <b>{inner_thickness:.1f} px</b>
+              Heat-transfer emphasis: <b>{recovery_efficiency*100:.0f}% linked</b>
             </div>
           </div>
 
