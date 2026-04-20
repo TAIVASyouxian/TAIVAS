@@ -107,116 +107,190 @@ SCENARIOS = {
     "typhoon": {"demand": 1.15, "solar": 0.35, "wind": 0.68, "hydro": 0.78, "geo": 1.00, "battery": 0.82},
 }
 
-SCENARIO_LIBRARY = {
-    "Balanced Baseline": {
-        "scenario_key": "normal",
-        "energy_security_scenario": "normal",
-        "temperature": 24,
-        "wind_speed": 5.0,
-        "solar_radiation": 650,
-        "precipitation": 10,
-        "humidity": 70,
-        "import_dependency": 0.60,
-        "strategic_reserve_days": 20,
-        "shipping_dependency": 0.65,
-        "infrastructure_damage_ratio": 0.05,
-        "primary_supply_failure_ratio": 0.15,
-        "reserve_energy_per_day": 120.0,
+I18N = {
+    "English": {
+        "title": "TAIVAS Energy Control Center",
+        "caption": "TAIVAS is a resilience decision-support simulator for energy, thermal, and critical facility scenarios under extreme conditions.",
+        "controls": "Controls",
+        "country": "Country",
+        "city": "City",
+        "facility_type": "Facility Type",
+        "population": "Population",
+        "capacity_inputs": "Capacity Inputs",
+        "weather_inputs": "Weather Inputs",
+        "weather_scenario": "Weather Scenario",
+        "stress_inputs": "Stress Inputs",
+        "security_inputs": "Energy Security Inputs",
+        "extended_security": "Extended Security",
+        "timeline_inputs": "Survival Timeline Inputs",
+        "thermal_inputs": "Thermal Concept Inputs",
+        "enable_thermal": "Enable Thermal Concept Mode",
+        "animation_speed": "Thermal Animation Speed",
+        "sim_hours": "Simulation Hours",
+        "survival_mode": "Survival Mode",
+        "hero_title": "Operational Overview",
+        "hero_body": "TAIVAS combines a core resilience simulator, an explainable decision-support layer, and a concept lab for advanced thermal ideas. It is designed to test how energy, thermal management, and critical facility protection behave under extreme climate and disruption scenarios.",
+        "core": "Core Simulator",
+        "decision": "Decision Support",
+        "concept": "Concept Lab",
+        "core_desc": "Models demand, renewable supply, battery support, failure ratios, reserve planning, facility logic, and survival timeline.",
+        "decision_desc": "Explains risk signals, compares scenarios, structures recommendation chains, and produces export-ready summaries.",
+        "concept_desc": "Explores thermal and resilience concepts as linked visuals for simulation insight, not hardware blueprints.",
+        "country_logic": "Country Logic",
+        "facility_logic": "Facility Logic",
+        "input_summary": "Input Summary",
+        "system_perf": "System Performance",
+        "resilience": "Resilience Indicators",
+        "demand": "Demand",
+        "renewable": "Renewable Supply",
+        "final": "Final Supply",
+        "shortfall": "Shortfall",
+        "battery": "Battery Levels",
+        "rr": "Renewable Ratio",
+        "eff": "System Efficiency",
+        "grid": "Grid Dependency",
+        "status_shortfall": "Shortfall Status",
+        "status_eff": "Efficiency Status",
+        "status_grid": "Grid Stress Status",
+        "status_reserve": "Reserve Status",
+        "stable": "Stable",
+        "watch": "Watch",
+        "critical": "Critical",
+        "download_scenario": "Scenario CSV",
+        "download_reason": "Reason Chain CSV",
+        "download_summary": "Executive Summary TXT",
+        "download_audit": "Audit Trail JSON",
+        "tabs": ["Energy Mix", "Scenario Comparison", "Stress Test", "AI Recommendation", "Energy Security", "Survival Timeline", "Concept Lab"],
+        "page_answers": "This page answers:",
+        "mix_note": "This tab separates installed capacity from actual modeled supply. Weather, failure ratios, and scenario assumptions change the real contribution of each energy source.",
+        "installed_mix": "Installed Capacity Mix",
+        "actual_mix": "Actual Renewable Supply Mix",
+        "energy_table": "Energy Source Table",
+        "capacity_factors": "Capacity Factors",
+        "dominant": "Dominant modeled renewable source",
+        "baseline_vs_selected": "Baseline vs Selected Scenario",
+        "all_scenarios": "All Weather Scenarios",
+        "critical_breakdown": "Critical Load Breakdown",
+        "quick_reco": "Quick Recommendation Layer",
+        "reason_chain": "Reason Chain",
+        "priority_signals": "Priority Signals",
+        "timeline_chart": "Timeline Chart",
+        "timeline_table": "Hourly Timeline Table",
+        "concept_note": "These modules are illustrative simulation layers for resilience exploration. They are not hardware blueprints and do not replace physical engineering validation.",
+        "concept_badge": "Conceptual Simulation • Not hardware-validated",
+        "thermal_tabs": ["Thermal Principle", "Phase-Change Buffer", "Ground Sink", "Distributed Control", "Harvesting & Buffering"],
+        "mode": "Mode",
+        "current": "Current",
+        "thermal_concept": "Thermal Concept",
+        "reserve_days": "Reserve Days",
+        "shortfall_hour": "Shortfall Hour",
+        "critical_failure_hour": "Critical Failure Hour",
+        "thermal_compare": "Current vs Thermal Concept",
     },
-    "Winter Blizzard Stress": {
-        "scenario_key": "blizzard",
-        "energy_security_scenario": "high_risk",
-        "temperature": -8,
-        "wind_speed": 8.0,
-        "solar_radiation": 180,
-        "precipitation": 40,
-        "humidity": 78,
-        "import_dependency": 0.72,
-        "strategic_reserve_days": 16,
-        "shipping_dependency": 0.82,
-        "infrastructure_damage_ratio": 0.18,
-        "primary_supply_failure_ratio": 0.35,
-        "reserve_energy_per_day": 130.0,
+    "繁體中文": {
+        "title": "TAIVAS 能源控制中心",
+        "caption": "TAIVAS 是一套用於極端情境下能源、熱管理與關鍵設施韌性的決策支援模擬器。",
+        "controls": "控制面板",
+        "country": "國家",
+        "city": "城市",
+        "facility_type": "設施類型",
+        "population": "人口",
+        "capacity_inputs": "容量輸入",
+        "weather_inputs": "天氣輸入",
+        "weather_scenario": "天氣情境",
+        "stress_inputs": "壓力測試輸入",
+        "security_inputs": "能源安全輸入",
+        "extended_security": "延伸安全因子",
+        "timeline_inputs": "生存時間軸輸入",
+        "thermal_inputs": "熱管理概念輸入",
+        "enable_thermal": "啟用熱概念模式",
+        "animation_speed": "熱動畫速度",
+        "sim_hours": "模擬時數",
+        "survival_mode": "生存模式",
+        "hero_title": "系統總覽",
+        "hero_body": "TAIVAS 結合核心韌性模擬器、可解釋決策支援層，以及進階熱管理概念模組，用來測試在極端氣候與中斷情境下，能源、熱管理與關鍵設施保護會如何變化。",
+        "core": "核心模擬層",
+        "decision": "決策支援層",
+        "concept": "概念模擬層",
+        "core_desc": "模擬需求、再生能源供應、電池支援、失效比例、備援規劃、設施邏輯與生存時間軸。",
+        "decision_desc": "解釋風險訊號、比較情境、整理建議鏈，並輸出可摘要的結果。",
+        "concept_desc": "以可視化方式探索熱管理與韌性概念，不等同硬體藍圖。",
+        "country_logic": "國家邏輯",
+        "facility_logic": "設施邏輯",
+        "input_summary": "輸入摘要",
+        "system_perf": "系統表現",
+        "resilience": "韌性指標",
+        "demand": "需求",
+        "renewable": "再生供應",
+        "final": "最終供應",
+        "shortfall": "缺口",
+        "battery": "電池存量",
+        "rr": "再生比例",
+        "eff": "系統效率",
+        "grid": "外部依賴",
+        "status_shortfall": "缺口狀態",
+        "status_eff": "效率狀態",
+        "status_grid": "電網壓力狀態",
+        "status_reserve": "備援狀態",
+        "stable": "穩定",
+        "watch": "注意",
+        "critical": "危急",
+        "download_scenario": "下載情境 CSV",
+        "download_reason": "下載理由鏈 CSV",
+        "download_summary": "下載摘要 TXT",
+        "download_audit": "下載稽核 JSON",
+        "tabs": ["能源組成", "情境比較", "壓力測試", "AI 建議", "能源安全", "生存時間軸", "概念模組"],
+        "page_answers": "本頁回答：",
+        "mix_note": "本頁將裝機容量與實際模擬供應拆開呈現。天氣、失效比例與情境假設，都會改變各能源的真實貢獻。",
+        "installed_mix": "裝機容量組成",
+        "actual_mix": "實際再生供應組成",
+        "energy_table": "能源來源表",
+        "capacity_factors": "容量因子",
+        "dominant": "主要再生來源",
+        "baseline_vs_selected": "基準與選定情境比較",
+        "all_scenarios": "所有天氣情境",
+        "critical_breakdown": "關鍵負載拆解",
+        "quick_reco": "快速建議層",
+        "reason_chain": "理由鏈",
+        "priority_signals": "優先訊號",
+        "timeline_chart": "時間軸圖表",
+        "timeline_table": "逐時時間軸表",
+        "concept_note": "這些模組是用來探索韌性的概念模擬層，不是硬體藍圖，也不取代實體工程驗證。",
+        "concept_badge": "概念模擬 • 非硬體驗證版",
+        "thermal_tabs": ["熱交換原理", "相變緩衝", "地下熱匯", "分散控制", "採收與緩衝"],
+        "mode": "模式",
+        "current": "目前",
+        "thermal_concept": "熱概念",
+        "reserve_days": "備援天數",
+        "shortfall_hour": "缺口時點",
+        "critical_failure_hour": "關鍵失效時點",
+        "thermal_compare": "目前模式與熱概念比較",
     },
 }
-
-LAYER_SUMMARY = [
-    ("Core Simulator", "Models demand, renewable supply, battery support, failure ratios, reserve planning, facility logic, and survival timeline."),
-    ("Decision Support", "Explains risk signals, compares scenarios, structures recommendation chains, and produces export-ready summaries."),
-    ("Concept Lab", "Explores thermal and resilience concepts as linked visuals for simulation insight, not hardware blueprints."),
-]
 
 PAGE_QUESTIONS = {
-    "Energy Mix": "What is the system actually running on, and how different is actual supply from installed capacity?",
-    "Scenario Comparison": "How much better or worse is the selected scenario versus baseline and other scenarios?",
-    "Stress Test": "Which subsystems fail first, and how badly does component degradation reduce resilience?",
-    "AI Recommendation": "Why is the model concerned, which signal matters most, and what action should be prioritized first?",
-    "Energy Security": "How much do import exposure, logistics, refill uncertainty, repair delay, and single-point risk increase disruption?",
-    "Survival Timeline": "If supply is disrupted, how long can the system operate before shortfall and critical failure?",
-    "Concept Lab": "If advanced thermal concepts are introduced, which resilience metrics improve and by how much?",
+    "English": {
+        "Energy Mix": "What is the system actually running on, and how different is actual supply from installed capacity?",
+        "Scenario Comparison": "How much better or worse is the selected scenario versus baseline and other scenarios?",
+        "Stress Test": "Which subsystems fail first, and how badly does component degradation reduce resilience?",
+        "AI Recommendation": "Why is the model concerned, which signal matters most, and what action should be prioritized first?",
+        "Energy Security": "How much do import exposure, logistics, refill uncertainty, repair delay, and single-point risk increase disruption?",
+        "Survival Timeline": "If supply is disrupted, how long can the system operate before shortfall and critical failure?",
+        "Concept Lab": "If advanced thermal concepts are introduced, which resilience metrics improve and by how much?",
+    },
+    "繁體中文": {
+        "能源組成": "系統實際靠什麼在運作？實際供應和裝機容量差多少？",
+        "情境比較": "選定情境和基準情境相比，到底更好還是更差？",
+        "壓力測試": "哪些子系統會先出問題？失效比例會把韌性拉低多少？",
+        "AI 建議": "模型在擔心什麼？最重要的訊號是什麼？應該先做哪個動作？",
+        "能源安全": "進口暴露、物流、補給不確定性、修復延遲與單點風險會把中斷拉高多少？",
+        "生存時間軸": "如果供應中斷，系統在出現缺口與關鍵失效前還能撐多久？",
+        "概念模組": "如果引入進階熱管理概念，哪些韌性指標會改善？改善多少？",
+    },
 }
 
-st.markdown(
-    """
-    <style>
-    .block-container {padding-top: 1.05rem; padding-bottom: 2rem;}
-    .hero {
-        padding: 1rem 1.1rem;
-        border: 1px solid rgba(255,255,255,0.10);
-        border-radius: 18px;
-        background: linear-gradient(135deg, rgba(21,60,110,0.60), rgba(11,18,32,0.24));
-        margin-bottom: 1rem;
-    }
-    .hero h3 { margin: 0 0 0.35rem 0; font-size: 1.22rem; }
-    .hero p { margin: 0; opacity: 0.94; line-height: 1.56; }
-    .note {
-        padding: 0.82rem 0.95rem;
-        border-radius: 14px;
-        background: rgba(59,130,246,0.10);
-        border: 1px solid rgba(96,165,250,0.24);
-        margin-bottom: 0.75rem;
-        line-height: 1.55;
-    }
-    .question {
-        padding: 0.78rem 0.95rem;
-        border-radius: 14px;
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.10);
-        margin-bottom: 0.75rem;
-        line-height: 1.55;
-    }
-    .card {
-        padding: 0.82rem 0.95rem;
-        border-radius: 14px;
-        background: rgba(255,255,255,0.07);
-        border: 1px solid rgba(255,255,255,0.12);
-        margin-bottom: 0.65rem;
-        min-height: 88px;
-    }
-    .card-label { font-size: 0.82rem; opacity: 0.78; margin-bottom: 0.28rem; }
-    .card-value { font-size: 1.00rem; font-weight: 600; line-height: 1.30; }
-    .layer-box {
-        padding: 0.82rem 0.92rem;
-        border-radius: 14px;
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.10);
-        min-height: 112px;
-    }
-    .badge {
-        display: inline-block;
-        padding: 0.28rem 0.55rem;
-        border-radius: 999px;
-        font-size: 0.72rem;
-        font-weight: 700;
-        background: rgba(245,158,11,0.12);
-        border: 1px solid rgba(245,158,11,0.35);
-        color: #fde68a;
-        margin-bottom: 0.55rem;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+def tr(key: str) -> str:
+    return I18N[ui_lang][key]
 
 def clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
@@ -244,15 +318,15 @@ def build_status_label(value: float, thresholds, reverse: bool = False) -> str:
     warn, critical = thresholds
     if reverse:
         if value <= critical:
-            return "Critical"
+            return tr("critical")
         if value <= warn:
-            return "Watch"
-        return "Stable"
+            return tr("watch")
+        return tr("stable")
     if value >= critical:
-        return "Critical"
+        return tr("critical")
     if value >= warn:
-        return "Watch"
-    return "Stable"
+        return tr("watch")
+    return tr("stable")
 
 def mini_card(label: str, value: str):
     st.markdown(
@@ -265,26 +339,23 @@ def mini_card(label: str, value: str):
         unsafe_allow_html=True,
     )
 
-def page_question(key: str):
-    st.markdown(f'<div class="question"><b>This page answers:</b> {PAGE_QUESTIONS[key]}</div>', unsafe_allow_html=True)
+def page_question(tab_label: str):
+    st.markdown(f'<div class="question"><b>{tr("page_answers")}</b> {PAGE_QUESTIONS[ui_lang][tab_label]}</div>', unsafe_allow_html=True)
 
 def concept_badge():
-    st.markdown('<div class="badge">Conceptual Simulation • Not hardware-validated</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="badge">{tr("concept_badge")}</div>', unsafe_allow_html=True)
 
 def scenario_delta_df(baseline: dict, selected: dict) -> pd.DataFrame:
     metrics = [
-        ("Demand (MW)", baseline["demand"], selected["demand"]),
-        ("Renewable Supply (MW)", baseline["renewable_supply"], selected["renewable_supply"]),
-        ("Final Supply (MW)", baseline["final_supply"], selected["final_supply"]),
-        ("Shortfall (MW)", baseline["shortfall"], selected["shortfall"]),
-        ("Renewable Ratio (%)", baseline["renewable_ratio"], selected["renewable_ratio"]),
-        ("System Efficiency (%)", baseline["system_efficiency"], selected["system_efficiency"]),
-        ("Grid Dependency (%)", baseline["grid_dependency"], selected["grid_dependency"]),
+        (tr("demand"), baseline["demand"], selected["demand"]),
+        (tr("renewable"), baseline["renewable_supply"], selected["renewable_supply"]),
+        (tr("final"), baseline["final_supply"], selected["final_supply"]),
+        (tr("shortfall"), baseline["shortfall"], selected["shortfall"]),
+        (tr("rr"), baseline["renewable_ratio"], selected["renewable_ratio"]),
+        (tr("eff"), baseline["system_efficiency"], selected["system_efficiency"]),
+        (tr("grid"), baseline["grid_dependency"], selected["grid_dependency"]),
     ]
-    return pd.DataFrame(
-        [{"Metric": name, "Baseline": round(base, 2), "Selected": round(new, 2), "Delta": round(new - base, 2)}
-         for name, base, new in metrics]
-    )
+    return pd.DataFrame([{"Metric": n, "Baseline": round(a, 2), "Selected": round(b, 2), "Delta": round(b - a, 2)} for n, a, b in metrics])
 
 def comparison_dataframe(inputs, failure_ratios: dict, reserve_recovery_lag_days: int):
     rows = []
@@ -292,89 +363,86 @@ def comparison_dataframe(inputs, failure_ratios: dict, reserve_recovery_lag_days
         r = compute_energy_supply(inputs, key, failure_ratios, reserve_recovery_lag_days)
         rows.append({
             "Scenario": key.replace("_", " ").title(),
-            "Demand (MW)": r["demand"],
-            "Renewable Supply (MW)": r["renewable_supply"],
-            "Final Supply (MW)": r["final_supply"],
-            "Shortfall (MW)": r["shortfall"],
-            "Renewable Ratio (%)": r["renewable_ratio"],
-            "System Efficiency (%)": r["system_efficiency"],
-            "Grid Dependency (%)": r["grid_dependency"],
+            tr("demand"): r["demand"],
+            tr("renewable"): r["renewable_supply"],
+            tr("final"): r["final_supply"],
+            tr("shortfall"): r["shortfall"],
+            tr("rr"): r["renewable_ratio"],
+            tr("eff"): r["system_efficiency"],
+            tr("grid"): r["grid_dependency"],
         })
     return pd.DataFrame(rows)
 
 def critical_load_breakdown(total_demand: float, critical_share: float, split: dict) -> pd.DataFrame:
     critical_total = total_demand * critical_share
-    return pd.DataFrame(
-        {"Category": list(split.keys()), "Critical Demand (MW)": [round(critical_total * w, 2) for w in split.values()]}
-    )
+    return pd.DataFrame({"Category": list(split.keys()), f"{tr('demand')} (MW)": [round(critical_total * w, 2) for w in split.values()]})
 
-def executive_summary_text(results: dict, timeline_results: dict, country: str, city: str, facility_type: str,
-                           weather_scenario: str, security_scenario: str) -> str:
-    lines = [
-        "TAIVAS Executive Summary",
-        f"Location: {country} / {city}",
-        f"Facility type: {facility_type}",
-        f"Weather scenario: {weather_scenario}",
-        f"Energy security scenario: {security_scenario}",
-        f"Demand: {results['demand']} MW",
-        f"Renewable supply: {results['renewable_supply']} MW",
-        f"Final supply: {results['final_supply']} MW",
-        f"Shortfall: {results['shortfall']} MW",
-        f"Renewable ratio: {results['renewable_ratio']}%",
-        f"System efficiency: {results['system_efficiency']}%",
-        f"Grid dependency: {results['grid_dependency']}%",
-        f"Reserve days remaining: {results.get('reserve_days_remaining', 0)}",
-        f"Hours until shortfall: {timeline_results['hours_until_shortfall']}",
-        f"Hours until critical failure: {timeline_results['hours_until_critical_failure']}",
-    ]
-    return "\\n".join(lines)
-
-def recommendation_reason_chain(results: dict, energy_security_scenario: str, timeline_results: dict,
-                                facility_type: str, facility_profile: dict) -> list[dict]:
-    chain = []
-    if results["shortfall"] > 0:
-        chain.append({
-            "Signal": f"Shortfall remains at {results['shortfall']:.2f} MW",
-            "Impact": "Demand is above available modeled supply.",
-            "Recommendation": "Raise firm capacity, reduce non-critical load, or deepen storage support.",
-            "Expected effect": "Reduce unmet load and extend stable operation.",
-        })
+def executive_summary_text(results, timeline_results, country, city, facility_type, weather_scenario, security_scenario):
+    if ui_lang == "繁體中文":
+        lines = [
+            "TAIVAS 執行摘要",
+            f"位置：{country} / {city}",
+            f"設施類型：{facility_type}",
+            f"天氣情境：{weather_scenario}",
+            f"能源安全情境：{security_scenario}",
+            f"需求：{results['demand']} MW",
+            f"再生供應：{results['renewable_supply']} MW",
+            f"最終供應：{results['final_supply']} MW",
+            f"缺口：{results['shortfall']} MW",
+            f"再生比例：{results['renewable_ratio']}%",
+            f"系統效率：{results['system_efficiency']}%",
+            f"外部依賴：{results['grid_dependency']}%",
+            f"備援剩餘天數：{results.get('reserve_days_remaining', 0)}",
+            f"缺口時點：{timeline_results['hours_until_shortfall']}",
+            f"關鍵失效時點：{timeline_results['hours_until_critical_failure']}",
+        ]
     else:
-        chain.append({
-            "Signal": "No modeled shortfall in the selected scenario",
-            "Impact": "Immediate supply-demand balance is currently stable.",
-            "Recommendation": "Protect reserve margin and watch disruption signals.",
-            "Expected effect": "Preserve endurance against degradation.",
-        })
-    if results["renewable_ratio"] < 70:
-        chain.append({
-            "Signal": f"Renewable ratio is {results['renewable_ratio']:.1f}%",
-            "Impact": "The system is leaning too heavily on backup or reserve support.",
-            "Recommendation": "Diversify the renewable mix and improve thermal smoothing.",
-            "Expected effect": "Raise renewable coverage and lower reserve strain.",
-        })
-    if results.get("reserve_days_remaining", 0) < 7:
-        chain.append({
-            "Signal": f"Reserve days remaining are {results.get('reserve_days_remaining', 0)}",
-            "Impact": "Prolonged disruption could deplete reserve before recovery.",
-            "Recommendation": "Increase reserve depth, shorten lag, or reduce protected demand.",
-            "Expected effect": "Extend survival window during prolonged stress.",
-        })
-    if timeline_results["hours_until_critical_failure"] != "No Failure":
-        chain.append({
-            "Signal": f"Critical failure projected at hour {timeline_results['hours_until_critical_failure']}",
-            "Impact": f"{facility_type} operations may lose protected continuity faster than acceptable.",
-            "Recommendation": f"Prioritize: {', '.join(facility_profile['priority_order'][:2])}.",
-            "Expected effect": "Push failure later and preserve the most sensitive services first.",
-        })
-    if energy_security_scenario != "normal":
-        chain.append({
-            "Signal": f"Security scenario is '{energy_security_scenario.replace('_', ' ')}'",
-            "Impact": "Import, logistics, or infrastructure assumptions are worsening resilience.",
-            "Recommendation": "Reduce dependency concentration and strengthen replenishment strategy.",
-            "Expected effect": "Lower disruption score and improve recovery stability.",
-        })
-    return chain
+        lines = [
+            "TAIVAS Executive Summary",
+            f"Location: {country} / {city}",
+            f"Facility type: {facility_type}",
+            f"Weather scenario: {weather_scenario}",
+            f"Energy security scenario: {security_scenario}",
+            f"Demand: {results['demand']} MW",
+            f"Renewable supply: {results['renewable_supply']} MW",
+            f"Final supply: {results['final_supply']} MW",
+            f"Shortfall: {results['shortfall']} MW",
+            f"Renewable ratio: {results['renewable_ratio']}%",
+            f"System efficiency: {results['system_efficiency']}%",
+            f"Grid dependency: {results['grid_dependency']}%",
+            f"Reserve days remaining: {results.get('reserve_days_remaining', 0)}",
+            f"Hours until shortfall: {timeline_results['hours_until_shortfall']}",
+            f"Hours until critical failure: {timeline_results['hours_until_critical_failure']}",
+        ]
+    return "\n".join(lines)
+
+def recommendation_reason_chain(results, energy_security_scenario, timeline_results, facility_type, facility_profile):
+    if ui_lang == "繁體中文":
+        rows = []
+        if results["shortfall"] > 0:
+            rows.append({"Signal": f"缺口仍有 {results['shortfall']:.2f} MW", "Impact": "需求高於目前可用供應。", "Recommendation": "提高穩定供應、降低非關鍵負載，或加深儲能支援。", "Expected effect": "降低未滿足負載並延長穩定運作時間。"})
+        else:
+            rows.append({"Signal": "目前情境下沒有模擬缺口", "Impact": "即時供需平衡暫時穩定。", "Recommendation": "保留備援餘裕並持續監看中斷訊號。", "Expected effect": "保住惡化時的緩衝空間。"})
+        if results["renewable_ratio"] < 70:
+            rows.append({"Signal": f"再生比例為 {results['renewable_ratio']:.1f}%", "Impact": "系統過度依賴備援或外部支持。", "Recommendation": "提高能源組合多樣性並加強熱管理平滑效果。", "Expected effect": "提升再生覆蓋率並降低備援壓力。"})
+        if results.get("reserve_days_remaining", 0) < 7:
+            rows.append({"Signal": f"備援剩餘天數為 {results.get('reserve_days_remaining', 0)}", "Impact": "若中斷拉長，備援可能在恢復前耗盡。", "Recommendation": "增加備援深度、縮短恢復延遲，或降低受保護需求。", "Expected effect": "延長長時間壓力下的生存窗口。"})
+        if timeline_results["hours_until_critical_failure"] != "No Failure":
+            rows.append({"Signal": f"關鍵失效預估出現在第 {timeline_results['hours_until_critical_failure']} 小時", "Impact": f"{facility_type} 的核心運作可能比可接受時間更早失守。", "Recommendation": f"優先保護：{', '.join(facility_profile['priority_order'][:2])}。", "Expected effect": "延後失效並先守住最敏感的服務。"})
+        return rows
+    else:
+        rows = []
+        if results["shortfall"] > 0:
+            rows.append({"Signal": f"Shortfall remains at {results['shortfall']:.2f} MW", "Impact": "Demand is above available modeled supply.", "Recommendation": "Raise firm capacity, reduce non-critical load, or deepen storage support.", "Expected effect": "Reduce unmet load and extend stable operation."})
+        else:
+            rows.append({"Signal": "No modeled shortfall in the selected scenario", "Impact": "Immediate supply-demand balance is currently stable.", "Recommendation": "Protect reserve margin and watch disruption signals.", "Expected effect": "Preserve endurance against degradation."})
+        if results["renewable_ratio"] < 70:
+            rows.append({"Signal": f"Renewable ratio is {results['renewable_ratio']:.1f}%", "Impact": "The system is leaning too heavily on backup or reserve support.", "Recommendation": "Diversify the renewable mix and improve thermal smoothing.", "Expected effect": "Raise renewable coverage and lower reserve strain."})
+        if results.get("reserve_days_remaining", 0) < 7:
+            rows.append({"Signal": f"Reserve days remaining are {results.get('reserve_days_remaining', 0)}", "Impact": "Prolonged disruption could deplete reserve before recovery.", "Recommendation": "Increase reserve depth, shorten lag, or reduce protected demand.", "Expected effect": "Extend survival window during prolonged stress."})
+        if timeline_results["hours_until_critical_failure"] != "No Failure":
+            rows.append({"Signal": f"Critical failure projected at hour {timeline_results['hours_until_critical_failure']}", "Impact": f"{facility_type} operations may lose protected continuity faster than acceptable.", "Recommendation": f"Prioritize: {', '.join(facility_profile['priority_order'][:2])}.", "Expected effect": "Push failure later and preserve the most sensitive services first."})
+        return rows
 
 def compute_energy_supply(inputs, scenario_key: str, failure_ratios: dict, reserve_recovery_lag_days: int):
     scenario = SCENARIOS.get(scenario_key, SCENARIOS["normal"])
@@ -418,12 +486,7 @@ def compute_energy_supply(inputs, scenario_key: str, failure_ratios: dict, reser
     installed_mix_raw = {"Solar": solar_capacity, "Wind": wind_capacity, "Geothermal": geothermal_capacity, "Hydro": hydro_capacity}
     actual_mix_pct = {k: v * 100 for k, v in normalize_mix(actual_mix_raw).items()}
     installed_mix_pct = {k: v * 100 for k, v in normalize_mix(installed_mix_raw).items()}
-    capacity_factors = {
-        "Solar": round(solar_cf * 100, 1),
-        "Wind": round(wind_cf * 100, 1),
-        "Geothermal": round(geo_cf * 100, 1),
-        "Hydro": round(hydro_cf * 100, 1),
-    }
+    capacity_factors = {"Solar": round(solar_cf * 100, 1), "Wind": round(wind_cf * 100, 1), "Geothermal": round(geo_cf * 100, 1), "Hydro": round(hydro_cf * 100, 1)}
     dominant_source = max(actual_mix_raw, key=actual_mix_raw.get) if renewable_supply > 0 else "None"
     return {
         "demand": round(demand, 2),
@@ -442,15 +505,8 @@ def compute_energy_supply(inputs, scenario_key: str, failure_ratios: dict, reser
         "dominant_source": dominant_source,
     }
 
-def apply_extended_security(results: dict, fuel_price_shock: float, repair_crew_availability: float,
-                            spare_parts_delay_days: int, refill_uncertainty: float, single_point_failure_risk: float):
-    penalty = (
-        fuel_price_shock * 0.10
-        + (1 - repair_crew_availability) * 0.16
-        + min(spare_parts_delay_days / 30.0, 1.0) * 0.12
-        + refill_uncertainty * 0.18
-        + single_point_failure_risk * 0.22
-    )
+def apply_extended_security(results, fuel_price_shock, repair_crew_availability, spare_parts_delay_days, refill_uncertainty, single_point_failure_risk):
+    penalty = fuel_price_shock * 0.10 + (1 - repair_crew_availability) * 0.16 + min(spare_parts_delay_days / 30.0, 1.0) * 0.12 + refill_uncertainty * 0.18 + single_point_failure_risk * 0.22
     results["extended_disruption_score"] = round(clamp(results["grid_dependency"] * 0.45 + penalty * 100, 0, 100), 2)
     results["spare_parts_risk"] = round(clamp(spare_parts_delay_days * 3.2, 0, 100), 2)
     results["maintenance_readiness"] = round(clamp(repair_crew_availability * 100 - spare_parts_delay_days * 1.8, 0, 100), 2)
@@ -460,9 +516,7 @@ def apply_extended_security(results: dict, fuel_price_shock: float, repair_crew_
     results["recovery_time_estimate"] = max(1, round(results.get("recovery_time_estimate", 1) + penalty * 5 + spare_parts_delay_days * 0.3, 1))
     return results
 
-def thermal_concept_adjustment(enabled, demand, reserve_days_remaining, hours_until_shortfall, hours_until_critical_failure,
-                              fresh_air_temp_c, exhaust_air_temp_c, recovery_efficiency,
-                              buffer_state_pct, sink_utilization_pct, damage_ratio_pct, diversification_score):
+def thermal_concept_adjustment(enabled, demand, reserve_days_remaining, hours_until_shortfall, hours_until_critical_failure, fresh_air_temp_c, exhaust_air_temp_c, recovery_efficiency, buffer_state_pct, sink_utilization_pct, damage_ratio_pct, diversification_score):
     if not enabled:
         return {
             "adjusted_demand": demand,
@@ -470,29 +524,23 @@ def thermal_concept_adjustment(enabled, demand, reserve_days_remaining, hours_un
             "adjusted_hours_until_shortfall": hours_until_shortfall,
             "adjusted_hours_until_critical_failure": hours_until_critical_failure,
             "thermal_demand_reduction_pct": 0.0,
-            "delivered_supply_temp_c": fresh_air_temp_c,
             "buffer_state_pct": buffer_state_pct,
             "sink_utilization_pct": sink_utilization_pct,
             "damage_ratio_pct": damage_ratio_pct,
             "diversification_score": diversification_score,
         }
     thermal_gradient = max(exhaust_air_temp_c - fresh_air_temp_c, 0.0)
-    thermal_demand_reduction_pct = clamp((thermal_gradient / 40.0) * recovery_efficiency * 0.28, 0.0, 0.22)
-    adjusted_demand = round(demand * (1.0 - thermal_demand_reduction_pct), 2)
-    reserve_bonus_days = round(thermal_demand_reduction_pct * 9.0, 2)
-    shortfall_bonus_hours = int(round(thermal_demand_reduction_pct * 36.0))
-    critical_bonus_hours = int(round(thermal_demand_reduction_pct * 42.0))
+    reduction = clamp((thermal_gradient / 40.0) * recovery_efficiency * 0.28, 0.0, 0.22)
     return {
-        "adjusted_demand": adjusted_demand,
-        "adjusted_reserve_days": round(reserve_days_remaining + reserve_bonus_days, 2),
-        "adjusted_hours_until_shortfall": hours_until_shortfall + shortfall_bonus_hours,
-        "adjusted_hours_until_critical_failure": hours_until_critical_failure + critical_bonus_hours,
-        "thermal_demand_reduction_pct": round(thermal_demand_reduction_pct * 100, 2),
-        "delivered_supply_temp_c": round(fresh_air_temp_c + (exhaust_air_temp_c - fresh_air_temp_c) * recovery_efficiency, 2),
-        "buffer_state_pct": round(clamp(buffer_state_pct + thermal_demand_reduction_pct * 45, 0, 100), 1),
+        "adjusted_demand": round(demand * (1.0 - reduction), 2),
+        "adjusted_reserve_days": round(reserve_days_remaining + reduction * 9.0, 2),
+        "adjusted_hours_until_shortfall": hours_until_shortfall + int(round(reduction * 36.0)),
+        "adjusted_hours_until_critical_failure": hours_until_critical_failure + int(round(reduction * 42.0)),
+        "thermal_demand_reduction_pct": round(reduction * 100, 2),
+        "buffer_state_pct": round(clamp(buffer_state_pct + reduction * 45, 0, 100), 1),
         "sink_utilization_pct": round(clamp(sink_utilization_pct + recovery_efficiency * 12, 0, 100), 1),
-        "damage_ratio_pct": round(clamp(damage_ratio_pct * (1 - thermal_demand_reduction_pct * 0.35), 0, 100), 1),
-        "diversification_score": round(clamp(diversification_score + thermal_demand_reduction_pct * 20, 0, 100), 1),
+        "damage_ratio_pct": round(clamp(damage_ratio_pct * (1 - reduction * 0.35), 0, 100), 1),
+        "diversification_score": round(clamp(diversification_score + reduction * 20, 0, 100), 1),
     }
 
 def render_capacity_factor_chart(capacity_factors: dict):
@@ -502,358 +550,249 @@ def render_capacity_factor_chart(capacity_factors: dict):
     fig.patch.set_alpha(0.0)
     ax.set_facecolor("none")
     ax.barh(labels, values)
-    ax.set_xlabel("Capacity Factor (%)")
+    ax.set_xlabel("Capacity Factor (%)" if ui_lang == "English" else "容量因子 (%)")
     ax.set_xlim(0, 100)
-    ax.set_title("Capacity Factors")
+    ax.set_title(tr("capacity_factors"))
     ax.grid(axis="x", alpha=0.25)
     plt.tight_layout()
     st.pyplot(fig, clear_figure=True)
 
-def render_delta_chart(delta_df: pd.DataFrame):
+def render_delta_chart(delta_df):
     fig, ax = plt.subplots(figsize=(8.8, 4.0))
     fig.patch.set_alpha(0.0)
     ax.set_facecolor("none")
     ax.barh(delta_df["Metric"], delta_df["Delta"])
     ax.axvline(0, linewidth=1.0)
-    ax.set_title("Selected Scenario Delta vs Baseline")
+    ax.set_title(tr("baseline_vs_selected"))
     ax.grid(axis="x", alpha=0.25)
     plt.tight_layout()
     st.pyplot(fig, clear_figure=True)
 
-def render_critical_load_chart(df: pd.DataFrame):
+def render_critical_load_chart(df):
     fig, ax = plt.subplots(figsize=(8.0, 3.8))
     fig.patch.set_alpha(0.0)
     ax.set_facecolor("none")
-    ax.bar(df["Category"], df["Critical Demand (MW)"])
-    ax.set_ylabel("Critical Demand (MW)")
-    ax.set_title("Critical Load Protection Profile")
+    val_col = f"{tr('demand')} (MW)"
+    ax.bar(df["Category"], df[val_col])
+    ax.set_ylabel(val_col)
+    ax.set_title(tr("critical_breakdown"))
     ax.grid(axis="y", alpha=0.22)
     plt.xticks(rotation=15)
     plt.tight_layout()
     st.pyplot(fig, clear_figure=True)
 
-st.title("TAIVAS Energy Control Center")
-st.caption("TAIVAS is a resilience decision-support simulator for energy, thermal, and critical facility scenarios under extreme conditions.")
-
-with st.sidebar:
-    st.header("Controls")
-    country = st.selectbox("Country", list(CITY_DATA.keys()))
-    city = st.selectbox("City", list(CITY_DATA[country].keys()))
-    city_profile = CITY_DATA[country][city]
-    facility_type = st.selectbox("Facility Type", list(FACILITY_PROFILES.keys()))
-    facility_profile = FACILITY_PROFILES[facility_type]
-    preset_name = st.selectbox("Scenario Library Preset", ["Custom"] + list(SCENARIO_LIBRARY.keys()), index=0)
-    preset = SCENARIO_LIBRARY.get(preset_name, {})
-    population = st.slider("Population", 10000, 5000000, int(city_profile["population"]), step=10000)
-    st.caption(f"Selected population: {population:,}")
-
-    st.divider()
-    st.subheader("Capacity Inputs")
-    solar_capacity = st.slider("Solar Capacity", 0, 500, 120, 5)
-    wind_capacity = st.slider("Wind Capacity", 0, 500, 80, 5)
-    geothermal_capacity = st.slider("Geothermal Capacity", 0, 500, 60, 5)
-    hydro_capacity = st.slider("Hydro Capacity", 0, 500, 70, 5)
-    battery_capacity = st.slider("Battery Capacity", 0, 1000, 180, 10)
-
-    st.divider()
-    st.subheader("Weather Inputs")
-    temperature = st.slider("Temperature (°C)", -20, 50, int(preset.get("temperature", 26)), 1)
-    wind_speed = st.slider("Wind Speed (m/s)", 0.0, 30.0, float(preset.get("wind_speed", 4.2)), 0.1)
-    solar_radiation = st.slider("Solar Radiation (W/m²)", 0, 1200, int(preset.get("solar_radiation", 640)), 10)
-    precipitation = st.slider("Precipitation (mm)", 0, 300, int(preset.get("precipitation", 12)), 1)
-    humidity = st.slider("Humidity (%)", 0, 100, 73, 1)
-
-    st.divider()
-    scenario_key = st.selectbox("Weather Scenario", list(SCENARIOS.keys()), index=list(SCENARIOS.keys()).index(preset.get("scenario_key", "normal")))
-
-    st.divider()
-    st.subheader("Stress Inputs")
-    solar_failure_ratio = st.number_input("Solar Failure Ratio", 0.0, 1.0, 0.00, 0.05, format="%.2f")
-    wind_failure_ratio = st.number_input("Wind Failure Ratio", 0.0, 1.0, 0.00, 0.05, format="%.2f")
-    geothermal_failure_ratio = st.number_input("Geothermal Failure Ratio", 0.0, 1.0, 0.00, 0.05, format="%.2f")
-    hydro_failure_ratio = st.number_input("Hydro Failure Ratio", 0.0, 1.0, 0.00, 0.05, format="%.2f")
-    battery_failure_ratio = st.number_input("Battery Failure Ratio", 0.0, 1.0, 0.00, 0.05, format="%.2f")
-
-    st.divider()
-    st.subheader("Energy Security Inputs")
-    energy_security_options = list(ENERGY_SECURITY_SCENARIOS.keys())
-    default_security = preset.get("energy_security_scenario", energy_security_options[0])
-    energy_security_scenario = st.selectbox(
-        "Energy Security Scenario",
-        energy_security_options,
-        index=energy_security_options.index(default_security) if default_security in energy_security_options else 0,
-    )
-    import_dependency = st.number_input("Import Dependency", 0.0, 1.0, float(preset.get("import_dependency", 0.70)), 0.01, format="%.2f")
-    strategic_reserve_days = st.number_input("Strategic Reserve Days", 0, 365, 20, 1)
-    shipping_dependency = st.number_input("Shipping Dependency", 0.0, 1.0, float(preset.get("shipping_dependency", 0.85)), 0.01, format="%.2f")
-    infrastructure_damage_ratio = st.number_input("Infrastructure Damage Ratio", 0.0, 1.0, float(preset.get("infrastructure_damage_ratio", 0.10)), 0.01, format="%.2f")
-    reserve_recovery_lag_days = st.number_input("Reserve Recovery Lag (days)", 0, 30, 3, 1)
-
-    st.subheader("Extended Security")
-    fuel_price_shock = st.number_input("Fuel Price Shock", 0.0, 1.0, 0.20, 0.01, format="%.2f")
-    repair_crew_availability = st.number_input("Repair Crew Availability", 0.0, 1.0, 0.80, 0.01, format="%.2f")
-    spare_parts_delay_days = st.number_input("Spare Parts Delay (days)", 0, 45, 7, 1)
-    refill_uncertainty = st.number_input("Backup Refill Uncertainty", 0.0, 1.0, 0.25, 0.01, format="%.2f")
-    single_point_failure_risk = st.number_input("Single-Point Failure Risk", 0.0, 1.0, 0.20, 0.01, format="%.2f")
-
-    st.divider()
-    st.subheader("Survival Timeline Inputs")
-    simulation_hours = st.selectbox("Simulation Hours", [24, 72, 168], index=0)
-    primary_supply_failure_ratio = st.number_input("Primary Supply Failure Ratio", 0.0, 1.0, 0.30, 0.01, format="%.2f")
-    reserve_energy_per_day = st.number_input("Reserve Energy per Day", 20.0, 300.0, 120.0, 5.0, format="%.1f")
-    survival_mode = st.selectbox("Survival Mode", ["full_load", "critical_load_only"], index=0)
-
-    st.divider()
-    st.subheader("Thermal Concept Inputs")
-    thermal_concept_enabled = st.toggle("Enable Thermal Concept Mode", value=True)
-    fresh_air_temp_c = st.slider("Outside Air (°C)", -30.0, 20.0, -8.0, 0.5)
-    exhaust_air_temp_c = st.slider("Indoor Exhaust Air (°C)", 10.0, 35.0, 23.0, 0.5)
-    recovery_efficiency = st.slider("Thermal Recovery Efficiency", 0.0, 1.0, 0.72, 0.01)
-    thermal_animation_speed = st.slider("Thermal Animation Speed", 0.4, 2.5, 1.0, 0.1)
-
-failure_ratios = {
-    "solar": solar_failure_ratio,
-    "wind": wind_failure_ratio,
-    "geothermal": geothermal_failure_ratio,
-    "hydro": hydro_failure_ratio,
-    "battery": battery_failure_ratio,
+st.markdown("""
+<style>
+.block-container {padding-top: 1.05rem; padding-bottom: 2rem;}
+.hero {
+    padding: 1rem 1.1rem;
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(21,60,110,0.60), rgba(11,18,32,0.24));
+    margin-bottom: 1rem;
 }
-inputs = {
-    "country_key": country, "city_key": city, "lat": city_profile["lat"], "lon": city_profile["lon"],
-    "temperature": temperature, "wind_speed": wind_speed, "solar_radiation": solar_radiation,
-    "precipitation": precipitation, "humidity": humidity, "population": population,
-    "solar_capacity": solar_capacity, "wind_capacity": wind_capacity,
-    "geothermal_capacity": geothermal_capacity, "hydro_capacity": hydro_capacity,
-    "battery_capacity": battery_capacity,
+.hero h3 { margin: 0 0 0.35rem 0; font-size: 1.22rem; }
+.hero p { margin: 0; opacity: 0.94; line-height: 1.56; }
+.note {
+    padding: 0.82rem 0.95rem;
+    border-radius: 14px;
+    background: rgba(59,130,246,0.10);
+    border: 1px solid rgba(96,165,250,0.24);
+    margin-bottom: 0.75rem;
+    line-height: 1.55;
 }
-critical_load_share = facility_profile["critical_load_share"]
+.question {
+    padding: 0.78rem 0.95rem;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.10);
+    margin-bottom: 0.75rem;
+    line-height: 1.55;
+}
+.card {
+    padding: 0.82rem 0.95rem;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    margin-bottom: 0.65rem;
+    min-height: 88px;
+}
+.card-label { font-size: 0.82rem; opacity: 0.78; margin-bottom: 0.28rem; }
+.card-value { font-size: 1.00rem; font-weight: 600; line-height: 1.30; }
+.layer-box {
+    padding: 0.82rem 0.92rem;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.10);
+    min-height: 112px;
+}
+.badge {
+    display: inline-block;
+    padding: 0.28rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: rgba(245,158,11,0.12);
+    border: 1px solid rgba(245,158,11,0.35);
+    color: #fde68a;
+    margin-bottom: 0.55rem;
+}
+</style>
+""", unsafe_allow_html=True)
 
-results = compute_energy_supply(inputs, scenario_key, failure_ratios, reserve_recovery_lag_days)
-results, _ = apply_energy_security_layer(
-    base_results=results, scenario_key=energy_security_scenario, import_dependency=import_dependency,
-    strategic_reserve_days=strategic_reserve_days, critical_load_share=critical_load_share,
-    shipping_dependency=shipping_dependency, infrastructure_damage_ratio=infrastructure_damage_ratio,
-    reserve_recovery_lag_days=reserve_recovery_lag_days,
-)
-results = apply_extended_security(results, fuel_price_shock, repair_crew_availability, spare_parts_delay_days, refill_uncertainty, single_point_failure_risk)
+st.title(tr("title"))
+st.caption(tr("caption"))
+st.markdown(f'<div class="hero"><h3>{tr("hero_title")}</h3><p>{tr("hero_body")}</p></div>', unsafe_allow_html=True)
 
-timeline_results = simulate_survival_timeline(
-    demand=results["demand"], renewable_supply=results["renewable_supply"],
-    battery_capacity=inputs["battery_capacity"] * (1 - battery_failure_ratio),
-    strategic_reserve_days=strategic_reserve_days, critical_load_share=critical_load_share,
-    weather_scenario=scenario_key, simulation_hours=simulation_hours,
-    primary_supply_failure_ratio=primary_supply_failure_ratio, reserve_energy_per_day=reserve_energy_per_day,
-    survival_mode=survival_mode,
-)
+layer_cols = st.columns(3)
+for col, label, desc in zip(layer_cols, [tr("core"), tr("decision"), tr("concept")], [tr("core_desc"), tr("decision_desc"), tr("concept_desc")]):
+    with col:
+        st.markdown(f'<div class="layer-box"><div class="card-label">{label}</div><div class="card-value" style="font-size:0.98rem;">{desc}</div></div>', unsafe_allow_html=True)
 
-baseline_results = compute_energy_supply(inputs, "normal", failure_ratios={k: 0.0 for k in failure_ratios}, reserve_recovery_lag_days=0)
-baseline_results, _ = apply_energy_security_layer(
-    base_results=baseline_results, scenario_key="normal", import_dependency=import_dependency,
-    strategic_reserve_days=strategic_reserve_days, critical_load_share=critical_load_share,
-    shipping_dependency=shipping_dependency, infrastructure_damage_ratio=0.0, reserve_recovery_lag_days=0.0,
-)
+top_left, top_right = st.columns([1.02, 1.08])
+with top_left:
+    st.subheader(f"{tr('country_logic')}: {country}")
+    st.write(COUNTRY_NOTES.get(country, "Regional energy model loaded."))
+    st.subheader(tr("facility_logic"))
+    st.write(facility_profile["notes"])
+    info_cols = st.columns(3)
+    with info_cols[0]:
+        mini_card(tr("facility_type"), facility_type)
+    with info_cols[1]:
+        mini_card("Critical Load Share", f"{facility_profile['critical_load_share'] * 100:.0f}%")
+    with info_cols[2]:
+        mini_card("Temp Band", f"{facility_profile['temp_band_c']} °C")
 
-base_damage_pct = round((sum(failure_ratios.values()) / len(failure_ratios)) * 100, 1)
-base_div_score = round(len([v for v in results["actual_mix_mw"].values() if v > 0]) / 4 * 100, 1)
-timeline_shortfall_num = timeline_results["hours_until_shortfall"] if timeline_results["hours_until_shortfall"] != "No Failure" else 999
-timeline_critical_num = timeline_results["hours_until_critical_failure"] if timeline_results["hours_until_critical_failure"] != "No Failure" else 999
+with top_right:
+    st.subheader(tr("input_summary"))
+    c1, c2 = st.columns(2)
+    with c1:
+        mini_card(tr("country"), country)
+        mini_card(tr("city"), city)
+        mini_card(tr("population"), f"{population:,}")
+        mini_card(tr("weather_scenario"), scenario_key.replace("_", " ").title())
+    with c2:
+        mini_card("Energy Security", energy_security_scenario.replace("_", " ").title())
+        mini_card("Facility Tolerance", f"{facility_profile['failure_tolerance_hours']} h")
+        mini_card("Import Dependency", f"{import_dependency * 100:.0f}%")
+        mini_card("Timeline Horizon", f"{simulation_hours} h")
 
-thermal_results = thermal_concept_adjustment(
-    enabled=thermal_concept_enabled, demand=results["demand"], reserve_days_remaining=results.get("reserve_days_remaining", 0),
-    hours_until_shortfall=timeline_shortfall_num, hours_until_critical_failure=timeline_critical_num,
-    fresh_air_temp_c=fresh_air_temp_c, exhaust_air_temp_c=exhaust_air_temp_c, recovery_efficiency=recovery_efficiency,
-    buffer_state_pct=70.0, sink_utilization_pct=clamp(results["renewable_ratio"], 10, 95),
-    damage_ratio_pct=base_damage_pct, diversification_score=base_div_score,
-)
+st.subheader(tr("system_perf"))
+perf_top = st.columns(4)
+perf_top[0].metric(tr("demand"), f"{results['demand']} MW", delta=f"{round(results['demand'] - baseline_results['demand'], 2)} vs baseline")
+perf_top[1].metric(tr("renewable"), f"{results['renewable_supply']} MW", delta=f"{round(results['renewable_supply'] - baseline_results['renewable_supply'], 2)}")
+perf_top[2].metric(tr("final"), f"{results['final_supply']} MW", delta=f"{round(results['final_supply'] - baseline_results['final_supply'], 2)}")
+perf_top[3].metric(tr("shortfall"), f"{results['shortfall']} MW", delta=f"{round(results['shortfall'] - baseline_results['shortfall'], 2)}")
 
-scenario_df = comparison_dataframe(inputs, failure_ratios, reserve_recovery_lag_days)
-timeline_df = pd.DataFrame(timeline_results["rows"])
-delta_df = scenario_delta_df(baseline_results, results)
-critical_load_df = critical_load_breakdown(results["demand"], critical_load_share, facility_profile["critical_split"])
-reason_df = pd.DataFrame(recommendation_reason_chain(results, energy_security_scenario, timeline_results, facility_type, facility_profile))
-mix_table = pd.DataFrame(
-    {
+st.subheader(tr("resilience"))
+perf_bottom = st.columns(4)
+perf_bottom[0].metric(tr("battery"), f"{results['battery_levels']} MWh")
+perf_bottom[1].metric(tr("rr"), f"{results['renewable_ratio']}%")
+perf_bottom[2].metric(tr("eff"), f"{results['system_efficiency']}%")
+perf_bottom[3].metric(tr("grid"), f"{results['grid_dependency']}%")
+
+status_cols = st.columns(4)
+status_cols[0].metric(tr("status_shortfall"), build_status_label(results["shortfall"], (5, 15)))
+status_cols[1].metric(tr("status_eff"), build_status_label(results["system_efficiency"], (85, 70), reverse=True))
+status_cols[2].metric(tr("status_grid"), build_status_label(results["grid_dependency"], (10, 25)))
+status_cols[3].metric(tr("status_reserve"), build_status_label(results.get("reserve_days_remaining", 0), (14, 7), reverse=True))
+
+summary_txt = executive_summary_text(results, timeline_results, country, city, facility_type, scenario_key, energy_security_scenario)
+buf_scen = StringIO(); comparison_dataframe(inputs, failure_ratios, reserve_recovery_lag_days).to_csv(buf_scen, index=False)
+buf_reason = StringIO(); pd.DataFrame(recommendation_reason_chain(results, energy_security_scenario, timeline_results, facility_type, facility_profile)).to_csv(buf_reason, index=False)
+audit_json = json.dumps({
+    "country": country,
+    "city": city,
+    "facility_type": facility_type,
+    "weather_scenario": scenario_key,
+    "energy_security_scenario": energy_security_scenario,
+    "results": {"demand": results["demand"], "shortfall": results["shortfall"], "renewable_ratio": results["renewable_ratio"]}
+}, indent=2, ensure_ascii=False)
+
+download_cols = st.columns(4)
+with download_cols[0]:
+    st.download_button(tr("download_scenario"), buf_scen.getvalue(), file_name="taivas_scenarios.csv", mime="text/csv")
+with download_cols[1]:
+    st.download_button(tr("download_reason"), buf_reason.getvalue(), file_name="taivas_reason_chain.csv", mime="text/csv")
+with download_cols[2]:
+    st.download_button(tr("download_summary"), summary_txt, file_name="taivas_executive_summary.txt", mime="text/plain")
+with download_cols[3]:
+    st.download_button(tr("download_audit"), audit_json, file_name="taivas_audit_trail.json", mime="application/json")
+
+tabs = st.tabs(tr("tabs"))
+mix_tab, compare_tab, stress_tab, ai_tab, sec_tab, timeline_tab, concept_tab = tabs
+
+with mix_tab:
+    page_question(tr("tabs")[0])
+    st.markdown(f'<div class="note">{tr("mix_note")}</div>', unsafe_allow_html=True)
+    mix_cols = st.columns(2)
+    with mix_cols[0]:
+        st.subheader(tr("installed_mix"))
+        st.pyplot(make_donut_chart(results["installed_mix_pct"], 100.0, title=tr("installed_mix")), clear_figure=True)
+    with mix_cols[1]:
+        st.subheader(tr("actual_mix"))
+        st.pyplot(make_donut_chart(results["actual_mix_pct"], results["renewable_ratio"], title=tr("actual_mix")), clear_figure=True)
+    mix_table = pd.DataFrame({
         "Source": list(results["actual_mix_mw"].keys()),
         "Installed Capacity (MW)": [results["installed_mix_mw"][k] for k in results["actual_mix_mw"]],
         "Actual Supply (MW)": [results["actual_mix_mw"][k] for k in results["actual_mix_mw"]],
         "Installed Mix (%)": [round(results["installed_mix_pct"][k], 2) for k in results["actual_mix_mw"]],
         "Actual Mix (%)": [round(results["actual_mix_pct"][k], 2) for k in results["actual_mix_mw"]],
         "Capacity Factor (%)": [results["capacity_factors"][k] for k in results["actual_mix_mw"]],
-    }
-)
-
-status_shortfall = build_status_label(results["shortfall"], (5, 15))
-status_efficiency = build_status_label(results["system_efficiency"], (85, 70), reverse=True)
-status_grid = build_status_label(results["grid_dependency"], (10, 25))
-status_reserve = build_status_label(results.get("reserve_days_remaining", 0), (14, 7), reverse=True)
-
-summary_txt = executive_summary_text(results, timeline_results, country, city, facility_type, scenario_key, energy_security_scenario)
-audit_payload = {
-    "country": country, "city": city, "facility_type": facility_type,
-    "weather_scenario": scenario_key, "energy_security_scenario": energy_security_scenario,
-    "results": {
-        "demand": results["demand"], "renewable_supply": results["renewable_supply"], "final_supply": results["final_supply"],
-        "shortfall": results["shortfall"], "reserve_days_remaining": results.get("reserve_days_remaining", 0),
-        "hours_until_critical_failure": timeline_results["hours_until_critical_failure"],
-    },
-}
-buf_scen = StringIO(); scenario_df.to_csv(buf_scen, index=False)
-buf_reason = StringIO(); reason_df.to_csv(buf_reason, index=False)
-audit_json = json.dumps(audit_payload, indent=2)
-
-st.markdown(
-    """
-    <div class="hero">
-        <h3>Operational Overview</h3>
-        <p>TAIVAS combines a core resilience simulator, an explainable decision-support layer, and a concept lab for advanced thermal ideas. It is designed to test how energy, thermal management, and critical facility protection behave under extreme climate and disruption scenarios.</p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-layer_cols = st.columns(3)
-for col, (name, desc) in zip(layer_cols, LAYER_SUMMARY):
-    with col:
-        st.markdown(
-            f"""
-            <div class="layer-box">
-                <div class="card-label">{name}</div>
-                <div class="card-value" style="font-size:0.98rem;">{desc}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-top_left, top_right = st.columns([1.02, 1.08])
-with top_left:
-    st.subheader(f"Country Logic: {country}")
-    st.write(COUNTRY_NOTES.get(country, "Regional energy model loaded."))
-    st.subheader("Facility Logic")
-    st.write(facility_profile["notes"])
-    info_cols = st.columns(3)
-    with info_cols[0]:
-        mini_card("Facility Type", facility_type)
-    with info_cols[1]:
-        mini_card("Critical Load Share", f"{critical_load_share * 100:.0f}%")
-    with info_cols[2]:
-        mini_card("Temp Band", f"{facility_profile['temp_band_c']} °C")
-
-with top_right:
-    st.subheader("Input Summary")
-    c1, c2 = st.columns(2)
-    with c1:
-        mini_card("Country", country)
-        mini_card("City", city)
-        mini_card("Population", f"{population:,}")
-        mini_card("Weather Scenario", scenario_key.replace("_", " ").title())
-    with c2:
-        mini_card("Energy Security", energy_security_scenario.replace("_", " ").title())
-        mini_card("Facility Tolerance", f"{facility_profile['failure_tolerance_hours']} h")
-        mini_card("Import Dependency", f"{import_dependency * 100:.0f}%")
-        mini_card("Timeline Horizon", f"{simulation_hours} hours")
-
-st.subheader("System Performance")
-perf_top = st.columns(4)
-perf_top[0].metric("Demand", f"{results['demand']} MW", delta=f"{round(results['demand'] - baseline_results['demand'], 2)} vs baseline")
-perf_top[1].metric("Renewable Supply", f"{results['renewable_supply']} MW", delta=f"{round(results['renewable_supply'] - baseline_results['renewable_supply'], 2)}")
-perf_top[2].metric("Final Supply", f"{results['final_supply']} MW", delta=f"{round(results['final_supply'] - baseline_results['final_supply'], 2)}")
-perf_top[3].metric("Shortfall", f"{results['shortfall']} MW", delta=f"{round(results['shortfall'] - baseline_results['shortfall'], 2)}")
-
-st.subheader("Resilience Indicators")
-perf_bottom = st.columns(4)
-perf_bottom[0].metric("Battery Levels", f"{results['battery_levels']} MWh")
-perf_bottom[1].metric("Renewable Ratio", f"{results['renewable_ratio']}%")
-perf_bottom[2].metric("System Efficiency", f"{results['system_efficiency']}%")
-perf_bottom[3].metric("Grid Dependency", f"{results['grid_dependency']}%")
-
-status_cols = st.columns(4)
-status_cols[0].metric("Shortfall Status", status_shortfall)
-status_cols[1].metric("Efficiency Status", status_efficiency)
-status_cols[2].metric("Grid Stress Status", status_grid)
-status_cols[3].metric("Reserve Status", status_reserve)
-
-download_cols = st.columns(4)
-with download_cols[0]:
-    st.download_button("Scenario CSV", buf_scen.getvalue(), file_name="taivas_scenarios.csv", mime="text/csv")
-with download_cols[1]:
-    st.download_button("Reason Chain CSV", buf_reason.getvalue(), file_name="taivas_reason_chain.csv", mime="text/csv")
-with download_cols[2]:
-    st.download_button("Executive Summary TXT", summary_txt, file_name="taivas_executive_summary.txt", mime="text/plain")
-with download_cols[3]:
-    st.download_button("Audit Trail JSON", audit_json, file_name="taivas_audit_trail.json", mime="application/json")
-
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
-    ["Energy Mix", "Scenario Comparison", "Stress Test", "AI Recommendation", "Energy Security", "Survival Timeline", "Concept Lab"]
-)
-
-with tab1:
-    page_question("Energy Mix")
-    st.markdown('<div class="note">This tab separates installed capacity from actual modeled supply. Weather, failure ratios, and scenario assumptions change the real contribution of each energy source.</div>', unsafe_allow_html=True)
-    mix_cols = st.columns(2)
-    with mix_cols[0]:
-        st.subheader("Installed Capacity Mix")
-        st.pyplot(make_donut_chart(results["installed_mix_pct"], 100.0, title="Installed Capacity Mix"), clear_figure=True)
-    with mix_cols[1]:
-        st.subheader("Actual Renewable Supply Mix")
-        st.pyplot(make_donut_chart(results["actual_mix_pct"], results["renewable_ratio"], title="Actual Renewable Supply Mix"), clear_figure=True)
-    st.subheader("Energy Source Table")
+    })
+    st.subheader(tr("energy_table"))
     st.dataframe(mix_table, use_container_width=True, hide_index=True)
-    st.subheader("Capacity Factors")
+    st.subheader(tr("capacity_factors"))
     render_capacity_factor_chart(results["capacity_factors"])
-    st.caption(f"Dominant modeled renewable source: {results['dominant_source']}")
+    st.caption(f"{tr('dominant')}: {results['dominant_source']}")
 
-with tab2:
-    page_question("Scenario Comparison")
+with compare_tab:
+    page_question(tr("tabs")[1])
+    delta_df = scenario_delta_df(baseline_results, results)
+    scenario_df = comparison_dataframe(inputs, failure_ratios, reserve_recovery_lag_days)
+    critical_load_df = critical_load_breakdown(results["demand"], facility_profile["critical_load_share"], facility_profile["critical_split"])
     left, right = st.columns([1.02, 1.0])
     with left:
-        st.subheader("Baseline vs Selected Scenario")
+        st.subheader(tr("baseline_vs_selected"))
         st.dataframe(delta_df, use_container_width=True, hide_index=True)
         render_delta_chart(delta_df)
     with right:
-        st.subheader("All Weather Scenarios")
+        st.subheader(tr("all_scenarios"))
         st.dataframe(scenario_df, use_container_width=True, hide_index=True)
-        st.bar_chart(scenario_df.set_index("Scenario")[["Shortfall (MW)", "Grid Dependency (%)"]])
-    st.subheader("Critical Load Breakdown")
+        st.bar_chart(scenario_df.set_index("Scenario")[[tr("shortfall"), tr("grid")]])
+    st.subheader(tr("critical_breakdown"))
     render_critical_load_chart(critical_load_df)
     st.dataframe(critical_load_df, use_container_width=True, hide_index=True)
 
-with tab3:
-    page_question("Stress Test")
-    st.markdown('<div class="note">This tab focuses on multi-failure stress testing, facility sensitivity, and the degradation of subsystem availability.</div>', unsafe_allow_html=True)
-    stress_df = pd.DataFrame(
-        {"Subsystem": list(failure_ratios.keys()), "Failure Ratio": list(failure_ratios.values()),
-         "Availability (%)": [round((1 - v) * 100, 1) for v in failure_ratios.values()]}
-    )
+with stress_tab:
+    page_question(tr("tabs")[2])
+    st.markdown('<div class="note">Multi-failure stress testing and subsystem degradation view.</div>', unsafe_allow_html=True)
+    stress_df = pd.DataFrame({"Subsystem": list(failure_ratios.keys()), "Failure Ratio": list(failure_ratios.values()), "Availability (%)": [round((1 - v) * 100, 1) for v in failure_ratios.values()]})
     st.dataframe(stress_df, use_container_width=True, hide_index=True)
     st.bar_chart(stress_df.set_index("Subsystem")[["Availability (%)"]])
-    st.markdown(
-        f'<div class="note"><b>Facility sensitivity:</b> {facility_type} aims to preserve {", ".join(facility_profile["priority_order"][:3])} first.</div>',
-        unsafe_allow_html=True,
-    )
 
-with tab4:
-    page_question("AI Recommendation")
-    st.subheader("Quick Recommendation Layer")
+with ai_tab:
+    page_question(tr("tabs")[3])
+    st.subheader(tr("quick_reco"))
     for idx, line in enumerate(recommendation_lines(results, energy_security_scenario), 1):
         st.write(f"{idx}. {line}")
-    st.subheader("Reason Chain")
+    reason_df = pd.DataFrame(recommendation_reason_chain(results, energy_security_scenario, timeline_results, facility_type, facility_profile))
+    st.subheader(tr("reason_chain"))
     st.dataframe(reason_df, use_container_width=True, hide_index=True)
-    priority_df = pd.DataFrame(
-        [
-            {"Signal": "Shortfall", "Value": results["shortfall"]},
-            {"Signal": "Reserve Days Remaining", "Value": results.get("reserve_days_remaining", 0)},
-            {"Signal": "Hours Until Critical Failure", "Value": timeline_results["hours_until_critical_failure"]},
-            {"Signal": "Extended Disruption Score", "Value": results["extended_disruption_score"]},
-        ]
-    )
-    st.subheader("Priority Signals")
+    priority_df = pd.DataFrame([
+        {"Signal": tr("shortfall"), "Value": results["shortfall"]},
+        {"Signal": tr("reserve_days"), "Value": results.get("reserve_days_remaining", 0)},
+        {"Signal": tr("critical_failure_hour"), "Value": timeline_results["hours_until_critical_failure"]},
+        {"Signal": "Extended Disruption", "Value": results["extended_disruption_score"]},
+    ])
+    st.subheader(tr("priority_signals"))
     st.dataframe(priority_df, use_container_width=True, hide_index=True)
 
-with tab5:
-    page_question("Energy Security")
+with sec_tab:
+    page_question(tr("tabs")[4])
     row1 = st.columns(4)
-    row1[0].metric("Import Disruption Score", f"{results['import_disruption_score']}%")
-    row1[1].metric("Reserve Days Remaining", f"{results['reserve_days_remaining']} days")
+    row1[0].metric("Import Disruption", f"{results['import_disruption_score']}%")
+    row1[1].metric(tr("reserve_days"), f"{results['reserve_days_remaining']} days")
     row1[2].metric("Fuel Cost Stress", f"{results['fuel_cost_stress']}%")
     row1[3].metric("Extended Disruption", f"{results['extended_disruption_score']}%")
     row2 = st.columns(4)
@@ -861,44 +800,61 @@ with tab5:
     row2[1].metric("Spare Parts Risk", f"{results['spare_parts_risk']}%")
     row2[2].metric("Refill Stability", f"{results['refill_stability']}%")
     row2[3].metric("Single-Point Pressure", f"{results['single_point_pressure']}%")
-    row3 = st.columns(3)
-    row3[0].metric("Critical Load Coverage", f"{results['critical_load_coverage']}%")
-    row3[1].metric("Recovery Time Estimate", f"{results['recovery_time_estimate']} days")
-    row3[2].metric("Reserve Recovery Lag", f"{reserve_recovery_lag_days} days")
 
-with tab6:
-    page_question("Survival Timeline")
+with timeline_tab:
+    page_question(tr("tabs")[5])
     t1, t2, t3 = st.columns(3)
-    t1.metric("Hours Until Shortfall", timeline_results["hours_until_shortfall"])
-    t2.metric("Hours Until Critical Failure", timeline_results["hours_until_critical_failure"])
-    t3.metric("Survival Mode Duration", timeline_results["survival_mode_duration"])
+    t1.metric(tr("shortfall_hour"), timeline_results["hours_until_shortfall"])
+    t2.metric(tr("critical_failure_hour"), timeline_results["hours_until_critical_failure"])
+    t3.metric("Survival Mode", timeline_results["survival_mode_duration"])
     t4, t5 = st.columns(2)
-    t4.metric("Battery Depletion Hour", timeline_results["battery_depletion_hour"])
-    t5.metric("Reserve Depletion Hour", timeline_results["reserve_depletion_hour"])
+    t4.metric("Battery Depletion", timeline_results["battery_depletion_hour"])
+    t5.metric("Reserve Depletion", timeline_results["reserve_depletion_hour"])
+    timeline_df = pd.DataFrame(timeline_results["rows"])
     if not timeline_df.empty:
         chart_cols = [c for c in ["raw_demand", "target_demand", "renewable_supply", "battery_used", "reserve_used", "final_supply", "shortfall", "battery_level", "reserve_energy"] if c in timeline_df.columns]
         if chart_cols:
-            st.subheader("Timeline Chart")
+            st.subheader(tr("timeline_chart"))
             st.line_chart(timeline_df[chart_cols])
-    st.subheader("Hourly Timeline Table")
+    st.subheader(tr("timeline_table"))
     st.dataframe(timeline_df, use_container_width=True, hide_index=True)
 
-with tab7:
-    page_question("Concept Lab")
-    st.markdown('<div class="note">These modules are illustrative simulation layers for resilience exploration. They are not hardware blueprints and do not replace physical engineering validation.</div>', unsafe_allow_html=True)
-    concept_tabs = st.tabs(["Thermal Principle", "Phase-Change Buffer", "Ground Sink", "Distributed Control", "Harvesting & Buffering"])
+with concept_tab:
+    page_question(tr("tabs")[6])
+    st.markdown(f'<div class="note">{tr("concept_note")}</div>', unsafe_allow_html=True)
+    concept_tabs = st.tabs(tr("thermal_tabs"))
+    base_damage_pct = round((sum(failure_ratios.values()) / len(failure_ratios)) * 100, 1)
+    base_div_score = round(len([v for v in results["actual_mix_mw"].values() if v > 0]) / 4 * 100, 1)
+    timeline_shortfall_num = timeline_results["hours_until_shortfall"] if timeline_results["hours_until_shortfall"] != "No Failure" else 999
+    timeline_critical_num = timeline_results["hours_until_critical_failure"] if timeline_results["hours_until_critical_failure"] != "No Failure" else 999
+    thermal_results = thermal_concept_adjustment(
+        enabled=thermal_concept_enabled,
+        demand=results["demand"],
+        reserve_days_remaining=results.get("reserve_days_remaining", 0),
+        hours_until_shortfall=timeline_shortfall_num,
+        hours_until_critical_failure=timeline_critical_num,
+        fresh_air_temp_c=fresh_air_temp_c,
+        exhaust_air_temp_c=exhaust_air_temp_c,
+        recovery_efficiency=recovery_efficiency,
+        buffer_state_pct=70.0,
+        sink_utilization_pct=clamp(results["renewable_ratio"], 10, 95),
+        damage_ratio_pct=base_damage_pct,
+        diversification_score=base_div_score,
+    )
     with concept_tabs[0]:
         concept_badge()
         render_thermal_principle_simulation(
-            fresh_air_temp_c=fresh_air_temp_c, exhaust_air_temp_c=exhaust_air_temp_c,
-            recovery_efficiency=recovery_efficiency, airflow_speed=thermal_animation_speed, height=820,
+            fresh_air_temp_c=fresh_air_temp_c,
+            exhaust_air_temp_c=exhaust_air_temp_c,
+            recovery_efficiency=recovery_efficiency,
+            airflow_speed=thermal_animation_speed,
+            height=820,
         )
-        thermal_compare_df = pd.DataFrame(
-            [
-                {"Mode": "Current", "Demand (MW)": results["demand"], "Reserve Days": results.get("reserve_days_remaining", 0), "Shortfall Hour": timeline_results["hours_until_shortfall"], "Critical Failure Hour": timeline_results["hours_until_critical_failure"]},
-                {"Mode": "Thermal Concept", "Demand (MW)": thermal_results["adjusted_demand"], "Reserve Days": thermal_results["adjusted_reserve_days"], "Shortfall Hour": thermal_results["adjusted_hours_until_shortfall"], "Critical Failure Hour": thermal_results["adjusted_hours_until_critical_failure"]},
-            ]
-        )
+        thermal_compare_df = pd.DataFrame([
+            {tr("mode"): tr("current"), f"{tr('demand')} (MW)": results["demand"], tr("reserve_days"): results.get("reserve_days_remaining", 0), tr("shortfall_hour"): timeline_results["hours_until_shortfall"], tr("critical_failure_hour"): timeline_results["hours_until_critical_failure"]},
+            {tr("mode"): tr("thermal_concept"), f"{tr('demand')} (MW)": thermal_results["adjusted_demand"], tr("reserve_days"): thermal_results["adjusted_reserve_days"], tr("shortfall_hour"): thermal_results["adjusted_hours_until_shortfall"], tr("critical_failure_hour"): thermal_results["adjusted_hours_until_critical_failure"]},
+        ])
+        st.subheader(tr("thermal_compare"))
         st.dataframe(thermal_compare_df, use_container_width=True, hide_index=True)
     with concept_tabs[1]:
         concept_badge()
@@ -907,23 +863,27 @@ with tab7:
             heat_load_mw=max(results["demand"] * 0.18, 1.0),
             buffer_state_pct=thermal_results["buffer_state_pct"],
             demand_reduction_pct=max(thermal_results["thermal_demand_reduction_pct"], 1.0),
-            reserve_bonus_hours=reserve_gain_hours, height=720,
+            reserve_bonus_hours=reserve_gain_hours,
+            height=720,
         )
     with concept_tabs[2]:
         concept_badge()
         render_ground_thermal_sink_concept(
             cooling_offset_pct=round(max(thermal_results["thermal_demand_reduction_pct"] * 0.8, 2.0), 1),
             sink_utilization_pct=thermal_results["sink_utilization_pct"],
-            saturation_risk_pct=round(max(5.0, 100 - thermal_results["sink_utilization_pct"]), 0), height=720,
+            saturation_risk_pct=round(max(5.0, 100 - thermal_results["sink_utilization_pct"]), 0),
+            height=720,
         )
     with concept_tabs[3]:
         concept_badge()
         availability = round((1 - max(failure_ratios.values())) * 100, 0)
         rerouting_efficiency = round(max(40.0, 100 - (sum(failure_ratios.values()) / len(failure_ratios)) * 100), 0)
         render_distributed_thermal_control_concept(
-            node_availability_pct=availability, rerouting_efficiency_pct=rerouting_efficiency,
+            node_availability_pct=availability,
+            rerouting_efficiency_pct=rerouting_efficiency,
             damage_ratio_pct=thermal_results["damage_ratio_pct"],
-            protected_core_pct=round(max(45.0, 100 - results["grid_dependency"]), 0), height=720,
+            protected_core_pct=round(max(45.0, 100 - results["grid_dependency"]), 0),
+            height=720,
         )
     with concept_tabs[4]:
         concept_badge()
@@ -931,6 +891,9 @@ with tab7:
         shortfall_reduction_pct = round(max((baseline_results["shortfall"] - results["shortfall"]) / max(baseline_results["shortfall"], 1) * 100, 0.0), 1)
         core_hours = timeline_results["hours_until_critical_failure"] if timeline_results["hours_until_critical_failure"] != "No Failure" else 168
         render_distributed_harvesting_buffering_concept(
-            diversification_score=thermal_results["diversification_score"], reserve_gain_hours=reserve_gain_hours,
-            shortfall_reduction_pct=shortfall_reduction_pct, core_preservation_hours=float(core_hours), height=720,
+            diversification_score=thermal_results["diversification_score"],
+            reserve_gain_hours=reserve_gain_hours,
+            shortfall_reduction_pct=shortfall_reduction_pct,
+            core_preservation_hours=float(core_hours),
+            height=720,
         )
