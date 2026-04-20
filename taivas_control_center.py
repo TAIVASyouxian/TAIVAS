@@ -296,7 +296,31 @@ if "ui_lang" not in st.session_state:
 ui_lang = st.session_state["ui_lang"]
 
 def tr(key: str) -> str:
-    return I18N[ui_lang][key]
+    lang_pack = I18N.get(ui_lang, I18N["English"])
+    if key in lang_pack:
+        return lang_pack[key]
+    return I18N["English"].get(key, key)
+
+
+I18N["English"].setdefault("country_logic", "Country Logic")
+I18N["English"].setdefault("facility_logic", "Facility Logic")
+I18N["English"].setdefault("input_summary", "Input Summary")
+I18N["English"].setdefault("system_perf", "System Performance")
+I18N["English"].setdefault("resilience", "Resilience Indicators")
+I18N["English"].setdefault("status_shortfall", "Shortfall Status")
+I18N["English"].setdefault("status_eff", "Efficiency Status")
+I18N["English"].setdefault("status_grid", "Grid Stress Status")
+I18N["English"].setdefault("status_reserve", "Reserve Status")
+
+I18N["繁體中文"].setdefault("country_logic", "國家邏輯")
+I18N["繁體中文"].setdefault("facility_logic", "設施邏輯")
+I18N["繁體中文"].setdefault("input_summary", "輸入摘要")
+I18N["繁體中文"].setdefault("system_perf", "系統表現")
+I18N["繁體中文"].setdefault("resilience", "韌性指標")
+I18N["繁體中文"].setdefault("status_shortfall", "缺口狀態")
+I18N["繁體中文"].setdefault("status_eff", "效率狀態")
+I18N["繁體中文"].setdefault("status_grid", "電網壓力狀態")
+I18N["繁體中文"].setdefault("status_reserve", "備援狀態")
 
 def clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
@@ -657,7 +681,7 @@ for col, label, desc in zip(layer_cols, [tr("core"), tr("decision"), tr("concept
 
 top_left, top_right = st.columns([1.02, 1.08])
 with top_left:
-    st.subheader(f"{tr('country_logic')}: {country}")
+    st.subheader(tr("country_logic") + f": {country}")
     st.write(COUNTRY_NOTES.get(country, "Regional energy model loaded."))
     st.subheader(tr("facility_logic"))
     st.write(facility_profile["notes"])
