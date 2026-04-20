@@ -499,10 +499,10 @@ def recommendation_reason_chain(results, energy_security_scenario, timeline_resu
 
 def scenario_delta_df(baseline, selected):
     return pd.DataFrame([
-        {"Metric": tr("demand"), "Baseline": round(baseline["demand"], 2), "Selected": round(selected["demand"], 2), "Delta": round(selected["demand"] - baseline["demand"], 2)},
-        {"Metric": tr("renewable"), "Baseline": round(baseline["renewable_supply"], 2), "Selected": round(selected["renewable_supply"], 2), "Delta": round(selected["renewable_supply"] - baseline["renewable_supply"], 2)},
-        {"Metric": tr("final"), "Baseline": round(baseline["final_supply"], 2), "Selected": round(selected["final_supply"], 2), "Delta": round(selected["final_supply"] - baseline["final_supply"], 2)},
-        {"Metric": tr("shortfall"), "Baseline": round(baseline["shortfall"], 2), "Selected": round(selected["shortfall"], 2), "Delta": round(selected["shortfall"] - baseline["shortfall"], 2)},
+        {tr("metric"): tr("demand"), tr("baseline"): round(baseline["demand"], 2), tr("selected"): round(selected["demand"], 2), tr("delta"): round(selected["demand"] - baseline["demand"], 2)},
+        {tr("metric"): tr("renewable"), tr("baseline"): round(baseline["renewable_supply"], 2), tr("selected"): round(selected["renewable_supply"], 2), tr("delta"): round(selected["renewable_supply"] - baseline["renewable_supply"], 2)},
+        {tr("metric"): tr("final"), tr("baseline"): round(baseline["final_supply"], 2), tr("selected"): round(selected["final_supply"], 2), tr("delta"): round(selected["final_supply"] - baseline["final_supply"], 2)},
+        {tr("metric"): tr("shortfall"), tr("baseline"): round(baseline["shortfall"], 2), tr("selected"): round(selected["shortfall"], 2), tr("delta"): round(selected["shortfall"] - baseline["shortfall"], 2)},
     ])
 
 def comparison_dataframe(inputs, failure_ratios, reserve_recovery_lag_days):
@@ -534,7 +534,9 @@ def render_delta_chart(delta_df):
     fig, ax = plt.subplots(figsize=(8.8, 4.0))
     fig.patch.set_alpha(0.0)
     ax.set_facecolor("none")
-    ax.barh(delta_df[tr("metric")], delta_df[tr("delta")])
+    metric_col = tr("metric") if tr("metric") in delta_df.columns else "Metric"
+    delta_col = tr("delta") if tr("delta") in delta_df.columns else "Delta"
+    ax.barh(delta_df[metric_col], delta_df[delta_col])
     ax.axvline(0, linewidth=1.0)
     ax.set_title(tr("baseline_vs_selected"))
     ax.grid(axis="x", alpha=0.25)
@@ -841,7 +843,10 @@ with compare_tab:
     with right:
         st.subheader(tr("all_scenarios"))
         st.dataframe(scenario_df, use_container_width=True, hide_index=True)
-        st.bar_chart(scenario_df.set_index(tr("scenario"))[[tr("shortfall"), tr("grid")]])
+        scenario_index_col = tr("scenario") if tr("scenario") in scenario_df.columns else "Scenario"
+        shortfall_col = tr("shortfall") if tr("shortfall") in scenario_df.columns else "Shortfall"
+        grid_col = tr("grid") if tr("grid") in scenario_df.columns else "Grid Dependency"
+        st.bar_chart(scenario_df.set_index(scenario_index_col)[[shortfall_col, grid_col]])
     st.subheader(tr("critical_breakdown"))
     render_critical_load_chart(critical_load_df)
     st.dataframe(critical_load_df, use_container_width=True, hide_index=True)
