@@ -289,6 +289,12 @@ PAGE_QUESTIONS = {
     },
 }
 
+
+# Default language must exist before any call to tr()
+if "ui_lang" not in st.session_state:
+    st.session_state["ui_lang"] = "English"
+ui_lang = st.session_state["ui_lang"]
+
 def tr(key: str) -> str:
     return I18N[ui_lang][key]
 
