@@ -615,33 +615,148 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+
+
+def safe_float(value, default=0.0):
+    try:
+        if value is None or value == "":
+            return default
+        return float(value)
+    except Exception:
+        return default
+
+
+def safe_int(value, default=0):
+    try:
+        if value is None or value == "":
+            return default
+        return int(float(value))
+    except Exception:
+        return default
+
+
+def normalize_name(value: str) -> str:
+    return str(value).strip().lower().replace("-", "_").replace(" ", "_")
+
+
+def safe_read_csv(uploaded_file):
+    if uploaded_file is None:
+        return None
+    try:
+        return pd.read_csv(uploaded_file)
+    except Exception as e:
+        st.sidebar.warning(f"CSV read failed: {e}")
+        return None
+
+
+def build_uploaded_profiles(df: pd.DataFrame):
+    if df is None or df.empty:
+        return {}
+    rows = {}
+    required = [
+        "country_key", "city_key", "lat", "lon", "population",
+        "temperature", "wind_speed", "solar_radiation", "precipitation", "humidity",
+        "solar_capacity", "wind_capacity", "geothermal_capacity", "hydro_capacity", "battery_capacity",
+    ]
+    for idx, raw in df.iterrows():
+        row = {k: raw[k] if k in df.columns else None for k in required}
+        country = str(row.get("country_key") or "Uploaded").strip() or "Uploaded"
+        city = str(row.get("city_key") or f"Row {idx + 1}").strip() or f"Row {idx + 1}"
+        rows[f"{country} / {city}"] = {
+            "country": country,
+            "city": city,
+            "lat": safe_float(row.get("lat"), 0.0),
+            "lon": safe_float(row.get("lon"), 0.0),
+            "population": safe_int(row.get("population"), 100000),
+            "temperature": safe_int(row.get("temperature"), 20),
+            "wind_speed": safe_float(row.get("wind_speed"), 4.0),
+            "solar_radiation": safe_int(row.get("solar_radiation"), 500),
+            "precipitation": safe_int(row.get("precipitation"), 10),
+            "humidity": safe_int(row.get("humidity"), 60),
+            "solar_capacity": safe_int(row.get("solar_capacity"), 120),
+            "wind_capacity": safe_int(row.get("wind_capacity"), 80),
+            "geothermal_capacity": safe_int(row.get("geothermal_capacity"), 60),
+            "hydro_capacity": safe_int(row.get("hydro_capacity"), 70),
+            "battery_capacity": safe_int(row.get("battery_capacity"), 180),
+        }
+    return rows
+
+
+def extend_i18n():
+    extras = {
+        "English": {
+            "sim_hours": "Simulation Hours",
+            "survival_mode": "Survival Mode",
+            "enable_thermal": "Enable Thermal Concept",
+            "animation_speed": "Animation Speed",
+            "uploaded_data": "Uploaded Open Data CSV",
+            "use_uploaded": "Use uploaded row as input preset",
+            "uploaded_row": "Uploaded Row",
+            "csv_mode": "CSV Preset Mode",
+        },
+        "繁體中文": {
+            "sim_hours": "模擬時數",
+            "survival_mode": "生存模式",
+            "enable_thermal": "啟用熱管理概念",
+            "animation_speed": "動畫速度",
+            "uploaded_data": "上傳 Open Data CSV",
+            "use_uploaded": "使用上傳列作為輸入預設",
+            "uploaded_row": "上傳資料列",
+            "csv_mode": "CSV 預設模式",
+        },
+    }
+    for lang, mapping in extras.items():
+        I18N.setdefault(lang, {}).update({k: v for k, v in mapping.items() if k not in I18N.get(lang, {})})
+
+
+extend_i18n()
+
 with st.sidebar:
     ui_lang = st.selectbox("Language / 語言", list(I18N.keys()), index=list(I18N.keys()).index(st.session_state.get("ui_lang", "English")))
     st.session_state["ui_lang"] = ui_lang
     st.header(tr("controls"))
+
+    uploaded_baseline_file = st.file_uploader(tr("uploaded_data"), type=["csv"], key="uploaded_baseline_csv")
+    uploaded_df = safe_read_csv(uploaded_baseline_file)
+    uploaded_profiles = build_uploaded_profiles(uploaded_df)
+    use_uploaded = False
+    uploaded_profile = None
+    if uploaded_profiles:
+        use_uploaded = st.toggle(tr("use_uploaded"), value=True)
+        uploaded_row_key = st.selectbox(tr("uploaded_row"), list(uploaded_profiles.keys()))
+        uploaded_profile = uploaded_profiles.get(uploaded_row_key)
+        st.caption(f"{tr('csv_mode')}: {uploaded_row_key}")
+
     country = st.selectbox(tr("country"), list(CITY_DATA.keys()))
     city = st.selectbox(tr("city"), list(CITY_DATA[country].keys()))
     city_profile = CITY_DATA[country][city]
+
+    active_country = uploaded_profile["country"] if (use_uploaded and uploaded_profile) else country
+    active_city = uploaded_profile["city"] if (use_uploaded and uploaded_profile) else city
+    active_lat = uploaded_profile["lat"] if (use_uploaded and uploaded_profile) else city_profile["lat"]
+    active_lon = uploaded_profile["lon"] if (use_uploaded and uploaded_profile) else city_profile["lon"]
+    active_population = uploaded_profile["population"] if (use_uploaded and uploaded_profile) else int(city_profile["population"])
+
     facility_type = st.selectbox(tr("facility_type"), list(FACILITY_PROFILES.keys()))
     facility_profile = FACILITY_PROFILES[facility_type]
-    population = st.slider(tr("population"), 10000, 5000000, int(city_profile["population"]), step=10000)
+    population = st.slider(tr("population"), 10000, 5000000, int(clamp(active_population, 10000, 5000000)), step=10000)
     st.caption(f"{tr('population')}: {population:,}")
 
     st.divider()
     st.subheader(tr("capacity_inputs"))
-    solar_capacity = st.slider(tr("solar_capacity"), 0, 500, 120, 5)
-    wind_capacity = st.slider(tr("wind_capacity"), 0, 500, 80, 5)
-    geothermal_capacity = st.slider(tr("geothermal_capacity"), 0, 500, 60, 5)
-    hydro_capacity = st.slider(tr("hydro_capacity"), 0, 500, 70, 5)
-    battery_capacity = st.slider(tr("battery_capacity"), 0, 1000, 180, 10)
+    solar_capacity = st.slider(tr("solar_capacity"), 0, 500, int(clamp((uploaded_profile["solar_capacity"] if (use_uploaded and uploaded_profile) else 120), 0, 500)), 5)
+    wind_capacity = st.slider(tr("wind_capacity"), 0, 500, int(clamp((uploaded_profile["wind_capacity"] if (use_uploaded and uploaded_profile) else 80), 0, 500)), 5)
+    geothermal_capacity = st.slider(tr("geothermal_capacity"), 0, 500, int(clamp((uploaded_profile["geothermal_capacity"] if (use_uploaded and uploaded_profile) else 60), 0, 500)), 5)
+    hydro_capacity = st.slider(tr("hydro_capacity"), 0, 500, int(clamp((uploaded_profile["hydro_capacity"] if (use_uploaded and uploaded_profile) else 70), 0, 500)), 5)
+    battery_capacity = st.slider(tr("battery_capacity"), 0, 1000, int(clamp((uploaded_profile["battery_capacity"] if (use_uploaded and uploaded_profile) else 180), 0, 1000)), 10)
 
     st.divider()
     st.subheader(tr("weather_inputs"))
-    temperature = st.slider(tr("temperature") + " (°C)", -20, 50, 26, 1)
-    wind_speed = st.slider(tr("wind_speed") + " (m/s)", 0.0, 30.0, 4.2, 0.1)
-    solar_radiation = st.slider(tr("solar_radiation") + " (W/m²)", 0, 1200, 640, 10)
-    precipitation = st.slider(tr("precipitation") + " (mm)", 0, 300, 12, 1)
-    humidity = st.slider(tr("humidity") + " (%)", 0, 100, 73, 1)
+    temperature = st.slider(tr("temperature") + " (°C)", -20, 50, int(clamp((uploaded_profile["temperature"] if (use_uploaded and uploaded_profile) else 26), -20, 50)), 1)
+    wind_speed = st.slider(tr("wind_speed") + " (m/s)", 0.0, 30.0, float(clamp((uploaded_profile["wind_speed"] if (use_uploaded and uploaded_profile) else 4.2), 0.0, 30.0)), 0.1)
+    solar_radiation = st.slider(tr("solar_radiation") + " (W/m²)", 0, 1200, int(clamp((uploaded_profile["solar_radiation"] if (use_uploaded and uploaded_profile) else 640), 0, 1200)), 10)
+    precipitation = st.slider(tr("precipitation") + " (mm)", 0, 300, int(clamp((uploaded_profile["precipitation"] if (use_uploaded and uploaded_profile) else 12), 0, 300)), 1)
+    humidity = st.slider(tr("humidity") + " (%)", 0, 100, int(clamp((uploaded_profile["humidity"] if (use_uploaded and uploaded_profile) else 73), 0, 100)), 1)
     scenario_key = st.selectbox(tr("weather_scenario"), list(SCENARIOS.keys()))
 
     st.divider()
@@ -684,7 +799,7 @@ failure_ratios = {
     "battery": battery_failure_ratio,
 }
 inputs = {
-    "country_key": country, "city_key": city, "lat": city_profile["lat"], "lon": city_profile["lon"],
+    "country_key": active_country, "city_key": active_city, "lat": active_lat, "lon": active_lon,
     "temperature": temperature, "wind_speed": wind_speed, "solar_radiation": solar_radiation,
     "precipitation": precipitation, "humidity": humidity, "population": population,
     "solar_capacity": solar_capacity, "wind_capacity": wind_capacity,
@@ -742,8 +857,8 @@ for col, label, desc in zip(layer_cols, [tr("core"), tr("decision"), tr("concept
 
 top_left, top_right = st.columns([1.02, 1.08])
 with top_left:
-    st.subheader(tr("country_logic") + f": {country}")
-    st.write(COUNTRY_NOTES.get(country, "Regional energy model loaded."))
+    st.subheader(tr("country_logic") + f": {active_country}")
+    st.write(COUNTRY_NOTES.get(active_country, "Regional energy model loaded."))
     st.subheader(tr("facility_logic"))
     st.write(facility_profile["notes"])
     info_cols = st.columns(3)
@@ -758,8 +873,8 @@ with top_right:
     st.subheader(tr("input_summary"))
     c1, c2 = st.columns(2)
     with c1:
-        mini_card(tr("country"), country)
-        mini_card(tr("city"), city)
+        mini_card(tr("country"), active_country)
+        mini_card(tr("city"), active_city)
         mini_card(tr("population"), f"{population:,}")
         mini_card(tr("weather_scenario"), scenario_key.replace("_", " ").title())
     with c2:
@@ -791,7 +906,7 @@ status_cols[3].metric(tr("status_reserve"), build_status_label(results.get("rese
 summary_txt = json.dumps({"summary": "use export"}, ensure_ascii=False)
 buf_scen = StringIO(); comparison_dataframe(inputs, failure_ratios, reserve_recovery_lag_days).to_csv(buf_scen, index=False)
 buf_reason = StringIO(); pd.DataFrame(recommendation_reason_chain(results, energy_security_scenario, timeline_results, facility_type, facility_profile)).to_csv(buf_reason, index=False)
-audit_json = json.dumps({"country": country, "city": city, "facility_type": facility_type}, indent=2, ensure_ascii=False)
+audit_json = json.dumps({"country": active_country, "city": active_city, "facility_type": facility_type}, indent=2, ensure_ascii=False)
 
 download_cols = st.columns(4)
 with download_cols[0]:
