@@ -734,6 +734,16 @@ def normalize_name(value: str) -> str:
     return str(value).strip().lower().replace("-", "_").replace(" ", "_")
 
 
+def safe_str(value, default=""):
+    try:
+        if value is None:
+            return default
+        value = str(value).strip()
+        return value if value else default
+    except Exception:
+        return default
+
+
 def safe_read_csv(uploaded_file):
     if uploaded_file is None:
         return None
