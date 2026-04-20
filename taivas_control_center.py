@@ -184,6 +184,46 @@ I18N = {
         "shortfall_hour": "Shortfall Hour",
         "critical_failure_hour": "Critical Failure Hour",
         "thermal_compare": "Current vs Thermal Concept",
+        "solar_capacity": "Solar Capacity",
+        "wind_capacity": "Wind Capacity",
+        "geothermal_capacity": "Geothermal Capacity",
+        "hydro_capacity": "Hydro Capacity",
+        "battery_capacity": "Battery Capacity",
+        "temperature": "Temperature",
+        "wind_speed": "Wind Speed",
+        "solar_radiation": "Solar Radiation",
+        "precipitation": "Precipitation",
+        "humidity": "Humidity",
+        "solar_failure_ratio": "Solar Failure Ratio",
+        "wind_failure_ratio": "Wind Failure Ratio",
+        "geothermal_failure_ratio": "Geothermal Failure Ratio",
+        "hydro_failure_ratio": "Hydro Failure Ratio",
+        "battery_failure_ratio": "Battery Failure Ratio",
+        "energy_security_scenario": "Energy Security Scenario",
+        "import_dependency": "Import Dependency",
+        "strategic_reserve_days": "Strategic Reserve Days",
+        "shipping_dependency": "Shipping Dependency",
+        "infrastructure_damage_ratio": "Infrastructure Damage Ratio",
+        "reserve_recovery_lag_days": "Reserve Recovery Lag (days)",
+        "primary_supply_failure_ratio": "Primary Supply Failure Ratio",
+        "reserve_energy_per_day": "Reserve Energy per Day",
+        "outside_air": "Outside Air",
+        "indoor_exhaust_air": "Indoor Exhaust Air",
+        "thermal_recovery_efficiency": "Thermal Recovery Efficiency",
+        "source": "Source",
+        "installed_capacity_mw": "Installed Capacity (MW)",
+        "actual_supply_mw": "Actual Supply (MW)",
+        "installed_mix_pct": "Installed Mix (%)",
+        "actual_mix_pct": "Actual Mix (%)",
+        "capacity_factor_pct": "Capacity Factor (%)",
+        "subsystem": "Subsystem",
+        "failure_ratio": "Failure Ratio",
+        "availability_pct": "Availability (%)",
+        "scenario": "Scenario",
+        "metric": "Metric",
+        "baseline": "Baseline",
+        "selected": "Selected",
+        "delta": "Delta"
     },
     "繁體中文": {
         "title": "TAIVAS 能源控制中心",
@@ -258,6 +298,46 @@ I18N = {
         "shortfall_hour": "缺口時點",
         "critical_failure_hour": "關鍵失效時點",
         "thermal_compare": "目前模式與熱概念比較",
+        "solar_capacity": "太陽能容量",
+        "wind_capacity": "風能容量",
+        "geothermal_capacity": "地熱容量",
+        "hydro_capacity": "水力容量",
+        "battery_capacity": "電池容量",
+        "temperature": "溫度",
+        "wind_speed": "風速",
+        "solar_radiation": "太陽輻射",
+        "precipitation": "降雨量",
+        "humidity": "濕度",
+        "solar_failure_ratio": "太陽能失效比例",
+        "wind_failure_ratio": "風能失效比例",
+        "geothermal_failure_ratio": "地熱失效比例",
+        "hydro_failure_ratio": "水力失效比例",
+        "battery_failure_ratio": "電池失效比例",
+        "energy_security_scenario": "能源安全情境",
+        "import_dependency": "進口依賴",
+        "strategic_reserve_days": "戰略備援天數",
+        "shipping_dependency": "航運依賴",
+        "infrastructure_damage_ratio": "基礎設施損害比例",
+        "reserve_recovery_lag_days": "備援恢復延遲（天）",
+        "primary_supply_failure_ratio": "主要供應失效比例",
+        "reserve_energy_per_day": "每日備援能源",
+        "outside_air": "外部空氣",
+        "indoor_exhaust_air": "室內排氣",
+        "thermal_recovery_efficiency": "熱回收效率",
+        "source": "來源",
+        "installed_capacity_mw": "裝機容量 (MW)",
+        "actual_supply_mw": "實際供應 (MW)",
+        "installed_mix_pct": "裝機占比 (%)",
+        "actual_mix_pct": "實際占比 (%)",
+        "capacity_factor_pct": "容量因子 (%)",
+        "subsystem": "子系統",
+        "failure_ratio": "失效比例",
+        "availability_pct": "可用率 (%)",
+        "scenario": "情境",
+        "metric": "指標",
+        "baseline": "基準",
+        "selected": "選定值",
+        "delta": "差值"
     },
 }
 
@@ -429,7 +509,7 @@ def comparison_dataframe(inputs, failure_ratios, reserve_recovery_lag_days):
     rows = []
     for key in SCENARIOS.keys():
         r = compute_energy_supply(inputs, key, failure_ratios, reserve_recovery_lag_days)
-        rows.append({"Scenario": key.replace("_", " ").title(), tr("demand"): r["demand"], tr("renewable"): r["renewable_supply"], tr("final"): r["final_supply"], tr("shortfall"): r["shortfall"], tr("grid"): r["grid_dependency"]})
+        rows.append({tr("scenario"): key.replace("_", " ").title(), tr("demand"): r["demand"], tr("renewable"): r["renewable_supply"], tr("final"): r["final_supply"], tr("shortfall"): r["shortfall"], tr("grid"): r["grid_dependency"]})
     return pd.DataFrame(rows)
 
 def critical_load_breakdown(total_demand, critical_share, split):
@@ -454,7 +534,7 @@ def render_delta_chart(delta_df):
     fig, ax = plt.subplots(figsize=(8.8, 4.0))
     fig.patch.set_alpha(0.0)
     ax.set_facecolor("none")
-    ax.barh(delta_df["Metric"], delta_df["Delta"])
+    ax.barh(delta_df[tr("metric")], delta_df[tr("delta")])
     ax.axvline(0, linewidth=1.0)
     ax.set_title(tr("baseline_vs_selected"))
     ax.grid(axis="x", alpha=0.25)
@@ -547,51 +627,51 @@ with st.sidebar:
 
     st.divider()
     st.subheader(tr("capacity_inputs"))
-    solar_capacity = st.slider("Solar Capacity", 0, 500, 120, 5)
-    wind_capacity = st.slider("Wind Capacity", 0, 500, 80, 5)
-    geothermal_capacity = st.slider("Geothermal Capacity", 0, 500, 60, 5)
-    hydro_capacity = st.slider("Hydro Capacity", 0, 500, 70, 5)
-    battery_capacity = st.slider("Battery Capacity", 0, 1000, 180, 10)
+    solar_capacity = st.slider(tr("solar_capacity"), 0, 500, 120, 5)
+    wind_capacity = st.slider(tr("wind_capacity"), 0, 500, 80, 5)
+    geothermal_capacity = st.slider(tr("geothermal_capacity"), 0, 500, 60, 5)
+    hydro_capacity = st.slider(tr("hydro_capacity"), 0, 500, 70, 5)
+    battery_capacity = st.slider(tr("battery_capacity"), 0, 1000, 180, 10)
 
     st.divider()
     st.subheader(tr("weather_inputs"))
-    temperature = st.slider("Temperature (°C)", -20, 50, 26, 1)
-    wind_speed = st.slider("Wind Speed (m/s)", 0.0, 30.0, 4.2, 0.1)
-    solar_radiation = st.slider("Solar Radiation (W/m²)", 0, 1200, 640, 10)
-    precipitation = st.slider("Precipitation (mm)", 0, 300, 12, 1)
-    humidity = st.slider("Humidity (%)", 0, 100, 73, 1)
+    temperature = st.slider(tr("temperature") + " (°C)", -20, 50, 26, 1)
+    wind_speed = st.slider(tr("wind_speed") + " (m/s)", 0.0, 30.0, 4.2, 0.1)
+    solar_radiation = st.slider(tr("solar_radiation") + " (W/m²)", 0, 1200, 640, 10)
+    precipitation = st.slider(tr("precipitation") + " (mm)", 0, 300, 12, 1)
+    humidity = st.slider(tr("humidity") + " (%)", 0, 100, 73, 1)
     scenario_key = st.selectbox(tr("weather_scenario"), list(SCENARIOS.keys()))
 
     st.divider()
     st.subheader(tr("stress_inputs"))
-    solar_failure_ratio = st.number_input("Solar Failure Ratio", 0.0, 1.0, 0.00, 0.05, format="%.2f")
-    wind_failure_ratio = st.number_input("Wind Failure Ratio", 0.0, 1.0, 0.00, 0.05, format="%.2f")
-    geothermal_failure_ratio = st.number_input("Geothermal Failure Ratio", 0.0, 1.0, 0.00, 0.05, format="%.2f")
-    hydro_failure_ratio = st.number_input("Hydro Failure Ratio", 0.0, 1.0, 0.00, 0.05, format="%.2f")
-    battery_failure_ratio = st.number_input("Battery Failure Ratio", 0.0, 1.0, 0.00, 0.05, format="%.2f")
+    solar_failure_ratio = st.number_input(tr("solar_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
+    wind_failure_ratio = st.number_input(tr("wind_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
+    geothermal_failure_ratio = st.number_input(tr("geothermal_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
+    hydro_failure_ratio = st.number_input(tr("hydro_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
+    battery_failure_ratio = st.number_input(tr("battery_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
 
     st.divider()
     st.subheader(tr("security_inputs"))
-    energy_security_scenario = st.selectbox("Energy Security Scenario", list(ENERGY_SECURITY_SCENARIOS.keys()))
-    import_dependency = st.number_input("Import Dependency", 0.0, 1.0, 0.70, 0.01, format="%.2f")
-    strategic_reserve_days = st.number_input("Strategic Reserve Days", 0, 365, 20, 1)
-    shipping_dependency = st.number_input("Shipping Dependency", 0.0, 1.0, 0.85, 0.01, format="%.2f")
-    infrastructure_damage_ratio = st.number_input("Infrastructure Damage Ratio", 0.0, 1.0, 0.10, 0.01, format="%.2f")
-    reserve_recovery_lag_days = st.number_input("Reserve Recovery Lag (days)", 0, 30, 3, 1)
+    energy_security_scenario = st.selectbox(tr("energy_security_scenario"), list(ENERGY_SECURITY_SCENARIOS.keys()))
+    import_dependency = st.number_input(tr("import_dependency"), 0.0, 1.0, 0.70, 0.01, format="%.2f")
+    strategic_reserve_days = st.number_input(tr("strategic_reserve_days"), 0, 365, 20, 1)
+    shipping_dependency = st.number_input(tr("shipping_dependency"), 0.0, 1.0, 0.85, 0.01, format="%.2f")
+    infrastructure_damage_ratio = st.number_input(tr("infrastructure_damage_ratio"), 0.0, 1.0, 0.10, 0.01, format="%.2f")
+    reserve_recovery_lag_days = st.number_input(tr("reserve_recovery_lag_days"), 0, 30, 3, 1)
 
     st.divider()
     st.subheader(tr("timeline_inputs"))
     simulation_hours = st.selectbox(tr("sim_hours"), [24, 72, 168], index=0)
-    primary_supply_failure_ratio = st.number_input("Primary Supply Failure Ratio", 0.0, 1.0, 0.30, 0.01, format="%.2f")
-    reserve_energy_per_day = st.number_input("Reserve Energy per Day", 20.0, 300.0, 120.0, 5.0, format="%.1f")
+    primary_supply_failure_ratio = st.number_input(tr("primary_supply_failure_ratio"), 0.0, 1.0, 0.30, 0.01, format="%.2f")
+    reserve_energy_per_day = st.number_input(tr("reserve_energy_per_day"), 20.0, 300.0, 120.0, 5.0, format="%.1f")
     survival_mode = st.selectbox(tr("survival_mode"), ["full_load", "critical_load_only"], index=0)
 
     st.divider()
     st.subheader(tr("thermal_inputs"))
-    thermal_concept_enabled = st.toggle("Enable Thermal Concept Mode", value=True)
-    fresh_air_temp_c = st.slider("Outside Air (°C)", -30.0, 20.0, -8.0, 0.5)
-    exhaust_air_temp_c = st.slider("Indoor Exhaust Air (°C)", 10.0, 35.0, 23.0, 0.5)
-    recovery_efficiency = st.slider("Thermal Recovery Efficiency", 0.0, 1.0, 0.72, 0.01)
+    thermal_concept_enabled = st.toggle(tr("enable_thermal"), value=True)
+    fresh_air_temp_c = st.slider(tr("outside_air") + " (°C)", -30.0, 20.0, -8.0, 0.5)
+    exhaust_air_temp_c = st.slider(tr("indoor_exhaust_air") + " (°C)", 10.0, 35.0, 23.0, 0.5)
+    recovery_efficiency = st.slider(tr("thermal_recovery_efficiency"), 0.0, 1.0, 0.72, 0.01)
     thermal_animation_speed = st.slider(tr("animation_speed"), 0.4, 2.5, 1.0, 0.1)
 
 failure_ratios = {
@@ -735,12 +815,12 @@ with mix_tab:
         st.subheader(tr("actual_mix"))
         st.pyplot(make_donut_chart(results["actual_mix_pct"], results["renewable_ratio"], title=tr("actual_mix")), clear_figure=True)
     mix_table = pd.DataFrame({
-        "Source": list(results["actual_mix_mw"].keys()),
-        "Installed Capacity (MW)": [results["installed_mix_mw"][k] for k in results["actual_mix_mw"]],
-        "Actual Supply (MW)": [results["actual_mix_mw"][k] for k in results["actual_mix_mw"]],
-        "Installed Mix (%)": [round(results["installed_mix_pct"][k], 2) for k in results["actual_mix_mw"]],
-        "Actual Mix (%)": [round(results["actual_mix_pct"][k], 2) for k in results["actual_mix_mw"]],
-        "Capacity Factor (%)": [results["capacity_factors"][k] for k in results["actual_mix_mw"]],
+        tr("source"): list(results["actual_mix_mw"].keys()),
+        tr("installed_capacity_mw"): [results["installed_mix_mw"][k] for k in results["actual_mix_mw"]],
+        tr("actual_supply_mw"): [results["actual_mix_mw"][k] for k in results["actual_mix_mw"]],
+        tr("installed_mix_pct"): [round(results["installed_mix_pct"][k], 2) for k in results["actual_mix_mw"]],
+        tr("actual_mix_pct"): [round(results["actual_mix_pct"][k], 2) for k in results["actual_mix_mw"]],
+        tr("capacity_factor_pct"): [results["capacity_factors"][k] for k in results["actual_mix_mw"]],
     })
     st.subheader(tr("energy_table"))
     st.dataframe(mix_table, use_container_width=True, hide_index=True)
@@ -761,7 +841,7 @@ with compare_tab:
     with right:
         st.subheader(tr("all_scenarios"))
         st.dataframe(scenario_df, use_container_width=True, hide_index=True)
-        st.bar_chart(scenario_df.set_index("Scenario")[[tr("shortfall"), tr("grid")]])
+        st.bar_chart(scenario_df.set_index(tr("scenario"))[[tr("shortfall"), tr("grid")]])
     st.subheader(tr("critical_breakdown"))
     render_critical_load_chart(critical_load_df)
     st.dataframe(critical_load_df, use_container_width=True, hide_index=True)
@@ -769,9 +849,9 @@ with compare_tab:
 with stress_tab:
     page_question(tr("tabs")[2])
     st.markdown('<div class="note">Multi-failure stress testing and subsystem degradation view.</div>', unsafe_allow_html=True)
-    stress_df = pd.DataFrame({"Subsystem": list(failure_ratios.keys()), "Failure Ratio": list(failure_ratios.values()), "Availability (%)": [round((1 - v) * 100, 1) for v in failure_ratios.values()]})
+    stress_df = pd.DataFrame({tr("subsystem"): list(failure_ratios.keys()), tr("failure_ratio"): list(failure_ratios.values()), tr("availability_pct"): [round((1 - v) * 100, 1) for v in failure_ratios.values()]})
     st.dataframe(stress_df, use_container_width=True, hide_index=True)
-    st.bar_chart(stress_df.set_index("Subsystem")[["Availability (%)"]])
+    st.bar_chart(stress_df.set_index(tr("subsystem"))[[tr("availability_pct")]])
 
 with ai_tab:
     page_question(tr("tabs")[3])
