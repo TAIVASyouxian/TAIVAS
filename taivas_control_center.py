@@ -318,7 +318,16 @@ I18N = {
         "metric": "Metric",
         "baseline": "Baseline",
         "selected": "Selected",
-        "delta": "Delta"
+        "delta": "Delta",
+        "current_energy_contribution": "Current Energy Contribution",
+        "energy_contribution_note": "This panel shows which energy sources are carrying the system right now under the selected scenario.",
+        "energy_contribution_help": "Bar length shows current contribution share. Labels show live percentage, MW, and change versus baseline.",
+        "largest_source_now": "Largest source now",
+        "smallest_source_now": "Smallest source now",
+        "baseline_change": "vs baseline",
+        "up": "up",
+        "down": "down",
+        "flat": "flat"
     },
     "繁體中文": {
         "title": "TAIVAS 能源控制中心",
@@ -432,7 +441,16 @@ I18N = {
         "metric": "指標",
         "baseline": "基準",
         "selected": "選定值",
-        "delta": "差值"
+        "delta": "差值",
+        "current_energy_contribution": "目前能源貢獻",
+        "energy_contribution_note": "這個區塊顯示在目前情境下，哪幾種能源正在實際撐住系統。",
+        "energy_contribution_help": "長條長度代表目前貢獻占比；右側標籤會同步顯示即時百分比、MW，以及相對基準情境的變化。",
+        "largest_source_now": "目前最大來源",
+        "smallest_source_now": "目前最小來源",
+        "baseline_change": "相對基準",
+        "up": "上升",
+        "down": "下降",
+        "flat": "持平"
     },
 }
 
@@ -624,6 +642,50 @@ def render_capacity_factor_chart(capacity_factors):
     ax.grid(axis="x", alpha=0.25)
     plt.tight_layout()
     st.pyplot(fig, clear_figure=True)
+
+
+def render_dynamic_energy_contribution_chart(current_mix_pct, current_mix_mw, baseline_mix_pct=None):
+    items = []
+    for source, pct in current_mix_pct.items():
+        pct_val = max(float(pct), 0.0)
+        mw_val = max(float(current_mix_mw.get(source, 0.0)), 0.0)
+        base_val = max(float((baseline_mix_pct or {}).get(source, 0.0)), 0.0)
+        delta_val = pct_val - base_val
+        items.append((source, pct_val, mw_val, delta_val))
+
+    items.sort(key=lambda x: x[1], reverse=True)
+    labels = [x[0] for x in items]
+    values = [x[1] for x in items]
+    mw_values = [x[2] for x in items]
+    deltas = [x[3] for x in items]
+
+    fig, ax = plt.subplots(figsize=(9.2, 4.6))
+    fig.patch.set_alpha(0.0)
+    ax.set_facecolor("none")
+    bars = ax.barh(labels, values)
+    ax.invert_yaxis()
+    ax.set_xlim(0, 100)
+    ax.set_xlabel("Contribution Share (%)" if st.session_state.get("ui_lang", "English") == "English" else "貢獻占比 (%)")
+    ax.set_title(tr("current_energy_contribution"))
+    ax.grid(axis="x", alpha=0.22)
+
+    for bar, pct_val, mw_val, delta_val in zip(bars, values, mw_values, deltas):
+        direction = "↑" if delta_val > 0.15 else ("↓" if delta_val < -0.15 else "→")
+        label = f"{pct_val:.1f}% | {mw_val:.1f} MW | {direction} {abs(delta_val):.1f}%"
+        x_pos = min(pct_val + 1.2, 95)
+        ax.text(x_pos, bar.get_y() + bar.get_height()/2, label, va="center", ha="left", fontsize=10)
+
+    plt.tight_layout()
+    st.pyplot(fig, clear_figure=True)
+
+    if items:
+        top_source = items[0][0]
+        low_source = items[-1][0]
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.caption(f"{tr('largest_source_now')}: {top_source}")
+        with col_b:
+            st.caption(f"{tr('smallest_source_now')}: {low_source}")
 
 def render_delta_chart(delta_df):
     fig, ax = plt.subplots(figsize=(8.8, 4.0))
@@ -1067,8 +1129,13 @@ with mix_tab:
     })
     st.subheader(tr("energy_table"))
     st.dataframe(mix_table, use_container_width=True, hide_index=True)
-    st.subheader(tr("capacity_factors"))
-    render_capacity_factor_chart(results["capacity_factors"])
+    st.subheader(tr("current_energy_contribution"))
+    st.markdown(f'<div class="note">{tr("energy_contribution_note")}<br><span style="opacity:0.88;">{tr("energy_contribution_help")}</span></div>', unsafe_allow_html=True)
+    render_dynamic_energy_contribution_chart(
+        results["actual_mix_pct"],
+        results["actual_mix_mw"],
+        baseline_results.get("actual_mix_pct", {}),
+    )
     st.caption(f"{tr('dominant')}: {results['dominant_source']}")
 
 with compare_tab:
