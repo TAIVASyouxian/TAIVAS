@@ -320,14 +320,24 @@ I18N = {
         "selected": "Selected",
         "delta": "Delta",
         "current_energy_contribution": "Current Energy Contribution",
-        "energy_contribution_note": "This panel shows which energy sources are carrying the system right now under the selected scenario.",
-        "energy_contribution_help": "Bar length shows current contribution share. Labels show live percentage, MW, and change versus baseline.",
-        "largest_source_now": "Largest source now",
-        "smallest_source_now": "Smallest source now",
-        "baseline_change": "vs baseline",
-        "up": "up",
-        "down": "down",
-        "flat": "flat"
+        "current_energy_contribution_note": "This panel shows the live contribution of each renewable source under the selected scenario, plus a practical reference average, current contribution, estimated use, remaining margin, and reserve outlook.",
+        "historical_average_share": "Average Share (%)",
+        "current_share": "Current Share (%)",
+        "current_output_mw": "Current Output (MW)",
+        "estimated_use_mw": "Estimated Use (MW)",
+        "remaining_margin_mw": "Remaining Margin (MW)",
+        "change_from_normal": "Change from Normal (%)",
+        "reserve_outlook": "Reserve Outlook",
+        "reserve_outlook_note": "This panel estimates current reserve position, modeled average renewable output, and how long reserve refill may take under the current balance.",
+        "historical_average_supply": "Average Renewable Supply",
+        "current_renewable_supply": "Current Renewable Supply",
+        "estimated_renewable_use": "Estimated Renewable Use",
+        "remaining_battery_reserve": "Remaining Battery Reserve",
+        "estimated_refill_time": "Estimated Refill Time",
+        "no_surplus": "No surplus now",
+        "hours_short": "h",
+        "source_detail_panel": "Source Detail Panel",
+        "uploaded_history_used": "Uploaded historical rows are being used as the average reference when available."
     },
     "繁體中文": {
         "title": "TAIVAS 能源控制中心",
@@ -443,14 +453,24 @@ I18N = {
         "selected": "選定值",
         "delta": "差值",
         "current_energy_contribution": "目前能源貢獻",
-        "energy_contribution_note": "這個區塊顯示在目前情境下，哪幾種能源正在實際撐住系統。",
-        "energy_contribution_help": "長條長度代表目前貢獻占比；右側標籤會同步顯示即時百分比、MW，以及相對基準情境的變化。",
-        "largest_source_now": "目前最大來源",
-        "smallest_source_now": "目前最小來源",
-        "baseline_change": "相對基準",
-        "up": "上升",
-        "down": "下降",
-        "flat": "持平"
+        "current_energy_contribution_note": "這個區塊會顯示目前情境下各再生能源的即時貢獻，並附上可參考的平均值、目前輸出、估計使用量、剩餘餘裕與備援判讀。",
+        "historical_average_share": "平均占比 (%)",
+        "current_share": "目前占比 (%)",
+        "current_output_mw": "目前輸出 (MW)",
+        "estimated_use_mw": "估計使用量 (MW)",
+        "remaining_margin_mw": "剩餘餘裕 (MW)",
+        "change_from_normal": "相較正常差異 (%)",
+        "reserve_outlook": "備援判讀",
+        "reserve_outlook_note": "這裡會估算目前備援位置、模型平均再生供應，以及在當前平衡下大約要多久才能回補備援。",
+        "historical_average_supply": "平均再生供應",
+        "current_renewable_supply": "目前再生供應",
+        "estimated_renewable_use": "估計再生使用量",
+        "remaining_battery_reserve": "剩餘電池備援",
+        "estimated_refill_time": "預估回補時間",
+        "no_surplus": "目前沒有多餘供應",
+        "hours_short": "小時",
+        "source_detail_panel": "能源細節面板",
+        "uploaded_history_used": "若有可用的上傳歷史資料列，平均值會優先採用該資料。"
     },
 }
 
@@ -643,50 +663,6 @@ def render_capacity_factor_chart(capacity_factors):
     plt.tight_layout()
     st.pyplot(fig, clear_figure=True)
 
-
-def render_dynamic_energy_contribution_chart(current_mix_pct, current_mix_mw, baseline_mix_pct=None):
-    items = []
-    for source, pct in current_mix_pct.items():
-        pct_val = max(float(pct), 0.0)
-        mw_val = max(float(current_mix_mw.get(source, 0.0)), 0.0)
-        base_val = max(float((baseline_mix_pct or {}).get(source, 0.0)), 0.0)
-        delta_val = pct_val - base_val
-        items.append((source, pct_val, mw_val, delta_val))
-
-    items.sort(key=lambda x: x[1], reverse=True)
-    labels = [x[0] for x in items]
-    values = [x[1] for x in items]
-    mw_values = [x[2] for x in items]
-    deltas = [x[3] for x in items]
-
-    fig, ax = plt.subplots(figsize=(9.2, 4.6))
-    fig.patch.set_alpha(0.0)
-    ax.set_facecolor("none")
-    bars = ax.barh(labels, values)
-    ax.invert_yaxis()
-    ax.set_xlim(0, 100)
-    ax.set_xlabel("Contribution Share (%)" if st.session_state.get("ui_lang", "English") == "English" else "貢獻占比 (%)")
-    ax.set_title(tr("current_energy_contribution"))
-    ax.grid(axis="x", alpha=0.22)
-
-    for bar, pct_val, mw_val, delta_val in zip(bars, values, mw_values, deltas):
-        direction = "↑" if delta_val > 0.15 else ("↓" if delta_val < -0.15 else "→")
-        label = f"{pct_val:.1f}% | {mw_val:.1f} MW | {direction} {abs(delta_val):.1f}%"
-        x_pos = min(pct_val + 1.2, 95)
-        ax.text(x_pos, bar.get_y() + bar.get_height()/2, label, va="center", ha="left", fontsize=10)
-
-    plt.tight_layout()
-    st.pyplot(fig, clear_figure=True)
-
-    if items:
-        top_source = items[0][0]
-        low_source = items[-1][0]
-        col_a, col_b = st.columns(2)
-        with col_a:
-            st.caption(f"{tr('largest_source_now')}: {top_source}")
-        with col_b:
-            st.caption(f"{tr('smallest_source_now')}: {low_source}")
-
 def render_delta_chart(delta_df):
     fig, ax = plt.subplots(figsize=(8.8, 4.0))
     fig.patch.set_alpha(0.0)
@@ -712,6 +688,130 @@ def render_critical_load_chart(df):
     plt.xticks(rotation=15)
     plt.tight_layout()
     st.pyplot(fig, clear_figure=True)
+
+
+def compute_reference_average(inputs, uploaded_df, selected_country, selected_city):
+    # Use uploaded historical rows first when available; otherwise fall back to model average across scenarios.
+    source_order = ["Solar", "Wind", "Geothermal", "Hydro"]
+    rows = []
+    if uploaded_df is not None and not uploaded_df.empty:
+        tmp = uploaded_df.copy()
+        if "country_key" in tmp.columns and "city_key" in tmp.columns:
+            tmp["_country"] = tmp["country_key"].astype(str).str.strip().str.title()
+            tmp["_city"] = tmp["city_key"].astype(str).str.strip().str.title()
+            matched = tmp[(tmp["_country"] == str(selected_country).title()) & (tmp["_city"] == str(selected_city).title())]
+            if matched.empty:
+                matched = tmp
+        else:
+            matched = tmp
+        for _, r in matched.iterrows():
+            local_inputs = dict(inputs)
+            local_inputs["temperature"] = safe_float(r["temperature"], inputs["temperature"]) if "temperature" in matched.columns else inputs["temperature"]
+            local_inputs["wind_speed"] = safe_float(r["wind_speed"], inputs["wind_speed"]) if "wind_speed" in matched.columns else inputs["wind_speed"]
+            local_inputs["solar_radiation"] = safe_float(r["solar_radiation"], inputs["solar_radiation"]) if "solar_radiation" in matched.columns else inputs["solar_radiation"]
+            local_inputs["precipitation"] = safe_float(r["precipitation"], inputs["precipitation"]) if "precipitation" in matched.columns else inputs["precipitation"]
+            local_inputs["humidity"] = safe_float(r["humidity"], inputs["humidity"]) if "humidity" in matched.columns else inputs["humidity"]
+            local_inputs["population"] = safe_int(r["population"], inputs["population"]) if "population" in matched.columns else inputs["population"]
+            local_inputs["solar_capacity"] = safe_float(r["solar_capacity"], inputs["solar_capacity"]) if "solar_capacity" in matched.columns else inputs["solar_capacity"]
+            local_inputs["wind_capacity"] = safe_float(r["wind_capacity"], inputs["wind_capacity"]) if "wind_capacity" in matched.columns else inputs["wind_capacity"]
+            local_inputs["geothermal_capacity"] = safe_float(r["geothermal_capacity"], inputs["geothermal_capacity"]) if "geothermal_capacity" in matched.columns else inputs["geothermal_capacity"]
+            local_inputs["hydro_capacity"] = safe_float(r["hydro_capacity"], inputs["hydro_capacity"]) if "hydro_capacity" in matched.columns else inputs["hydro_capacity"]
+            local_inputs["battery_capacity"] = safe_float(r["battery_capacity"], inputs["battery_capacity"]) if "battery_capacity" in matched.columns else inputs["battery_capacity"]
+            rr = compute_energy_supply(local_inputs, "normal", {k: 0.0 for k in ["solar", "wind", "geothermal", "hydro", "battery"]}, 0)
+            rows.append(rr)
+    if not rows:
+        for sk in SCENARIOS.keys():
+            rr = compute_energy_supply(inputs, sk, {k: 0.0 for k in ["solar", "wind", "geothermal", "hydro", "battery"]}, 0)
+            rows.append(rr)
+    avg_mix_pct = {s: round(sum(r["actual_mix_pct"].get(s, 0.0) for r in rows) / len(rows), 2) for s in source_order}
+    avg_mix_mw = {s: round(sum(r["actual_mix_mw"].get(s, 0.0) for r in rows) / len(rows), 2) for s in source_order}
+    avg_supply = round(sum(r["renewable_supply"] for r in rows) / len(rows), 2)
+    return {"avg_mix_pct": avg_mix_pct, "avg_mix_mw": avg_mix_mw, "avg_supply": avg_supply, "used_uploaded_history": uploaded_df is not None and not uploaded_df.empty and len(rows) > 0}
+
+def build_energy_contribution_df(results, baseline_results, reference_avg):
+    rows = []
+    source_order = ["Solar", "Wind", "Geothermal", "Hydro"]
+    demand = max(float(results["demand"]), 0.0)
+    renewable_supply = max(float(results["renewable_supply"]), 0.0)
+    for source in source_order:
+        current_share = float(results["actual_mix_pct"].get(source, 0.0))
+        avg_share = float(reference_avg["avg_mix_pct"].get(source, 0.0))
+        current_mw = float(results["actual_mix_mw"].get(source, 0.0))
+        installed_mw = float(results["installed_mix_mw"].get(source, 0.0))
+        normal_share = float(baseline_results["actual_mix_pct"].get(source, 0.0))
+        estimated_use = min(current_mw, demand * (current_share / 100.0))
+        remaining_margin = max(installed_mw - current_mw, 0.0)
+        change_from_normal = current_share - normal_share
+        rows.append({
+            tr("source"): source,
+            tr("current_share"): round(current_share, 2),
+            tr("historical_average_share"): round(avg_share, 2),
+            tr("current_output_mw"): round(current_mw, 2),
+            tr("estimated_use_mw"): round(estimated_use, 2),
+            tr("remaining_margin_mw"): round(remaining_margin, 2),
+            tr("change_from_normal"): round(change_from_normal, 2),
+            "_sort_share": current_share,
+        })
+    df = pd.DataFrame(rows).sort_values("_sort_share", ascending=False).reset_index(drop=True)
+    return df.drop(columns=["_sort_share"])
+
+def estimate_refill_hours(results, timeline_results):
+    battery_capacity_initial = max(float(inputs["battery_capacity"]) * (1 - battery_failure_ratio), 0.0)
+    battery_remaining = max(float(results["battery_levels"]), 0.0)
+    to_refill = max(battery_capacity_initial - battery_remaining, 0.0)
+    surplus_rate = max(float(results["final_supply"]) - float(results["demand"]), 0.0)
+    if surplus_rate <= 0.01:
+        return tr("no_surplus")
+    return f"{round(to_refill / surplus_rate, 1)} {tr('hours_short')}"
+
+def render_energy_contribution_panel(df):
+    st.subheader(tr("current_energy_contribution"))
+    st.markdown(f'<div class="note">{tr("current_energy_contribution_note")}</div>', unsafe_allow_html=True)
+    for _, row in df.iterrows():
+        source = row[tr("source")]
+        share = row[tr("current_share")]
+        avg_share = row[tr("historical_average_share")]
+        current_mw = row[tr("current_output_mw")]
+        used_mw = row[tr("estimated_use_mw")]
+        remaining = row[tr("remaining_margin_mw")]
+        delta = row[tr("change_from_normal")]
+        delta_text = f"{delta:+.1f}%"
+        width = max(6, min(100, int(round(share))))
+        st.markdown(
+            f"""
+            <div style="border:1px solid rgba(255,255,255,0.10); border-radius:16px; padding:12px 14px; margin-bottom:10px; background:rgba(255,255,255,0.04);">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px;">
+                <div style="font-size:1rem; font-weight:700;">{source}</div>
+                <div style="font-size:0.92rem; opacity:0.88;">{delta_text}</div>
+              </div>
+              <div style="width:100%; height:12px; background:rgba(255,255,255,0.10); border-radius:999px; overflow:hidden; margin-bottom:10px;">
+                <div style="width:{width}%; height:100%; background:linear-gradient(90deg, rgba(96,165,250,0.95), rgba(34,211,238,0.95)); border-radius:999px;"></div>
+              </div>
+              <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; font-size:0.88rem; line-height:1.45;">
+                <div><b>{tr("current_share")}</b><br>{share:.2f}%</div>
+                <div><b>{tr("historical_average_share")}</b><br>{avg_share:.2f}%</div>
+                <div><b>{tr("current_output_mw")}</b><br>{current_mw:.2f} MW</div>
+                <div><b>{tr("estimated_use_mw")}</b><br>{used_mw:.2f} MW</div>
+                <div><b>{tr("remaining_margin_mw")}</b><br>{remaining:.2f} MW</div>
+                <div><b>{tr("change_from_normal")}</b><br>{delta_text}</div>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+def render_reserve_outlook_panel(reference_avg, results, timeline_results):
+    st.subheader(tr("reserve_outlook"))
+    st.markdown(f'<div class="note">{tr("reserve_outlook_note")}</div>', unsafe_allow_html=True)
+    if reference_avg.get("used_uploaded_history"):
+        st.caption(tr("uploaded_history_used"))
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric(tr("historical_average_supply"), f'{reference_avg["avg_supply"]} MW')
+    c2.metric(tr("current_renewable_supply"), f'{results["renewable_supply"]} MW')
+    c3.metric(tr("estimated_renewable_use"), f'{round(min(results["renewable_supply"], results["demand"]), 2)} MW')
+    c4.metric(tr("remaining_battery_reserve"), f'{results["battery_levels"]} MWh')
+    c5.metric(tr("estimated_refill_time"), estimate_refill_hours(results, timeline_results))
+
 
 st.markdown("""
 <style>
@@ -1034,6 +1134,9 @@ baseline_results, _ = apply_energy_security_layer(
     reserve_recovery_lag_days=0.0,
 )
 
+reference_avg = compute_reference_average(inputs, uploaded_df, active_country, active_city)
+energy_contribution_df = build_energy_contribution_df(results, baseline_results, reference_avg)
+
 st.title(tr("title"))
 st.caption(tr("caption"))
 st.markdown(f'<div class="hero"><h3>{tr("hero_title")}</h3><p>{tr("hero_body")}</p></div>', unsafe_allow_html=True)
@@ -1127,15 +1230,10 @@ with mix_tab:
         tr("actual_mix_pct"): [round(results["actual_mix_pct"][k], 2) for k in results["actual_mix_mw"]],
         tr("capacity_factor_pct"): [results["capacity_factors"][k] for k in results["actual_mix_mw"]],
     })
+    render_energy_contribution_panel(energy_contribution_df)
+    render_reserve_outlook_panel(reference_avg, results, timeline_results)
     st.subheader(tr("energy_table"))
     st.dataframe(mix_table, use_container_width=True, hide_index=True)
-    st.subheader(tr("current_energy_contribution"))
-    st.markdown(f'<div class="note">{tr("energy_contribution_note")}<br><span style="opacity:0.88;">{tr("energy_contribution_help")}</span></div>', unsafe_allow_html=True)
-    render_dynamic_energy_contribution_chart(
-        results["actual_mix_pct"],
-        results["actual_mix_mw"],
-        baseline_results.get("actual_mix_pct", {}),
-    )
     st.caption(f"{tr('dominant')}: {results['dominant_source']}")
 
 with compare_tab:
