@@ -346,7 +346,26 @@ I18N = {
         "trend_direction": "Trend Direction",
         "rising": "Rising",
         "falling": "Falling",
-        "flat": "Flat"
+        "flat": "Flat",
+        "time_window_control": "Time Window Control",
+        "forecast_horizon": "Forecast Horizon",
+        "confidence_band": "Confidence Band",
+        "time_window_rows": "Rolling Window (rows)",
+        "forecast_steps": "Forecast Horizon (steps)",
+        "confidence_level": "Confidence Band Strength",
+        "upper_band_pct": "Upper Band (%)",
+        "lower_band_pct": "Lower Band (%)",
+        "history_sorting": "History Sorting",
+        "history_sorting_note": "Uploaded history rows are sorted by timestamp when a recognizable time column is available; otherwise the original row order is used.",
+        "multi_step_forecast": "Multi-Step Forecast Table",
+        "multi_step_forecast_note": "This table projects each source across the selected forecast horizon using the recent trend, rolling average, and confidence widening for the current scenario.",
+        "forecast_step": "Forecast Step",
+        "timestamp_col": "Timestamp Column",
+        "history_rows_used": "History Rows Used",
+        "scenario_confidence_factor": "Scenario Confidence Factor",
+        "sorting_mode": "Sorting Mode",
+        "timestamp_sorted": "Timestamp Sorted",
+        "original_order": "Original Row Order"
     },
     "繁體中文": {
         "title": "TAIVAS 能源控制中心",
@@ -488,7 +507,26 @@ I18N = {
         "trend_direction": "趨勢方向",
         "rising": "上升中",
         "falling": "下降中",
-        "flat": "持平"
+        "flat": "持平",
+        "time_window_control": "時間視窗控制",
+        "forecast_horizon": "預測範圍",
+        "confidence_band": "信賴帶",
+        "time_window_rows": "滾動視窗（列）",
+        "forecast_steps": "預測步數",
+        "confidence_level": "信賴帶強度",
+        "upper_band_pct": "上緣 (%)",
+        "lower_band_pct": "下緣 (%)",
+        "history_sorting": "歷史排序",
+        "history_sorting_note": "若上傳資料中有可辨識的時間欄位，系統會先依 timestamp 排序；否則沿用原始列順序。",
+        "multi_step_forecast": "多步預測表",
+        "multi_step_forecast_note": "這張表會依照你選的 forecast horizon，結合近期趨勢、rolling average 與情境擴大的信賴帶，推估各能源接下來的變化。",
+        "forecast_step": "預測步數",
+        "timestamp_col": "時間欄位",
+        "history_rows_used": "使用歷史列數",
+        "scenario_confidence_factor": "情境信賴因子",
+        "sorting_mode": "排序模式",
+        "timestamp_sorted": "依時間排序",
+        "original_order": "原始列順序"
     },
 }
 
@@ -830,11 +868,24 @@ def render_reserve_outlook_panel(reference_avg, results, timeline_results):
     c4.metric(tr("remaining_battery_reserve"), f'{results["battery_levels"]} MWh')
     c5.metric(tr("estimated_refill_time"), estimate_refill_hours(results, timeline_results))
 
-def compute_trend_estimates(inputs, uploaded_df, selected_country, selected_city, baseline_results):
+def compute_trend_estimates(inputs, uploaded_df, selected_country, selected_city, baseline_results, scenario_key="normal", rolling_window_rows=3, forecast_steps=2, confidence_level=1.0):
     source_order = ["Solar", "Wind", "Geothermal", "Hydro"]
+    scenario_factor_map = {
+        "normal": 1.00,
+        "heat_wave": 1.10,
+        "storm": 1.22,
+        "cold_wave": 1.15,
+        "blizzard": 1.35,
+        "typhoon": 1.42,
+    }
+    scenario_conf_factor = float(scenario_factor_map.get(str(scenario_key), 1.10))
     records = []
+    history_count = 0
+    timestamp_col = None
+    sorting_mode = "original"
     if uploaded_df is not None and not uploaded_df.empty:
-        tmp = uploaded_df.copy()
+        sorted_df, timestamp_col, sorting_mode = sort_history_df(uploaded_df)
+        tmp = sorted_df.copy()
         if "country_key" in tmp.columns and "city_key" in tmp.columns:
             tmp["_country"] = tmp["country_key"].astype(str).str.strip().str.title()
             tmp["_city"] = tmp["city_key"].astype(str).str.strip().str.title()
@@ -843,6 +894,7 @@ def compute_trend_estimates(inputs, uploaded_df, selected_country, selected_city
                 matched = tmp
         else:
             matched = tmp
+        history_count = len(matched)
         for _, r in matched.iterrows():
             local_inputs = dict(inputs)
             for key, default in [
@@ -863,33 +915,40 @@ def compute_trend_estimates(inputs, uploaded_df, selected_country, selected_city
             rr = compute_energy_supply(local_inputs, "normal", {k: 0.0 for k in ["solar", "wind", "geothermal", "hydro", "battery"]}, 0)
             records.append(rr)
     if not records:
-        # fallback using scenario progression
         fallback_keys = list(SCENARIOS.keys())
         records = [compute_energy_supply(inputs, sk, {k: 0.0 for k in ["solar", "wind", "geothermal", "hydro", "battery"]}, 0) for sk in fallback_keys]
+        history_count = len(records)
 
-    rolling_window = min(3, len(records))
-    recent_records = records[-rolling_window:]
-    prev_records = records[-(rolling_window * 2):-rolling_window] if len(records) >= rolling_window * 2 else records[:-rolling_window]
+    window = max(2, min(int(rolling_window_rows), max(2, len(records))))
+    recent_records = records[-window:]
+    prev_records = records[-(window * 2):-window] if len(records) >= window * 2 else records[:-window]
 
-    rolling_avg = {
-        s: round(sum(r["actual_mix_pct"].get(s, 0.0) for r in recent_records) / max(len(recent_records), 1), 2)
-        for s in source_order
-    }
+    rolling_avg = {s: round(sum(r["actual_mix_pct"].get(s, 0.0) for r in recent_records) / max(len(recent_records), 1), 2) for s in source_order}
     if prev_records:
-        prev_avg = {
-            s: round(sum(r["actual_mix_pct"].get(s, 0.0) for r in prev_records) / max(len(prev_records), 1), 2)
+        prev_avg = {s: round(sum(r["actual_mix_pct"].get(s, 0.0) for r in prev_records) / max(len(prev_records), 1), 2) for s in source_order}
+    else:
+        prev_avg = {s: float(baseline_results["actual_mix_pct"].get(s, 0.0)) for s in source_order}
+
+    recent_trend = {s: round(rolling_avg[s] - float(prev_avg.get(s, 0.0)), 2) for s in source_order}
+
+    if len(recent_records) > 1:
+        volatility = {
+            s: max(r["actual_mix_pct"].get(s, 0.0) for r in recent_records) - min(r["actual_mix_pct"].get(s, 0.0) for r in recent_records)
             for s in source_order
         }
     else:
-        prev_avg = {s: baseline_results["actual_mix_pct"].get(s, 0.0) for s in source_order}
+        volatility = {s: abs(recent_trend[s]) for s in source_order}
 
-    recent_trend = {s: round(rolling_avg[s] - float(prev_avg.get(s, 0.0)), 2) for s in source_order}
-    next_step = {s: round(max(0.0, rolling_avg[s] + recent_trend[s] * 0.5), 2) for s in source_order}
+    next_step = {}
+    for s in source_order:
+        projected = max(0.0, rolling_avg[s] + recent_trend[s] * max(1, int(forecast_steps)) * 0.5)
+        next_step[s] = round(projected, 2)
     total_next = sum(next_step.values())
     if total_next > 0:
         next_step = {s: round(v / total_next * 100.0, 2) for s, v in next_step.items()}
 
     trend_rows = []
+    multistep_rows = []
     for s in source_order:
         delta = recent_trend[s]
         if delta > 0.25:
@@ -898,27 +957,67 @@ def compute_trend_estimates(inputs, uploaded_df, selected_country, selected_city
             direction = tr("falling")
         else:
             direction = tr("flat")
+
+        base_band = volatility[s] * float(confidence_level) * 0.5 * scenario_conf_factor
+        upper = min(100.0, next_step[s] + base_band)
+        lower = max(0.0, next_step[s] - base_band)
+
         trend_rows.append({
             tr("source"): s,
             tr("rolling_average_share"): rolling_avg[s],
-            tr("recent_trend_pct"): delta,
-            tr("next_step_estimate_pct"): next_step[s],
+            tr("recent_trend_pct"): round(delta, 2),
+            tr("next_step_estimate_pct"): round(next_step[s], 2),
             tr("trend_direction"): direction,
+            tr("upper_band_pct"): round(upper, 2),
+            tr("lower_band_pct"): round(lower, 2),
             "_sort": next_step[s],
         })
-    trend_df = pd.DataFrame(trend_rows).sort_values("_sort", ascending=False).drop(columns=["_sort"]).reset_index(drop=True)
-    return trend_df
 
-def render_trend_estimate_panel(trend_df):
+        for step in range(1, int(forecast_steps) + 1):
+            projected = max(0.0, rolling_avg[s] + delta * step * 0.5)
+            step_band = base_band * (1 + 0.18 * (step - 1))
+            multistep_rows.append({
+                tr("source"): s,
+                tr("forecast_step"): step,
+                tr("next_step_estimate_pct"): round(projected, 2),
+                tr("lower_band_pct"): round(max(0.0, projected - step_band), 2),
+                tr("upper_band_pct"): round(min(100.0, projected + step_band), 2),
+                tr("trend_direction"): direction,
+            })
+
+    trend_df = pd.DataFrame(trend_rows).sort_values("_sort", ascending=False).drop(columns=["_sort"]).reset_index(drop=True)
+    multistep_df = pd.DataFrame(multistep_rows)
+    if not multistep_df.empty:
+        multistep_df = multistep_df.sort_values([tr("forecast_step"), tr("next_step_estimate_pct")], ascending=[True, False]).reset_index(drop=True)
+
+    meta = {
+        "timestamp_col": timestamp_col if timestamp_col is not None else "-",
+        "sorting_mode": tr("timestamp_sorted") if sorting_mode == "timestamp" else tr("original_order"),
+        "history_rows_used": history_count,
+        "scenario_confidence_factor": round(scenario_conf_factor, 2),
+    }
+    return trend_df, multistep_df, meta
+
+def render_trend_estimate_panel(trend_df, multistep_df, trend_meta):
     st.subheader(tr("trend_panel"))
     st.markdown(f'<div class="note">{tr("trend_panel_note")}</div>', unsafe_allow_html=True)
+    meta_cols = st.columns(4)
+    meta_cols[0].metric(tr("timestamp_col"), str(trend_meta.get("timestamp_col", "-")))
+    meta_cols[1].metric(tr("sorting_mode"), str(trend_meta.get("sorting_mode", "-")))
+    meta_cols[2].metric(tr("history_rows_used"), str(trend_meta.get("history_rows_used", 0)))
+    meta_cols[3].metric(tr("scenario_confidence_factor"), str(trend_meta.get("scenario_confidence_factor", 1.0)))
+
     for _, row in trend_df.iterrows():
         source = row[tr("source")]
         rolling_avg = row[tr("rolling_average_share")]
         trend = row[tr("recent_trend_pct")]
         next_step = row[tr("next_step_estimate_pct")]
         direction = row[tr("trend_direction")]
+        upper = row[tr("upper_band_pct")]
+        lower = row[tr("lower_band_pct")]
         width = max(6, min(100, int(round(next_step))))
+        lower_w = max(2, min(100, int(round(lower))))
+        upper_w = max(lower_w, min(100, int(round(upper))))
         trend_text = f"{trend:+.2f}%"
         st.markdown(
             f"""
@@ -927,18 +1026,25 @@ def render_trend_estimate_panel(trend_df):
                 <div style="font-size:1rem; font-weight:700;">{source}</div>
                 <div style="font-size:0.92rem; opacity:0.88;">{direction}</div>
               </div>
-              <div style="width:100%; height:12px; background:rgba(255,255,255,0.10); border-radius:999px; overflow:hidden; margin-bottom:10px;">
-                <div style="width:{width}%; height:100%; background:linear-gradient(90deg, rgba(251,191,36,0.95), rgba(245,158,11,0.95)); border-radius:999px;"></div>
+              <div style="position:relative; width:100%; height:14px; background:rgba(255,255,255,0.10); border-radius:999px; overflow:hidden; margin-bottom:10px;">
+                <div style="position:absolute; left:0; top:0; width:{upper_w}%; height:100%; background:rgba(251,191,36,0.20); border-radius:999px;"></div>
+                <div style="position:absolute; left:0; top:0; width:{lower_w}%; height:100%; background:rgba(251,191,36,0.32); border-radius:999px;"></div>
+                <div style="position:absolute; left:0; top:0; width:{width}%; height:100%; background:linear-gradient(90deg, rgba(251,191,36,0.95), rgba(245,158,11,0.95)); border-radius:999px;"></div>
               </div>
-              <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; font-size:0.88rem; line-height:1.45;">
+              <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:10px; font-size:0.88rem; line-height:1.45;">
                 <div><b>{tr("rolling_average_share")}</b><br>{rolling_avg:.2f}%</div>
                 <div><b>{tr("recent_trend_pct")}</b><br>{trend_text}</div>
                 <div><b>{tr("next_step_estimate_pct")}</b><br>{next_step:.2f}%</div>
+                <div><b>{tr("lower_band_pct")}</b><br>{lower:.2f}%</div>
+                <div><b>{tr("upper_band_pct")}</b><br>{upper:.2f}%</div>
               </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
+    st.subheader(tr("multi_step_forecast"))
+    st.markdown(f'<div class="note">{tr("multi_step_forecast_note")}</div>', unsafe_allow_html=True)
+    st.dataframe(multistep_df, use_container_width=True, hide_index=True)
 
 
 st.markdown("""
@@ -1044,17 +1150,50 @@ def safe_read_csv(uploaded_file):
         return None
 
 
+
+def detect_timestamp_column(df: pd.DataFrame):
+    if df is None or df.empty:
+        return None
+    candidates = [
+        "timestamp", "datetime", "date", "time", "recorded_at",
+        "created_at", "observation_time", "observed_at"
+    ]
+    lower_map = {str(c).strip().lower(): c for c in df.columns}
+    for cand in candidates:
+        if cand in lower_map:
+            return lower_map[cand]
+    for c in df.columns:
+        name = str(c).strip().lower()
+        if "time" in name or "date" in name:
+            return c
+    return None
+
+def sort_history_df(df: pd.DataFrame):
+    if df is None or df.empty:
+        return df, None, "original"
+    ts_col = detect_timestamp_column(df)
+    if ts_col is None:
+        return df.copy(), None, "original"
+    tmp = df.copy()
+    parsed = pd.to_datetime(tmp[ts_col], errors="coerce")
+    valid = parsed.notna().sum()
+    if valid == 0:
+        return df.copy(), ts_col, "original"
+    tmp["_parsed_ts"] = parsed
+    tmp = tmp.sort_values("_parsed_ts", kind="stable").drop(columns=["_parsed_ts"]).reset_index(drop=True)
+    return tmp, ts_col, "timestamp"
 def build_uploaded_profiles(df: pd.DataFrame):
     if df is None or df.empty:
         return {}
+    sorted_df, ts_col, _ = sort_history_df(df)
     rows = {}
     required = [
         "country_key", "city_key", "lat", "lon", "population",
         "temperature", "wind_speed", "solar_radiation", "precipitation", "humidity",
         "solar_capacity", "wind_capacity", "geothermal_capacity", "hydro_capacity", "battery_capacity",
     ]
-    for idx, raw in df.iterrows():
-        row = {k: raw[k] if k in df.columns else None for k in required}
+    for idx, raw in sorted_df.iterrows():
+        row = {k: raw[k] if k in sorted_df.columns else None for k in required}
         country_raw = str(row.get("country_key") or "Uploaded").strip() or "Uploaded"
         city_raw = str(row.get("city_key") or f"Row {idx + 1}").strip() or f"Row {idx + 1}"
         country = country_raw.replace("_", " ").title()
@@ -1075,6 +1214,7 @@ def build_uploaded_profiles(df: pd.DataFrame):
             "geothermal_capacity": safe_int(row.get("geothermal_capacity"), 60),
             "hydro_capacity": safe_int(row.get("hydro_capacity"), 70),
             "battery_capacity": safe_int(row.get("battery_capacity"), 180),
+            "timestamp_value": safe_str(raw.get(ts_col), "") if ts_col is not None else "",
         }
     return rows
 
@@ -1193,6 +1333,12 @@ with st.sidebar:
     reserve_recovery_lag_days = st.number_input(tr("reserve_recovery_lag_days"), 0, 30, 3, 1)
 
     st.divider()
+    st.subheader(tr("time_window_control"))
+    rolling_window_rows = st.slider(tr("time_window_rows"), 2, 8, 3, 1)
+    forecast_steps = st.slider(tr("forecast_steps"), 1, 6, 2, 1)
+    confidence_level = st.slider(tr("confidence_level"), 0.5, 2.0, 1.0, 0.1)
+
+    st.divider()
     st.subheader(tr("timeline_inputs"))
     simulation_hours = st.selectbox(tr("sim_hours"), [24, 72, 168], index=0)
     primary_supply_failure_ratio = st.number_input(tr("primary_supply_failure_ratio"), 0.0, 1.0, 0.30, 0.01, format="%.2f")
@@ -1264,7 +1410,7 @@ baseline_results, _ = apply_energy_security_layer(
 
 reference_avg = compute_reference_average(inputs, uploaded_df, active_country, active_city)
 energy_contribution_df = build_energy_contribution_df(results, baseline_results, reference_avg)
-trend_estimate_df = compute_trend_estimates(inputs, uploaded_df, active_country, active_city, baseline_results)
+trend_estimate_df, multistep_forecast_df, trend_meta = compute_trend_estimates(inputs, uploaded_df, active_country, active_city, baseline_results, scenario_key=scenario_key, rolling_window_rows=rolling_window_rows, forecast_steps=forecast_steps, confidence_level=confidence_level)
 
 st.title(tr("title"))
 st.caption(tr("caption"))
@@ -1361,7 +1507,7 @@ with mix_tab:
     })
     render_energy_contribution_panel(energy_contribution_df)
     render_reserve_outlook_panel(reference_avg, results, timeline_results)
-    render_trend_estimate_panel(trend_estimate_df)
+    render_trend_estimate_panel(trend_estimate_df, multistep_forecast_df, trend_meta)
     st.subheader(tr("energy_table"))
     st.dataframe(mix_table, use_container_width=True, hide_index=True)
     st.caption(f"{tr('dominant')}: {results['dominant_source']}")
