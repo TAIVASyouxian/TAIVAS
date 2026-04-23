@@ -1224,17 +1224,29 @@ def prepare_uploaded_preview(df: pd.DataFrame, max_rows: int = 8):
 def build_forecast_chart_df(multistep_df: pd.DataFrame):
     if multistep_df is None or multistep_df.empty:
         return pd.DataFrame()
+
     src_col = tr("source")
     step_col = tr("forecast_step")
     est_col = tr("next_step_estimate_pct")
     low_col = tr("lower_band_pct")
     up_col = tr("upper_band_pct")
+
+    required_cols = [src_col, step_col, est_col, low_col, up_col]
+    if any(col not in multistep_df.columns for col in required_cols):
+        return pd.DataFrame()
+
     df = multistep_df.copy()
-    df["series"] = df[src_col].astype(str) + " • est"
-    est_wide = df.pivot(index=step_col, columns="series", values=est_col)
-    low_wide = df.pivot(index=step_col, columns=df[src_col].astype(str) + " • low", values=low_col)
-    up_wide = df.pivot(index=step_col, columns=df[src_col].astype(str) + " • high", values=up_col)
-    out = pd.concat([est_wide, low_wide, up_wide], axis=1).sort_index()
+
+    # Create explicit label columns first, then pivot by column name.
+    df["series_est"] = df[src_col].astype(str) + " • est"
+    df["series_low"] = df[src_col].astype(str) + " • low"
+    df["series_high"] = df[src_col].astype(str) + " • high"
+
+    est_wide = df.pivot(index=step_col, columns="series_est", values=est_col)
+    low_wide = df.pivot(index=step_col, columns="series_low", values=low_col)
+    high_wide = df.pivot(index=step_col, columns="series_high", values=up_col)
+
+    out = pd.concat([est_wide, low_wide, high_wide], axis=1).sort_index()
     out.index.name = step_col
     return out
 
