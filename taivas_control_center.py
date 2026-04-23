@@ -940,8 +940,16 @@ def compute_trend_estimates(inputs, uploaded_df, selected_country, selected_city
         volatility = {s: abs(recent_trend[s]) for s in source_order}
 
     next_step = {}
+    source_factor_map = {
+        "Solar": {"normal": 1.00, "heat_wave": 1.12, "storm": 0.90, "cold_wave": 0.92, "blizzard": 0.78, "typhoon": 0.72},
+        "Wind": {"normal": 1.00, "heat_wave": 0.92, "storm": 1.20, "cold_wave": 0.98, "blizzard": 0.90, "typhoon": 0.82},
+        "Geothermal": {"normal": 1.00, "heat_wave": 1.01, "storm": 1.00, "cold_wave": 1.00, "blizzard": 1.00, "typhoon": 1.00},
+        "Hydro": {"normal": 1.00, "heat_wave": 0.95, "storm": 1.08, "cold_wave": 0.98, "blizzard": 0.94, "typhoon": 0.86},
+    }
+    next_step = {}
     for s in source_order:
-        projected = max(0.0, rolling_avg[s] + recent_trend[s] * max(1, int(forecast_steps)) * 0.5)
+        source_factor = float(source_factor_map.get(s, {}).get(str(scenario_key), 1.0))
+        projected = max(0.0, rolling_avg[s] + recent_trend[s] * max(1, int(forecast_steps)) * 0.5 * source_factor)
         next_step[s] = round(projected, 2)
     total_next = sum(next_step.values())
     if total_next > 0:
@@ -970,11 +978,13 @@ def compute_trend_estimates(inputs, uploaded_df, selected_country, selected_city
             tr("trend_direction"): direction,
             tr("upper_band_pct"): round(upper, 2),
             tr("lower_band_pct"): round(lower, 2),
+            tr("source_forecast_factor"): round(float(source_factor_map.get(s, {}).get(str(scenario_key), 1.0)), 2),
             "_sort": next_step[s],
         })
 
         for step in range(1, int(forecast_steps) + 1):
-            projected = max(0.0, rolling_avg[s] + delta * step * 0.5)
+            source_factor = float(source_factor_map.get(s, {}).get(str(scenario_key), 1.0))
+            projected = max(0.0, rolling_avg[s] + delta * step * 0.5 * source_factor)
             step_band = base_band * (1 + 0.18 * (step - 1))
             multistep_rows.append({
                 tr("source"): s,
@@ -983,6 +993,7 @@ def compute_trend_estimates(inputs, uploaded_df, selected_country, selected_city
                 tr("lower_band_pct"): round(max(0.0, projected - step_band), 2),
                 tr("upper_band_pct"): round(min(100.0, projected + step_band), 2),
                 tr("trend_direction"): direction,
+                tr("source_forecast_factor"): round(float(source_factor_map.get(s, {}).get(str(scenario_key), 1.0)), 2),
             })
 
     trend_df = pd.DataFrame(trend_rows).sort_values("_sort", ascending=False).drop(columns=["_sort"]).reset_index(drop=True)
@@ -1042,6 +1053,11 @@ def render_trend_estimate_panel(trend_df, multistep_df, trend_meta):
             """,
             unsafe_allow_html=True,
         )
+    render_forecast_chart(multistep_df)
+    st.subheader(tr("source_logic"))
+    st.markdown(f'<div class="note">{tr("source_logic_note")}</div>', unsafe_allow_html=True)
+    if not trend_df.empty and tr("source_forecast_factor") in trend_df.columns:
+        st.dataframe(trend_df[[tr("source"), tr("source_forecast_factor"), tr("trend_direction"), tr("next_step_estimate_pct"), tr("lower_band_pct"), tr("upper_band_pct")]], use_container_width=True, hide_index=True)
     st.subheader(tr("multi_step_forecast"))
     st.markdown(f'<div class="note">{tr("multi_step_forecast_note")}</div>', unsafe_allow_html=True)
     st.dataframe(multistep_df, use_container_width=True, hide_index=True)
@@ -1182,6 +1198,53 @@ def sort_history_df(df: pd.DataFrame):
     tmp["_parsed_ts"] = parsed
     tmp = tmp.sort_values("_parsed_ts", kind="stable").drop(columns=["_parsed_ts"]).reset_index(drop=True)
     return tmp, ts_col, "timestamp"
+
+def prepare_uploaded_preview(df: pd.DataFrame, max_rows: int = 8):
+    if df is None or df.empty:
+        return None, None, None
+    sorted_df, ts_col, sorting_mode = sort_history_df(df)
+    preview_df = sorted_df.copy()
+    parsed_col = None
+    if ts_col is not None:
+        parsed_col = "__parsed_timestamp_display__"
+        preview_df[parsed_col] = pd.to_datetime(preview_df[ts_col], errors="coerce")
+    preferred_cols = []
+    if ts_col is not None:
+        preferred_cols.append(ts_col)
+    if parsed_col is not None:
+        preferred_cols.append(parsed_col)
+    for c in ["country_key", "city_key", "temperature", "wind_speed", "solar_radiation", "precipitation", "humidity", "solar_capacity", "wind_capacity", "geothermal_capacity", "hydro_capacity", "battery_capacity"]:
+        if c in preview_df.columns and c not in preferred_cols:
+            preferred_cols.append(c)
+    if not preferred_cols:
+        preferred_cols = list(preview_df.columns)
+    preview_df = preview_df[preferred_cols].head(max_rows).copy()
+    return preview_df, ts_col, sorting_mode
+
+def build_forecast_chart_df(multistep_df: pd.DataFrame):
+    if multistep_df is None or multistep_df.empty:
+        return pd.DataFrame()
+    src_col = tr("source")
+    step_col = tr("forecast_step")
+    est_col = tr("next_step_estimate_pct")
+    low_col = tr("lower_band_pct")
+    up_col = tr("upper_band_pct")
+    df = multistep_df.copy()
+    df["series"] = df[src_col].astype(str) + " • est"
+    est_wide = df.pivot(index=step_col, columns="series", values=est_col)
+    low_wide = df.pivot(index=step_col, columns=df[src_col].astype(str) + " • low", values=low_col)
+    up_wide = df.pivot(index=step_col, columns=df[src_col].astype(str) + " • high", values=up_col)
+    out = pd.concat([est_wide, low_wide, up_wide], axis=1).sort_index()
+    out.index.name = step_col
+    return out
+
+def render_forecast_chart(multistep_df: pd.DataFrame):
+    st.subheader(tr("forecast_chart"))
+    st.markdown(f'<div class="note">{tr("forecast_chart_note")}</div>', unsafe_allow_html=True)
+    chart_df = build_forecast_chart_df(multistep_df)
+    if not chart_df.empty:
+        st.line_chart(chart_df)
+
 def build_uploaded_profiles(df: pd.DataFrame):
     if df is None or df.empty:
         return {}
@@ -1230,6 +1293,14 @@ def extend_i18n():
             "use_uploaded": "Use uploaded row as input preset",
             "uploaded_row": "Uploaded Row",
             "csv_mode": "CSV Preset Mode",
+            "uploaded_preview": "Uploaded History Preview",
+            "selected_timestamp": "Selected Timestamp",
+            "parsed_timestamp": "Parsed Timestamp",
+            "forecast_chart": "Forecast Chart",
+            "forecast_chart_note": "This chart visualizes each source across the forecast horizon, including lower and upper confidence bands.",
+            "source_logic": "Source Forecast Logic",
+            "source_logic_note": "Different sources do not accelerate at the same rate. Solar and wind react more strongly to weather shifts, geothermal is more damped, and hydro sits in the middle unless the scenario widens uncertainty.",
+            "source_forecast_factor": "Source Forecast Factor"
         },
         "繁體中文": {
             "sim_hours": "模擬時數",
@@ -1240,6 +1311,14 @@ def extend_i18n():
             "use_uploaded": "使用上傳列作為輸入預設",
             "uploaded_row": "上傳資料列",
             "csv_mode": "CSV 預設模式",
+            "uploaded_preview": "上傳歷史預覽",
+            "selected_timestamp": "選定時間",
+            "parsed_timestamp": "解析後時間",
+            "forecast_chart": "預測圖表",
+            "forecast_chart_note": "這張圖會把各能源在 forecast horizon 中的預測值，以及上下信賴帶一起畫出來。",
+            "source_logic": "來源預測邏輯",
+            "source_logic_note": "不同能源的加速/阻尼不一樣。太陽能與風能對天氣變化更敏感，地熱較平穩，水力通常介於中間，極端情境下不確定性會再放大。",
+            "source_forecast_factor": "來源預測因子"
         },
     }
     for lang, mapping in extras.items():
@@ -1258,11 +1337,19 @@ with st.sidebar:
     uploaded_profiles = build_uploaded_profiles(uploaded_df)
     use_uploaded = False
     uploaded_profile = None
+    uploaded_preview_df, uploaded_ts_col, uploaded_sorting_mode = prepare_uploaded_preview(uploaded_df)
     if uploaded_profiles:
         use_uploaded = st.toggle(tr("use_uploaded"), value=True)
         uploaded_row_key = st.selectbox(tr("uploaded_row"), list(uploaded_profiles.keys()))
         uploaded_profile = uploaded_profiles.get(uploaded_row_key)
         st.caption(f"{tr('csv_mode')}: {uploaded_row_key}")
+        if uploaded_profile is not None:
+            st.caption(f"{tr('selected_timestamp')}: {uploaded_profile.get('timestamp_value', '-') or '-'}")
+        with st.expander(tr("uploaded_preview"), expanded=False):
+            if uploaded_ts_col is not None:
+                st.caption(f"{tr('timestamp_col')}: {uploaded_ts_col} • {tr('sorting_mode')}: {tr('timestamp_sorted') if uploaded_sorting_mode == 'timestamp' else tr('original_order')}")
+            if uploaded_preview_df is not None:
+                st.dataframe(uploaded_preview_df, use_container_width=True, hide_index=True)
 
     merged_city_data = {country_name: dict(cities) for country_name, cities in CITY_DATA.items()}
     for profile in uploaded_profiles.values():
@@ -1448,6 +1535,8 @@ with top_right:
         mini_card("Facility Tolerance", f"{facility_profile['failure_tolerance_hours']} h")
         mini_card("Import Dependency", f"{import_dependency * 100:.0f}%")
         mini_card("Timeline Horizon", f"{simulation_hours} h")
+        if use_uploaded and uploaded_profile is not None:
+            mini_card(tr("selected_timestamp"), uploaded_profile.get("timestamp_value", "-") or "-")
 
 st.subheader(tr("system_perf"))
 perf_top = st.columns(4)
