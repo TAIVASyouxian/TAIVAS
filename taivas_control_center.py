@@ -337,7 +337,16 @@ I18N = {
         "no_surplus": "No surplus now",
         "hours_short": "h",
         "source_detail_panel": "Source Detail Panel",
-        "uploaded_history_used": "Uploaded historical rows are being used as the average reference when available."
+        "uploaded_history_used": "Uploaded historical rows are being used as the average reference when available.",
+        "trend_panel": "Trend & Next-Step Estimate",
+        "trend_panel_note": "This section uses uploaded historical rows when available to estimate a rolling average, a recent trend, and a simple next-step contribution estimate for each renewable source.",
+        "rolling_average_share": "Rolling Avg Share (%)",
+        "recent_trend_pct": "Recent Trend (%)",
+        "next_step_estimate_pct": "Next-Step Estimate (%)",
+        "trend_direction": "Trend Direction",
+        "rising": "Rising",
+        "falling": "Falling",
+        "flat": "Flat"
     },
     "繁體中文": {
         "title": "TAIVAS 能源控制中心",
@@ -470,7 +479,16 @@ I18N = {
         "no_surplus": "目前沒有多餘供應",
         "hours_short": "小時",
         "source_detail_panel": "能源細節面板",
-        "uploaded_history_used": "若有可用的上傳歷史資料列，平均值會優先採用該資料。"
+        "uploaded_history_used": "若有可用的上傳歷史資料列，平均值會優先採用該資料。",
+        "trend_panel": "趨勢與下一步估計",
+        "trend_panel_note": "這裡會優先利用上傳的歷史資料列，估算 rolling average、近期趨勢，以及各能源的下一步占比推估。",
+        "rolling_average_share": "滾動平均占比 (%)",
+        "recent_trend_pct": "近期趨勢 (%)",
+        "next_step_estimate_pct": "下一步估計 (%)",
+        "trend_direction": "趨勢方向",
+        "rising": "上升中",
+        "falling": "下降中",
+        "flat": "持平"
     },
 }
 
@@ -812,6 +830,116 @@ def render_reserve_outlook_panel(reference_avg, results, timeline_results):
     c4.metric(tr("remaining_battery_reserve"), f'{results["battery_levels"]} MWh')
     c5.metric(tr("estimated_refill_time"), estimate_refill_hours(results, timeline_results))
 
+def compute_trend_estimates(inputs, uploaded_df, selected_country, selected_city, baseline_results):
+    source_order = ["Solar", "Wind", "Geothermal", "Hydro"]
+    records = []
+    if uploaded_df is not None and not uploaded_df.empty:
+        tmp = uploaded_df.copy()
+        if "country_key" in tmp.columns and "city_key" in tmp.columns:
+            tmp["_country"] = tmp["country_key"].astype(str).str.strip().str.title()
+            tmp["_city"] = tmp["city_key"].astype(str).str.strip().str.title()
+            matched = tmp[(tmp["_country"] == str(selected_country).title()) & (tmp["_city"] == str(selected_city).title())]
+            if matched.empty:
+                matched = tmp
+        else:
+            matched = tmp
+        for _, r in matched.iterrows():
+            local_inputs = dict(inputs)
+            for key, default in [
+                ("temperature", inputs["temperature"]),
+                ("wind_speed", inputs["wind_speed"]),
+                ("solar_radiation", inputs["solar_radiation"]),
+                ("precipitation", inputs["precipitation"]),
+                ("humidity", inputs["humidity"]),
+                ("population", inputs["population"]),
+                ("solar_capacity", inputs["solar_capacity"]),
+                ("wind_capacity", inputs["wind_capacity"]),
+                ("geothermal_capacity", inputs["geothermal_capacity"]),
+                ("hydro_capacity", inputs["hydro_capacity"]),
+                ("battery_capacity", inputs["battery_capacity"]),
+            ]:
+                if key in matched.columns:
+                    local_inputs[key] = safe_float(r[key], default) if key != "population" else safe_int(r[key], default)
+            rr = compute_energy_supply(local_inputs, "normal", {k: 0.0 for k in ["solar", "wind", "geothermal", "hydro", "battery"]}, 0)
+            records.append(rr)
+    if not records:
+        # fallback using scenario progression
+        fallback_keys = list(SCENARIOS.keys())
+        records = [compute_energy_supply(inputs, sk, {k: 0.0 for k in ["solar", "wind", "geothermal", "hydro", "battery"]}, 0) for sk in fallback_keys]
+
+    rolling_window = min(3, len(records))
+    recent_records = records[-rolling_window:]
+    prev_records = records[-(rolling_window * 2):-rolling_window] if len(records) >= rolling_window * 2 else records[:-rolling_window]
+
+    rolling_avg = {
+        s: round(sum(r["actual_mix_pct"].get(s, 0.0) for r in recent_records) / max(len(recent_records), 1), 2)
+        for s in source_order
+    }
+    if prev_records:
+        prev_avg = {
+            s: round(sum(r["actual_mix_pct"].get(s, 0.0) for r in prev_records) / max(len(prev_records), 1), 2)
+            for s in source_order
+        }
+    else:
+        prev_avg = {s: baseline_results["actual_mix_pct"].get(s, 0.0) for s in source_order}
+
+    recent_trend = {s: round(rolling_avg[s] - float(prev_avg.get(s, 0.0)), 2) for s in source_order}
+    next_step = {s: round(max(0.0, rolling_avg[s] + recent_trend[s] * 0.5), 2) for s in source_order}
+    total_next = sum(next_step.values())
+    if total_next > 0:
+        next_step = {s: round(v / total_next * 100.0, 2) for s, v in next_step.items()}
+
+    trend_rows = []
+    for s in source_order:
+        delta = recent_trend[s]
+        if delta > 0.25:
+            direction = tr("rising")
+        elif delta < -0.25:
+            direction = tr("falling")
+        else:
+            direction = tr("flat")
+        trend_rows.append({
+            tr("source"): s,
+            tr("rolling_average_share"): rolling_avg[s],
+            tr("recent_trend_pct"): delta,
+            tr("next_step_estimate_pct"): next_step[s],
+            tr("trend_direction"): direction,
+            "_sort": next_step[s],
+        })
+    trend_df = pd.DataFrame(trend_rows).sort_values("_sort", ascending=False).drop(columns=["_sort"]).reset_index(drop=True)
+    return trend_df
+
+def render_trend_estimate_panel(trend_df):
+    st.subheader(tr("trend_panel"))
+    st.markdown(f'<div class="note">{tr("trend_panel_note")}</div>', unsafe_allow_html=True)
+    for _, row in trend_df.iterrows():
+        source = row[tr("source")]
+        rolling_avg = row[tr("rolling_average_share")]
+        trend = row[tr("recent_trend_pct")]
+        next_step = row[tr("next_step_estimate_pct")]
+        direction = row[tr("trend_direction")]
+        width = max(6, min(100, int(round(next_step))))
+        trend_text = f"{trend:+.2f}%"
+        st.markdown(
+            f"""
+            <div style="border:1px solid rgba(255,255,255,0.10); border-radius:16px; padding:12px 14px; margin-bottom:10px; background:rgba(255,255,255,0.04);">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px;">
+                <div style="font-size:1rem; font-weight:700;">{source}</div>
+                <div style="font-size:0.92rem; opacity:0.88;">{direction}</div>
+              </div>
+              <div style="width:100%; height:12px; background:rgba(255,255,255,0.10); border-radius:999px; overflow:hidden; margin-bottom:10px;">
+                <div style="width:{width}%; height:100%; background:linear-gradient(90deg, rgba(251,191,36,0.95), rgba(245,158,11,0.95)); border-radius:999px;"></div>
+              </div>
+              <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; font-size:0.88rem; line-height:1.45;">
+                <div><b>{tr("rolling_average_share")}</b><br>{rolling_avg:.2f}%</div>
+                <div><b>{tr("recent_trend_pct")}</b><br>{trend_text}</div>
+                <div><b>{tr("next_step_estimate_pct")}</b><br>{next_step:.2f}%</div>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
 
 st.markdown("""
 <style>
@@ -1136,6 +1264,7 @@ baseline_results, _ = apply_energy_security_layer(
 
 reference_avg = compute_reference_average(inputs, uploaded_df, active_country, active_city)
 energy_contribution_df = build_energy_contribution_df(results, baseline_results, reference_avg)
+trend_estimate_df = compute_trend_estimates(inputs, uploaded_df, active_country, active_city, baseline_results)
 
 st.title(tr("title"))
 st.caption(tr("caption"))
@@ -1232,6 +1361,7 @@ with mix_tab:
     })
     render_energy_contribution_panel(energy_contribution_df)
     render_reserve_outlook_panel(reference_avg, results, timeline_results)
+    render_trend_estimate_panel(trend_estimate_df)
     st.subheader(tr("energy_table"))
     st.dataframe(mix_table, use_container_width=True, hide_index=True)
     st.caption(f"{tr('dominant')}: {results['dominant_source']}")
