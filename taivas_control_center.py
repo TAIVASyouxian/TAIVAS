@@ -1826,6 +1826,7 @@ trend_estimate_df, multistep_forecast_df, trend_meta = compute_trend_estimates(i
 
 st.title(tr("title"))
 st.caption(tr("caption"))
+st.caption("V3 Workspace Mode • Executive / Analyst / Concept views")
 st.markdown(f'<div class="hero"><h3>{tr("hero_title")}</h3><p>{tr("hero_body")}</p></div>', unsafe_allow_html=True)
 
 layer_cols = st.columns(3)
@@ -1905,10 +1906,7 @@ with download_cols[2]:
 with download_cols[3]:
     st.download_button(tr("download_audit"), audit_json, file_name="taivas_audit_trail.json", mime="application/json")
 
-tabs = st.tabs(tr("tabs"))
-mix_tab, compare_tab, stress_tab, ai_tab, sec_tab, timeline_tab, visual_tab, concept_tab = tabs
-
-with mix_tab:
+def render_energy_mix_workspace():
     page_question(tr("tabs")[0])
     st.markdown(f'<div class="note">{tr("mix_note")}</div>', unsafe_allow_html=True)
     mix_cols = st.columns(2)
@@ -1933,7 +1931,8 @@ with mix_tab:
     st.dataframe(mix_table, use_container_width=True, hide_index=True)
     st.caption(f"{tr('dominant')}: {results['dominant_source']}")
 
-with compare_tab:
+
+def render_scenario_comparison_workspace():
     page_question(tr("tabs")[1])
     delta_df = scenario_delta_df(baseline_results, results)
     scenario_df = comparison_dataframe(inputs, failure_ratios, reserve_recovery_lag_days)
@@ -1954,14 +1953,16 @@ with compare_tab:
     render_critical_load_chart(critical_load_df)
     st.dataframe(critical_load_df, use_container_width=True, hide_index=True)
 
-with stress_tab:
+
+def render_stress_test_workspace():
     page_question(tr("tabs")[2])
     st.markdown('<div class="note">Multi-failure stress testing and subsystem degradation view.</div>', unsafe_allow_html=True)
     stress_df = pd.DataFrame({tr("subsystem"): list(failure_ratios.keys()), tr("failure_ratio"): list(failure_ratios.values()), tr("availability_pct"): [round((1 - v) * 100, 1) for v in failure_ratios.values()]})
     st.dataframe(stress_df, use_container_width=True, hide_index=True)
     st.bar_chart(stress_df.set_index(tr("subsystem"))[[tr("availability_pct")]])
 
-with ai_tab:
+
+def render_ai_recommendation_workspace():
     page_question(tr("tabs")[3])
     st.subheader(tr("quick_reco"))
     for idx, line in enumerate(recommendation_lines(results, energy_security_scenario), 1):
@@ -1970,7 +1971,8 @@ with ai_tab:
     st.subheader(tr("reason_chain"))
     st.dataframe(reason_df, use_container_width=True, hide_index=True)
 
-with sec_tab:
+
+def render_energy_security_workspace():
     page_question(tr("tabs")[4])
     row1 = st.columns(4)
     row1[0].metric("Import Disruption", f"{results['import_disruption_score']}%")
@@ -1989,7 +1991,8 @@ with sec_tab:
     st.subheader(tr("geopolitical_reason_chain"))
     st.dataframe(build_geopolitical_reason_chain(geopolitical_shock, results), use_container_width=True, hide_index=True)
 
-with timeline_tab:
+
+def render_survival_timeline_workspace():
     page_question(tr("tabs")[5])
     t1, t2, t3 = st.columns(3)
     t1.metric(tr("shortfall_hour"), timeline_results["hours_until_shortfall"])
@@ -2004,12 +2007,14 @@ with timeline_tab:
     st.subheader(tr("timeline_table"))
     st.dataframe(timeline_df, use_container_width=True, hide_index=True)
 
-with visual_tab:
+
+def render_visual_simulator_workspace():
     page_question(tr("tabs")[6])
     st.subheader(tr("visual_simulator"))
     render_visual_scenario_layer(results, baseline_results, geopolitical_shock)
 
-with concept_tab:
+
+def render_concept_lab_workspace():
     page_question(tr("tabs")[7])
     st.markdown(f'<div class="note">{tr("concept_note")}</div>', unsafe_allow_html=True)
     concept_tabs = st.tabs(tr("thermal_tabs"))
@@ -2046,3 +2051,51 @@ with concept_tab:
         concept_badge()
         core_hours = timeline_results["hours_until_critical_failure"] if timeline_results["hours_until_critical_failure"] != "No Failure" else 168
         render_distributed_harvesting_buffering_concept(diversification_score=thermal_results["diversification_score"], reserve_gain_hours=4.0, shortfall_reduction_pct=8.0, core_preservation_hours=float(core_hours), height=720)
+
+
+# -----------------------------------------------------------------------------
+# V3 Workspace Mode Layer
+# Users choose a workspace first, then see only the tabs relevant to that task.
+# -----------------------------------------------------------------------------
+st.markdown("---")
+st.subheader("Workspace Mode")
+workspace_mode = st.radio(
+    "Choose how you want to use TAIVAS",
+    ["Executive Dashboard", "Analyst Workspace", "Concept Lab"],
+    horizontal=True,
+    help="Executive is for quick demos and decision review. Analyst is for deeper testing. Concept Lab is for thermal/resilience concept exploration.",
+)
+
+workspace_note = {
+    "Executive Dashboard": "A clean demo view for investors, institutions, and non-technical reviewers. It focuses on what is happening, why it matters, and what the system recommends.",
+    "Analyst Workspace": "A professional analysis view for scenario comparison, subsystem stress testing, survival timeline, and operational risk interpretation.",
+    "Concept Lab": "An experimental visualization area for thermal buffering, ground sink, distributed control, and harvesting concepts.",
+}
+st.markdown(f'<div class="note">{workspace_note[workspace_mode]}</div>', unsafe_allow_html=True)
+
+if workspace_mode == "Executive Dashboard":
+    executive_tabs = st.tabs(["Energy Mix", "Visual Simulator", "AI Recommendation", "Energy Security"])
+    with executive_tabs[0]:
+        render_energy_mix_workspace()
+    with executive_tabs[1]:
+        render_visual_simulator_workspace()
+    with executive_tabs[2]:
+        render_ai_recommendation_workspace()
+    with executive_tabs[3]:
+        render_energy_security_workspace()
+
+elif workspace_mode == "Analyst Workspace":
+    analyst_tabs = st.tabs(["Scenario Comparison", "Stress Test", "Survival Timeline", "Energy Security"])
+    with analyst_tabs[0]:
+        render_scenario_comparison_workspace()
+    with analyst_tabs[1]:
+        render_stress_test_workspace()
+    with analyst_tabs[2]:
+        render_survival_timeline_workspace()
+    with analyst_tabs[3]:
+        render_energy_security_workspace()
+
+else:
+    concept_workspace_tabs = st.tabs(["Concept Lab"])
+    with concept_workspace_tabs[0]:
+        render_concept_lab_workspace()
