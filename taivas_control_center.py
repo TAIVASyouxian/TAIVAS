@@ -253,7 +253,7 @@ I18N = {
         "download_reason": "Reason Chain CSV",
         "download_summary": "Executive Summary TXT",
         "download_audit": "Audit Trail JSON",
-        "tabs": ["Energy Mix", "Scenario Comparison", "Stress Test", "AI Recommendation", "Energy Security", "Survival Timeline", "Concept Lab"],
+        "tabs": ["Energy Mix", "Scenario Comparison", "Stress Test", "AI Recommendation", "Energy Security", "Survival Timeline", "Visual Simulator", "Concept Lab"],
         "page_answers": "This page answers:",
         "mix_note": "This tab separates installed capacity from actual modeled supply. Weather, failure ratios, and scenario assumptions change the real contribution of each energy source.",
         "installed_mix": "Installed Capacity Mix",
@@ -414,7 +414,7 @@ I18N = {
         "download_reason": "下載理由鏈 CSV",
         "download_summary": "下載摘要 TXT",
         "download_audit": "下載稽核 JSON",
-        "tabs": ["能源組成", "情境比較", "壓力測試", "AI 建議", "能源安全", "生存時間軸", "概念模組"],
+        "tabs": ["能源組成", "情境比較", "壓力測試", "AI 建議", "能源安全", "生存時間軸", "視覺模擬", "概念模組"],
         "page_answers": "本頁回答：",
         "mix_note": "本頁將裝機容量與實際模擬供應拆開呈現。天氣、失效比例與情境假設，都會改變各能源的真實貢獻。",
         "installed_mix": "裝機容量組成",
@@ -538,6 +538,7 @@ PAGE_QUESTIONS = {
         "AI Recommendation": "Why is the model concerned, which signal matters most, and what action should be prioritized first?",
         "Energy Security": "How much do import exposure, logistics, refill uncertainty, repair delay, and single-point risk increase disruption?",
         "Survival Timeline": "If supply is disrupted, how long can the system operate before shortfall and critical failure?",
+        "Visual Simulator": "What does this disruption look like, and which part of the energy system is being stressed first?",
         "Concept Lab": "If advanced thermal concepts are introduced, which resilience metrics improve and by how much?",
     },
     "繁體中文": {
@@ -547,6 +548,7 @@ PAGE_QUESTIONS = {
         "AI 建議": "模型在擔心什麼？最重要的訊號是什麼？應該先做哪個動作？",
         "能源安全": "進口暴露、物流、補給不確定性、修復延遲與單點風險會把中斷拉高多少？",
         "生存時間軸": "如果供應中斷，系統在出現缺口與關鍵失效前還能撐多久？",
+        "視覺模擬": "這個中斷看起來會怎麼發生？能源系統哪一段會最先被壓迫？",
         "概念模組": "如果引入進階熱管理概念，哪些韌性指標會改善？改善多少？",
     },
 }
@@ -1294,6 +1296,267 @@ def build_uploaded_profiles(df: pd.DataFrame):
     return rows
 
 
+
+# =============================
+# TAIVAS Geopolitical Energy Shock Module V1
+# Integrated directly into the main file to avoid extra module dependency.
+# =============================
+
+GEOPOLITICAL_EVENT_WEIGHTS = {
+    "None": 0.0,
+    "Minor diplomatic tension": 0.30,
+    "Proxy conflict escalation": 0.60,
+    "Oil tanker attack": 0.90,
+    "Energy infrastructure strike": 1.10,
+    "Hormuz disruption": 1.50,
+    "Regional war": 2.00,
+}
+
+GEOPOLITICAL_EVENT_NOTES = {
+    "None": "No additional geopolitical shock is applied.",
+    "Minor diplomatic tension": "Political pressure and market anxiety, but no major physical disruption.",
+    "Proxy conflict escalation": "Indirect conflict raises logistics and price risk without full direct war.",
+    "Oil tanker attack": "Maritime risk increases insurance, shipping delay, and fuel market volatility.",
+    "Energy infrastructure strike": "Physical energy infrastructure damage raises supply and repair uncertainty.",
+    "Hormuz disruption": "High-impact chokepoint disruption affecting oil and gas shipping routes.",
+    "Regional war": "Large-scale regional conflict with severe energy market and logistics stress.",
+}
+
+def calculate_geopolitical_shock(event_type, severity, duration_days, import_dependency, fossil_share, shipping_dependency):
+    event_type = event_type if event_type in GEOPOLITICAL_EVENT_WEIGHTS else "Proxy conflict escalation"
+    severity = int(clamp(severity, 0, 5))
+    duration_days = int(clamp(duration_days, 0, 90))
+    import_dependency = clamp(float(import_dependency), 0.0, 1.0)
+    fossil_share = clamp(float(fossil_share), 0.0, 1.0)
+    shipping_dependency = clamp(float(shipping_dependency), 0.0, 1.0)
+    duration_factor = min(duration_days / 30.0, 1.5)
+    if event_type == "None" or severity == 0 or duration_days == 0:
+        oil_supply_disruption = 0.0
+    else:
+        oil_supply_disruption = severity * GEOPOLITICAL_EVENT_WEIGHTS[event_type] * duration_factor * 4.0
+    oil_supply_disruption = clamp(oil_supply_disruption, 0.0, 60.0)
+    price_spike_index = oil_supply_disruption * 1.25
+    logistics_stress = oil_supply_disruption * shipping_dependency * 1.15
+    grid_stress_index = clamp(
+        oil_supply_disruption * import_dependency * 0.42
+        + oil_supply_disruption * fossil_share * 0.38
+        + logistics_stress * 0.20,
+        0.0, 100.0
+    )
+    if grid_stress_index < 10:
+        risk_level = "Low"
+    elif grid_stress_index < 25:
+        risk_level = "Moderate"
+    elif grid_stress_index < 45:
+        risk_level = "High"
+    else:
+        risk_level = "Critical"
+    return {
+        "event_type": event_type,
+        "severity": severity,
+        "duration_days": duration_days,
+        "oil_supply_disruption_percent": round(oil_supply_disruption, 2),
+        "price_spike_index": round(price_spike_index, 2),
+        "logistics_stress": round(logistics_stress, 2),
+        "grid_stress_index": round(grid_stress_index, 2),
+        "risk_level": risk_level,
+        "supply_penalty_pct": round(clamp(grid_stress_index * 0.18, 0.0, 18.0), 2),
+        "demand_penalty_pct": round(clamp(price_spike_index * 0.035, 0.0, 8.0), 2),
+        "event_note": GEOPOLITICAL_EVENT_NOTES.get(event_type, "Geopolitical shock scenario."),
+        "model_note": "Simplified geopolitical energy shock simulation for decision support; not a political or market forecast.",
+    }
+
+def apply_geopolitical_shock_to_results(results, shock):
+    updated = dict(results)
+    supply_penalty = clamp(float(shock.get("supply_penalty_pct", 0.0)) / 100.0, 0.0, 0.30)
+    demand_penalty = clamp(float(shock.get("demand_penalty_pct", 0.0)) / 100.0, 0.0, 0.15)
+    original_demand = float(updated.get("demand", 0.0))
+    original_renewable = float(updated.get("renewable_supply", 0.0))
+    original_final = float(updated.get("final_supply", 0.0))
+    original_battery = float(updated.get("battery_levels", 0.0))
+    adjusted_demand = original_demand * (1.0 + demand_penalty)
+    adjusted_final = original_final * (1.0 - supply_penalty)
+    adjusted_shortfall = max(0.0, adjusted_demand - adjusted_final)
+    updated["demand"] = round(adjusted_demand, 2)
+    updated["final_supply"] = round(adjusted_final, 2)
+    updated["shortfall"] = round(adjusted_shortfall, 2)
+    updated["grid_dependency"] = round(safe_div(adjusted_shortfall, adjusted_demand) * 100 if adjusted_demand > 0 else 0.0, 2)
+    updated["system_efficiency"] = round(clamp(100 - adjusted_shortfall * 0.55 - float(shock.get("grid_stress_index", 0.0)) * 0.08, 0.0, 100.0), 2)
+    updated["battery_levels"] = round(max(0.0, original_battery - adjusted_shortfall * 0.08), 2)
+    updated["renewable_ratio"] = round(safe_div(original_renewable, adjusted_final) * 100 if adjusted_final > 0 else 0.0, 2)
+    updated["geopolitical_event_type"] = shock.get("event_type")
+    updated["geopolitical_risk_level"] = shock.get("risk_level")
+    updated["geopolitical_grid_stress_index"] = shock.get("grid_stress_index", 0.0)
+    updated["geopolitical_price_spike_index"] = shock.get("price_spike_index", 0.0)
+    updated["geopolitical_oil_supply_disruption_percent"] = shock.get("oil_supply_disruption_percent", 0.0)
+    return updated
+
+def build_geopolitical_reason_chain(shock, results):
+    if st.session_state.get("ui_lang", "English") == "繁體中文":
+        return pd.DataFrame([
+            {"Signal": "地緣政治事件", "Value": shock.get("event_type", "None"), "Interpretation": shock.get("event_note", "")},
+            {"Signal": "油氣供應中斷估計", "Value": f"{shock.get('oil_supply_disruption_percent', 0)}%", "Interpretation": "用事件嚴重度、持續時間與地點權重估算的簡化中斷壓力。"},
+            {"Signal": "價格衝擊指數", "Value": shock.get("price_spike_index", 0), "Interpretation": "代表市場價格與燃料成本壓力，不等於實際油價預測。"},
+            {"Signal": "電網壓力指數", "Value": shock.get("grid_stress_index", 0), "Interpretation": f"目前風險等級：{shock.get('risk_level', 'Low')}。"},
+            {"Signal": "系統結果", "Value": f"Shortfall {results.get('shortfall', 0)} MW", "Interpretation": "衝擊已折算進需求、可用供應、效率與外部依賴。"},
+        ])
+    return pd.DataFrame([
+        {"Signal": "Geopolitical Event", "Value": shock.get("event_type", "None"), "Interpretation": shock.get("event_note", "")},
+        {"Signal": "Oil/Gas Supply Disruption Estimate", "Value": f"{shock.get('oil_supply_disruption_percent', 0)}%", "Interpretation": "Simplified disruption pressure from severity, duration, and location weight."},
+        {"Signal": "Price Spike Index", "Value": shock.get("price_spike_index", 0), "Interpretation": "Market and fuel-cost stress signal; not an oil price forecast."},
+        {"Signal": "Grid Stress Index", "Value": shock.get("grid_stress_index", 0), "Interpretation": f"Current geopolitical risk level: {shock.get('risk_level', 'Low')}."},
+        {"Signal": "System Result", "Value": f"Shortfall {results.get('shortfall', 0)} MW", "Interpretation": "Shock is reflected in demand, usable supply, efficiency, and grid dependency."},
+    ])
+
+
+def _risk_color_class(value):
+    try:
+        v = float(value)
+    except Exception:
+        v = 0.0
+    if v >= 70:
+        return "critical"
+    if v >= 40:
+        return "watch"
+    return "stable"
+
+def _scenario_stress_profile(results, geopolitical_shock=None):
+    shock = geopolitical_shock or {}
+    return {
+        "solar": round(float(results.get("actual_mix_pct", {}).get("Solar", 0.0)), 1),
+        "wind": round(float(results.get("actual_mix_pct", {}).get("Wind", 0.0)), 1),
+        "hydro": round(float(results.get("actual_mix_pct", {}).get("Hydro", 0.0)), 1),
+        "geothermal": round(float(results.get("actual_mix_pct", {}).get("Geothermal", 0.0)), 1),
+        "grid_stress": round(float(results.get("grid_dependency", 0.0)), 1),
+        "shortfall": round(float(results.get("shortfall", 0.0)), 2),
+        "battery": round(float(results.get("battery_levels", 0.0)), 2),
+        "geopolitical_stress": round(float(shock.get("grid_stress_index", results.get("geopolitical_grid_stress_index", 0.0))), 1),
+        "oil_disruption": round(float(shock.get("oil_supply_disruption_percent", 0.0)), 1),
+        "price_spike": round(float(shock.get("price_spike_index", 0.0)), 1),
+    }
+
+def render_visual_simulator_header():
+    st.markdown("""
+        <style>
+        .visual-wrap {border:1px solid rgba(255,255,255,0.10); border-radius:22px; padding:18px; background:linear-gradient(145deg, rgba(15,23,42,0.88), rgba(30,41,59,0.72)); margin:10px 0 18px 0;}
+        .visual-title {font-size:1.15rem; font-weight:800; margin-bottom:4px;}
+        .visual-note {opacity:0.78; font-size:0.92rem; line-height:1.55; margin-bottom:12px;}
+        .flow-grid {display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-top:12px;}
+        .flow-card {border:1px solid rgba(255,255,255,0.10); background:rgba(255,255,255,0.045); border-radius:16px; padding:12px; min-height:86px;}
+        .flow-label {font-size:0.78rem; opacity:0.72; margin-bottom:6px;}
+        .flow-value {font-size:1.25rem; font-weight:800;}
+        .stable {box-shadow: inset 0 0 0 1px rgba(34,197,94,0.28);}
+        .watch {box-shadow: inset 0 0 0 1px rgba(245,158,11,0.38);}
+        .critical {box-shadow: inset 0 0 0 1px rgba(239,68,68,0.42);}
+        .scenario-map {height:360px; position:relative; overflow:hidden; border-radius:22px; background:radial-gradient(circle at 50% 45%, rgba(59,130,246,0.22), transparent 30%), linear-gradient(180deg, rgba(2,6,23,0.85), rgba(15,23,42,0.95)); border:1px solid rgba(255,255,255,0.10); margin-top:12px;}
+        .city-node {position:absolute; left:49%; top:48%; width:18px; height:18px; border-radius:99px; background:white; box-shadow:0 0 22px rgba(255,255,255,0.9);}
+        .pulse {position:absolute; border:1px solid rgba(125,211,252,0.35); border-radius:999px; animation:pulse-ring 3s infinite ease-out;}
+        .pulse.p2 {animation-delay:.65s;} .pulse.p3 {animation-delay:1.25s;}
+        .storm-core {position:absolute; width:116px; height:116px; left:22%; top:24%; border-radius:999px; background:conic-gradient(from 45deg, rgba(148,163,184,0.10), rgba(56,189,248,0.75), rgba(15,23,42,0.15), rgba(96,165,250,0.65)); animation:spin 7s linear infinite; opacity:.9;}
+        .heat-dome {position:absolute; width:240px; height:180px; left:28%; top:28%; border-radius:999px; background:radial-gradient(circle, rgba(251,146,60,0.38), rgba(239,68,68,0.16), transparent 70%); animation:heat-breathe 3.2s infinite ease-in-out;}
+        .snow-band {position:absolute; inset:0; background-image:radial-gradient(circle, rgba(255,255,255,.55) 1px, transparent 1.5px); background-size:28px 28px; animation:drift 10s linear infinite; opacity:.45;}
+        .route-line {position:absolute; left:14%; top:54%; width:72%; height:3px; background:linear-gradient(90deg, rgba(56,189,248,.15), rgba(248,113,113,.95), rgba(56,189,248,.15)); transform:rotate(-8deg); box-shadow:0 0 18px rgba(248,113,113,.65);}
+        .route-shock {position:absolute; left:48%; top:43%; width:70px; height:70px; border-radius:999px; background:radial-gradient(circle, rgba(248,113,113,.65), transparent 62%); animation:pulse-red 2.2s infinite ease-in-out;}
+        .battery-shell {position:absolute; left:27%; top:37%; width:46%; height:70px; border:2px solid rgba(255,255,255,.72); border-radius:18px; padding:8px;}
+        .battery-tip {position:absolute; right:24%; top:45%; width:18px; height:38px; border:2px solid rgba(255,255,255,.72); border-left:none; border-radius:0 8px 8px 0;}
+        .battery-fill {height:100%; border-radius:12px; background:linear-gradient(90deg, rgba(34,197,94,.88), rgba(250,204,21,.88), rgba(239,68,68,.88)); transition:width .5s ease;}
+        @keyframes pulse-ring {0%{width:40px;height:40px;left:calc(50% - 20px);top:calc(50% - 20px);opacity:.75;}100%{width:300px;height:300px;left:calc(50% - 150px);top:calc(50% - 150px);opacity:0;}}
+        @keyframes pulse-red {0%,100%{transform:scale(.78);opacity:.7;}50%{transform:scale(1.28);opacity:.25;}}
+        @keyframes spin {to{transform:rotate(360deg);}}
+        @keyframes heat-breathe {0%,100%{transform:scale(.92);opacity:.58;}50%{transform:scale(1.14);opacity:.9;}}
+        @keyframes drift {to{background-position:60px 120px;}}
+        </style>
+        """, unsafe_allow_html=True)
+
+def render_visual_metric_cards(profile):
+    st.markdown(f"""
+        <div class="flow-grid">
+          <div class="flow-card {_risk_color_class(100-profile['solar'])}"><div class="flow-label">Solar Contribution</div><div class="flow-value">{profile['solar']}%</div></div>
+          <div class="flow-card {_risk_color_class(100-profile['wind'])}"><div class="flow-label">Wind Contribution</div><div class="flow-value">{profile['wind']}%</div></div>
+          <div class="flow-card {_risk_color_class(profile['grid_stress'])}"><div class="flow-label">Grid Dependency</div><div class="flow-value">{profile['grid_stress']}%</div></div>
+          <div class="flow-card {_risk_color_class(profile['geopolitical_stress'])}"><div class="flow-label">Geo Shock Stress</div><div class="flow-value">{profile['geopolitical_stress']}</div></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+def render_scenario_visual_map(visual_scenario, profile):
+    try:
+        battery_pct = int(clamp(profile.get("battery", 0.0) / max(float(inputs.get("battery_capacity", 1.0)), 1.0) * 100.0, 0.0, 100.0))
+    except Exception:
+        battery_pct = 50
+    if visual_scenario == "Typhoon Impact":
+        inner = '<div class="storm-core"></div><div class="pulse"></div><div class="pulse p2"></div><div class="pulse p3"></div><div class="city-node"></div>'
+        caption = "Typhoon bands reduce solar output, destabilize wind contribution, and push the system toward battery support."
+    elif visual_scenario == "Heat Wave Spread":
+        inner = '<div class="heat-dome"></div><div class="pulse"></div><div class="pulse p2"></div><div class="city-node"></div>'
+        caption = "Heat load expands around the city; demand rises while cooling-sensitive facilities consume reserve margin faster."
+    elif visual_scenario == "Blizzard / Cold Wave":
+        inner = '<div class="snow-band"></div><div class="pulse"></div><div class="pulse p2"></div><div class="city-node"></div>'
+        caption = "Cold stress suppresses solar availability, raises heating load, and shortens survival time when reserve is weak."
+    elif visual_scenario == "Battery Depletion":
+        inner = f'<div class="battery-shell"><div class="battery-fill" style="width:{battery_pct}%;"></div></div><div class="battery-tip"></div><div class="pulse"></div>'
+        caption = "Battery reserve becomes the visible buffer between disrupted supply and critical facility failure."
+    else:
+        inner = '<div class="route-line"></div><div class="route-shock"></div><div class="pulse"></div><div class="pulse p2"></div><div class="city-node"></div>'
+        caption = "External shock travels through fuel markets, import routes, logistics, and grid dependency before appearing as shortfall."
+    st.markdown(f"""
+        <div class="visual-wrap">
+          <div class="visual-title">{visual_scenario}</div>
+          <div class="visual-note">{caption}</div>
+          <div class="scenario-map">{inner}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+def render_energy_flow_diagram(profile):
+    st.markdown("#### Energy Flow Interpretation")
+    for name, value in [("Solar", profile["solar"]), ("Wind", profile["wind"]), ("Hydro", profile["hydro"]), ("Geothermal", profile["geothermal"])]:
+        width = max(4, min(100, int(value)))
+        st.markdown(f"""
+            <div style="display:grid; grid-template-columns:110px 1fr 72px; gap:10px; align-items:center; margin:8px 0;">
+              <div style="font-weight:700; opacity:.9;">{name}</div>
+              <div style="height:12px; background:rgba(255,255,255,.10); border-radius:999px; overflow:hidden;">
+                <div style="width:{width}%; height:100%; background:linear-gradient(90deg, rgba(96,165,250,.95), rgba(34,211,238,.95)); border-radius:999px;"></div>
+              </div>
+              <div style="text-align:right; opacity:.85;">{value}%</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+def render_visual_scenario_layer(results, baseline_results, geopolitical_shock=None):
+    render_visual_simulator_header()
+    st.markdown(f'<div class="note">{tr("visual_simulator_note")}</div>', unsafe_allow_html=True)
+    left, right = st.columns([1.05, 1.4])
+    with left:
+        visual_scenario = st.selectbox(tr("visual_scenario"), ["Typhoon Impact", "Heat Wave Spread", "Blizzard / Cold Wave", "Battery Depletion", "Geopolitical Shock"])
+        profile = _scenario_stress_profile(results, geopolitical_shock)
+        render_visual_metric_cards(profile)
+        st.markdown("#### Stress Chain")
+        if visual_scenario == "Geopolitical Shock":
+            chain_df = pd.DataFrame([
+                {"Stage": "External event", "Signal": str((geopolitical_shock or {}).get("event_type", "None"))},
+                {"Stage": "Oil / gas disruption", "Signal": f"{profile['oil_disruption']}%"},
+                {"Stage": "Price spike", "Signal": profile["price_spike"]},
+                {"Stage": "Grid stress", "Signal": profile["geopolitical_stress"]},
+                {"Stage": "Shortfall", "Signal": f"{profile['shortfall']} MW"},
+            ])
+        elif visual_scenario == "Battery Depletion":
+            chain_df = pd.DataFrame([
+                {"Stage": "Demand", "Signal": f"{results.get('demand', 0)} MW"},
+                {"Stage": "Renewable supply", "Signal": f"{results.get('renewable_supply', 0)} MW"},
+                {"Stage": "Battery remaining", "Signal": f"{profile['battery']} MWh"},
+                {"Stage": "Shortfall", "Signal": f"{profile['shortfall']} MW"},
+            ])
+        else:
+            chain_df = pd.DataFrame([
+                {"Stage": "Climate event", "Signal": visual_scenario},
+                {"Stage": "Renewable change", "Signal": f"Solar {profile['solar']}% / Wind {profile['wind']}%"},
+                {"Stage": "Grid dependency", "Signal": f"{profile['grid_stress']}%"},
+                {"Stage": "Battery buffer", "Signal": f"{profile['battery']} MWh"},
+                {"Stage": "Shortfall", "Signal": f"{profile['shortfall']} MW"},
+            ])
+        st.dataframe(chain_df, use_container_width=True, hide_index=True)
+    with right:
+        render_scenario_visual_map(visual_scenario, profile)
+        render_energy_flow_diagram(profile)
+
 def extend_i18n():
     extras = {
         "English": {
@@ -1312,7 +1575,23 @@ def extend_i18n():
             "forecast_chart_note": "This chart visualizes each source across the forecast horizon, including lower and upper confidence bands.",
             "source_logic": "Source Forecast Logic",
             "source_logic_note": "Different sources do not accelerate at the same rate. Solar and wind react more strongly to weather shifts, geothermal is more damped, and hydro sits in the middle unless the scenario widens uncertainty.",
-            "source_forecast_factor": "Source Forecast Factor"
+            "source_forecast_factor": "Source Forecast Factor",
+            "geopolitical_inputs": "Geopolitical Risk Inputs",
+            "enable_geopolitical_shock": "Enable Geopolitical Shock",
+            "geopolitical_event_type": "Geopolitical Event Type",
+            "geopolitical_severity": "Conflict Severity",
+            "geopolitical_duration_days": "Shock Duration Days",
+            "fossil_share": "Fossil Fuel Share",
+            "geopolitical_panel": "Geopolitical Energy Shock",
+            "oil_supply_disruption": "Oil Supply Disruption",
+            "price_spike_index": "Price Spike Index",
+            "geopolitical_grid_stress": "Geopolitical Grid Stress",
+            "geopolitical_risk_level": "Geopolitical Risk Level",
+            "geopolitical_reason_chain": "Geopolitical Reason Chain",
+            "geopolitical_model_note": "This module converts geopolitical tension into energy-system stress. It is for decision support, not prediction.",
+            "visual_simulator": "Visual Scenario Simulator",
+            "visual_scenario": "Visual Scenario",
+            "visual_simulator_note": "This visual layer turns the current model outputs into an intuitive disruption map. It is designed for quick explanation during demos, not as a GIS or real-time weather product."
         },
         "繁體中文": {
             "sim_hours": "模擬時數",
@@ -1330,7 +1609,23 @@ def extend_i18n():
             "forecast_chart_note": "這張圖會把各能源在 forecast horizon 中的預測值，以及上下信賴帶一起畫出來。",
             "source_logic": "來源預測邏輯",
             "source_logic_note": "不同能源的加速/阻尼不一樣。太陽能與風能對天氣變化更敏感，地熱較平穩，水力通常介於中間，極端情境下不確定性會再放大。",
-            "source_forecast_factor": "來源預測因子"
+            "source_forecast_factor": "來源預測因子",
+            "geopolitical_inputs": "地緣政治風險輸入",
+            "enable_geopolitical_shock": "啟用地緣政治衝擊",
+            "geopolitical_event_type": "地緣政治事件類型",
+            "geopolitical_severity": "衝突嚴重度",
+            "geopolitical_duration_days": "衝擊持續天數",
+            "fossil_share": "化石燃料占比",
+            "geopolitical_panel": "地緣政治能源衝擊",
+            "oil_supply_disruption": "油氣供應中斷",
+            "price_spike_index": "價格衝擊指數",
+            "geopolitical_grid_stress": "地緣政治電網壓力",
+            "geopolitical_risk_level": "地緣政治風險等級",
+            "geopolitical_reason_chain": "地緣政治理由鏈",
+            "geopolitical_model_note": "此模組將地緣政治緊張轉換為能源系統壓力，僅供決策支援，不是預測。",
+            "visual_simulator": "情境視覺模擬器",
+            "visual_scenario": "視覺情境",
+            "visual_simulator_note": "此視覺層會把目前模型輸出轉成直覺化的中斷圖，適合 Demo 快速說明；它不是 GIS，也不是即時氣象產品。"
         },
     }
     for lang, mapping in extras.items():
@@ -1432,6 +1727,14 @@ with st.sidebar:
     reserve_recovery_lag_days = st.number_input(tr("reserve_recovery_lag_days"), 0, 30, 3, 1)
 
     st.divider()
+    st.subheader(tr("geopolitical_inputs"))
+    enable_geopolitical_shock = st.toggle(tr("enable_geopolitical_shock"), value=False)
+    geopolitical_event_type = st.selectbox(tr("geopolitical_event_type"), list(GEOPOLITICAL_EVENT_WEIGHTS.keys()), index=0)
+    geopolitical_severity = st.slider(tr("geopolitical_severity"), 0, 5, 2, 1)
+    geopolitical_duration_days = st.slider(tr("geopolitical_duration_days"), 0, 90, 7, 1)
+    fossil_share = st.slider(tr("fossil_share"), 0.0, 1.0, 0.40, 0.05)
+
+    st.divider()
     st.subheader(tr("time_window_control"))
     rolling_window_rows = st.slider(tr("time_window_rows"), 2, 8, 3, 1)
     forecast_steps = st.slider(tr("forecast_steps"), 1, 6, 2, 1)
@@ -1481,6 +1784,16 @@ results, _ = apply_energy_security_layer(
     reserve_recovery_lag_days=reserve_recovery_lag_days,
 )
 results = apply_extended_security(results, 0.2, 0.8, 7, 0.25, 0.2)
+
+geopolitical_shock = calculate_geopolitical_shock(
+    event_type=geopolitical_event_type if enable_geopolitical_shock else "None",
+    severity=geopolitical_severity if enable_geopolitical_shock else 0,
+    duration_days=geopolitical_duration_days if enable_geopolitical_shock else 0,
+    import_dependency=import_dependency,
+    fossil_share=fossil_share,
+    shipping_dependency=shipping_dependency,
+)
+results = apply_geopolitical_shock_to_results(results, geopolitical_shock)
 
 timeline_results = simulate_survival_timeline(
     demand=results["demand"],
@@ -1544,6 +1857,8 @@ with top_right:
         mini_card(tr("weather_scenario"), scenario_key.replace("_", " ").title())
     with c2:
         mini_card("Energy Security", energy_security_scenario.replace("_", " ").title())
+        if enable_geopolitical_shock:
+            mini_card(tr("geopolitical_risk_level"), geopolitical_shock["risk_level"])
         mini_card("Facility Tolerance", f"{facility_profile['failure_tolerance_hours']} h")
         mini_card("Import Dependency", f"{import_dependency * 100:.0f}%")
         mini_card("Timeline Horizon", f"{simulation_hours} h")
@@ -1573,7 +1888,12 @@ status_cols[3].metric(tr("status_reserve"), build_status_label(results.get("rese
 summary_txt = json.dumps({"summary": "use export"}, ensure_ascii=False)
 buf_scen = StringIO(); comparison_dataframe(inputs, failure_ratios, reserve_recovery_lag_days).to_csv(buf_scen, index=False)
 buf_reason = StringIO(); pd.DataFrame(recommendation_reason_chain(results, energy_security_scenario, timeline_results, facility_type, facility_profile)).to_csv(buf_reason, index=False)
-audit_json = json.dumps({"country": active_country, "city": active_city, "facility_type": facility_type}, indent=2, ensure_ascii=False)
+audit_json = json.dumps({
+    "country": active_country,
+    "city": active_city,
+    "facility_type": facility_type,
+    "geopolitical_shock": geopolitical_shock,
+}, indent=2, ensure_ascii=False)
 
 download_cols = st.columns(4)
 with download_cols[0]:
@@ -1586,7 +1906,7 @@ with download_cols[3]:
     st.download_button(tr("download_audit"), audit_json, file_name="taivas_audit_trail.json", mime="application/json")
 
 tabs = st.tabs(tr("tabs"))
-mix_tab, compare_tab, stress_tab, ai_tab, sec_tab, timeline_tab, concept_tab = tabs
+mix_tab, compare_tab, stress_tab, ai_tab, sec_tab, timeline_tab, visual_tab, concept_tab = tabs
 
 with mix_tab:
     page_question(tr("tabs")[0])
@@ -1658,6 +1978,17 @@ with sec_tab:
     row1[2].metric("Fuel Cost Stress", f"{results['fuel_cost_stress']}%")
     row1[3].metric("Extended Disruption", f"{results['extended_disruption_score']}%")
 
+    st.subheader(tr("geopolitical_panel"))
+    st.markdown(f'<div class="note">{tr("geopolitical_model_note")}</div>', unsafe_allow_html=True)
+    geo_cols = st.columns(4)
+    geo_cols[0].metric(tr("oil_supply_disruption"), f"{geopolitical_shock['oil_supply_disruption_percent']}%")
+    geo_cols[1].metric(tr("price_spike_index"), geopolitical_shock["price_spike_index"])
+    geo_cols[2].metric(tr("geopolitical_grid_stress"), geopolitical_shock["grid_stress_index"])
+    geo_cols[3].metric(tr("geopolitical_risk_level"), geopolitical_shock["risk_level"])
+    st.caption(geopolitical_shock.get("event_note", ""))
+    st.subheader(tr("geopolitical_reason_chain"))
+    st.dataframe(build_geopolitical_reason_chain(geopolitical_shock, results), use_container_width=True, hide_index=True)
+
 with timeline_tab:
     page_question(tr("tabs")[5])
     t1, t2, t3 = st.columns(3)
@@ -1673,8 +2004,13 @@ with timeline_tab:
     st.subheader(tr("timeline_table"))
     st.dataframe(timeline_df, use_container_width=True, hide_index=True)
 
-with concept_tab:
+with visual_tab:
     page_question(tr("tabs")[6])
+    st.subheader(tr("visual_simulator"))
+    render_visual_scenario_layer(results, baseline_results, geopolitical_shock)
+
+with concept_tab:
+    page_question(tr("tabs")[7])
     st.markdown(f'<div class="note">{tr("concept_note")}</div>', unsafe_allow_html=True)
     concept_tabs = st.tabs(tr("thermal_tabs"))
     base_damage_pct = round((sum(failure_ratios.values()) / len(failure_ratios)) * 100, 1)
