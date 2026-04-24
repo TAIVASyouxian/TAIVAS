@@ -5,6 +5,18 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 
+# Dark-mode friendly chart defaults for Streamlit dashboards.
+plt.rcParams.update({
+    "text.color": "#E5E7EB",
+    "axes.labelcolor": "#E5E7EB",
+    "axes.edgecolor": "#94A3B8",
+    "xtick.color": "#CBD5E1",
+    "ytick.color": "#CBD5E1",
+    "axes.titlecolor": "#F8FAFC",
+    "figure.facecolor": "none",
+    "axes.facecolor": "none",
+})
+
 from modules.charts import make_donut_chart
 from modules.recommendations import recommendation_lines
 from modules.energy_security import apply_energy_security_layer, ENERGY_SECURITY_SCENARIOS
@@ -1093,6 +1105,14 @@ st.markdown("""
     margin-bottom: 0.75rem;
     line-height: 1.55;
 }
+.product-strip {display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:0.75rem; margin:0.8rem 0 1rem 0;}
+.product-card {padding:0.9rem 1rem; border-radius:18px; border:1px solid rgba(255,255,255,0.10); background:linear-gradient(145deg, rgba(15,23,42,0.78), rgba(30,41,59,0.42));}
+.product-label {font-size:0.78rem; opacity:0.72; margin-bottom:0.35rem;}
+.product-value {font-size:1.25rem; font-weight:800;}
+.product-sub {font-size:0.78rem; opacity:0.74; margin-top:0.2rem;}
+.notice-box {padding:0.85rem 1rem; border-radius:16px; background:rgba(245,158,11,0.10); border:1px solid rgba(245,158,11,0.28); line-height:1.55; margin:0.8rem 0;}
+.demo-pill {display:inline-block; padding:0.25rem 0.55rem; border-radius:999px; margin-left:0.35rem; background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.32); font-size:0.78rem;}
+@media (max-width: 900px) {.product-strip {grid-template-columns: repeat(2, minmax(0,1fr));}}
 .card {
     padding: 0.82rem 0.95rem;
     border-radius: 14px;
@@ -1639,6 +1659,15 @@ with st.sidebar:
     st.session_state["ui_lang"] = ui_lang
     st.header(tr("controls"))
 
+    demo_mode = st.selectbox(
+        "Demo Mode",
+        ["Manual", "Taiwan Typhoon", "Finland Blizzard", "Germany Energy Security", "Middle East Shock"],
+        index=0,
+        help="Use a prepared scenario for fast demos. Manual keeps all sidebar values unchanged.",
+    )
+    if demo_mode != "Manual":
+        st.caption(f"Demo preset active: {demo_mode}")
+
     uploaded_baseline_file = st.file_uploader(tr("uploaded_data"), type=["csv"], key="uploaded_baseline_csv")
     uploaded_df = safe_read_csv(uploaded_baseline_file)
     uploaded_profiles = build_uploaded_profiles(uploaded_df)
@@ -1755,6 +1784,64 @@ with st.sidebar:
     recovery_efficiency = st.slider(tr("thermal_recovery_efficiency"), 0.0, 1.0, 0.72, 0.01)
     thermal_animation_speed = st.slider(tr("animation_speed"), 0.4, 2.5, 1.0, 0.1)
 
+# V4 Demo Mode presets: override runtime values after widgets are created,
+# so manual controls remain available while demos can be activated instantly.
+if demo_mode != "Manual":
+    demo_presets = {
+        "Taiwan Typhoon": {
+            "country": "Taiwan", "city": "Taipei", "population": 2500000,
+            "scenario_key": "typhoon", "temperature": 29, "wind_speed": 18.0,
+            "solar_radiation": 180, "precipitation": 160, "humidity": 92,
+            "solar_failure_ratio": 0.25, "wind_failure_ratio": 0.18, "hydro_failure_ratio": 0.12, "battery_failure_ratio": 0.08,
+            "enable_geopolitical_shock": False,
+        },
+        "Finland Blizzard": {
+            "country": "Finland", "city": "Helsinki", "population": 664000,
+            "scenario_key": "blizzard", "temperature": -12, "wind_speed": 14.0,
+            "solar_radiation": 90, "precipitation": 80, "humidity": 84,
+            "solar_failure_ratio": 0.35, "wind_failure_ratio": 0.16, "hydro_failure_ratio": 0.08, "battery_failure_ratio": 0.10,
+            "enable_geopolitical_shock": False,
+        },
+        "Germany Energy Security": {
+            "country": "Germany", "city": "Berlin", "population": 3570000,
+            "scenario_key": "cold_wave", "temperature": 1, "wind_speed": 5.5,
+            "solar_radiation": 220, "precipitation": 28, "humidity": 78,
+            "import_dependency": 0.62, "shipping_dependency": 0.55, "infrastructure_damage_ratio": 0.12,
+            "reserve_recovery_lag_days": 7, "enable_geopolitical_shock": False,
+        },
+        "Middle East Shock": {
+            "country": active_country, "city": active_city, "population": population,
+            "scenario_key": scenario_key, "import_dependency": max(import_dependency, 0.78),
+            "shipping_dependency": max(shipping_dependency, 0.90), "infrastructure_damage_ratio": max(infrastructure_damage_ratio, 0.18),
+            "reserve_recovery_lag_days": max(reserve_recovery_lag_days, 10),
+            "enable_geopolitical_shock": True, "geopolitical_event_type": "Hormuz disruption",
+            "geopolitical_severity": 4, "geopolitical_duration_days": 21, "fossil_share": max(fossil_share, 0.55),
+        },
+    }
+    preset = demo_presets.get(demo_mode, {})
+    active_country = preset.get("country", active_country)
+    active_city = preset.get("city", active_city)
+    population = int(preset.get("population", population))
+    scenario_key = preset.get("scenario_key", scenario_key)
+    temperature = preset.get("temperature", temperature)
+    wind_speed = preset.get("wind_speed", wind_speed)
+    solar_radiation = preset.get("solar_radiation", solar_radiation)
+    precipitation = preset.get("precipitation", precipitation)
+    humidity = preset.get("humidity", humidity)
+    solar_failure_ratio = preset.get("solar_failure_ratio", solar_failure_ratio)
+    wind_failure_ratio = preset.get("wind_failure_ratio", wind_failure_ratio)
+    hydro_failure_ratio = preset.get("hydro_failure_ratio", hydro_failure_ratio)
+    battery_failure_ratio = preset.get("battery_failure_ratio", battery_failure_ratio)
+    import_dependency = preset.get("import_dependency", import_dependency)
+    shipping_dependency = preset.get("shipping_dependency", shipping_dependency)
+    infrastructure_damage_ratio = preset.get("infrastructure_damage_ratio", infrastructure_damage_ratio)
+    reserve_recovery_lag_days = preset.get("reserve_recovery_lag_days", reserve_recovery_lag_days)
+    enable_geopolitical_shock = preset.get("enable_geopolitical_shock", enable_geopolitical_shock)
+    geopolitical_event_type = preset.get("geopolitical_event_type", geopolitical_event_type)
+    geopolitical_severity = preset.get("geopolitical_severity", geopolitical_severity)
+    geopolitical_duration_days = preset.get("geopolitical_duration_days", geopolitical_duration_days)
+    fossil_share = preset.get("fossil_share", fossil_share)
+
 failure_ratios = {
     "solar": solar_failure_ratio,
     "wind": wind_failure_ratio,
@@ -1826,7 +1913,7 @@ trend_estimate_df, multistep_forecast_df, trend_meta = compute_trend_estimates(i
 
 st.title(tr("title"))
 st.caption(tr("caption"))
-st.caption("V3 Workspace Mode • Executive / Analyst / Concept views")
+st.caption("V4 Product Polish • Demo Mode / Export Center / Decision Support Guardrails")
 st.markdown(f'<div class="hero"><h3>{tr("hero_title")}</h3><p>{tr("hero_body")}</p></div>', unsafe_allow_html=True)
 
 layer_cols = st.columns(3)
@@ -1886,25 +1973,96 @@ status_cols[1].metric(tr("status_eff"), build_status_label(results["system_effic
 status_cols[2].metric(tr("status_grid"), build_status_label(results["grid_dependency"], (10, 25)))
 status_cols[3].metric(tr("status_reserve"), build_status_label(results.get("reserve_days_remaining", 0), (14, 7), reverse=True))
 
-summary_txt = json.dumps({"summary": "use export"}, ensure_ascii=False)
+def build_executive_summary_text():
+    lines = [
+        "TAIVAS Executive Summary",
+        "========================",
+        f"Demo Mode: {demo_mode}",
+        f"Location: {active_city}, {active_country}",
+        f"Facility: {facility_type}",
+        f"Weather Scenario: {scenario_key}",
+        f"Energy Security Scenario: {energy_security_scenario}",
+        "",
+        "Core Metrics",
+        f"- Demand: {results['demand']} MW",
+        f"- Renewable Supply: {results['renewable_supply']} MW",
+        f"- Final Supply: {results['final_supply']} MW",
+        f"- Shortfall: {results['shortfall']} MW",
+        f"- Battery Remaining: {results['battery_levels']} MWh",
+        f"- System Efficiency: {results['system_efficiency']}%",
+        f"- Grid Dependency: {results['grid_dependency']}%",
+        "",
+        "Risk Notes",
+        f"- Geopolitical Risk Level: {geopolitical_shock.get('risk_level', 'N/A')}",
+        f"- Oil/Gas Supply Disruption: {geopolitical_shock.get('oil_supply_disruption_percent', 0)}%",
+        f"- Estimated Hours Until Shortfall: {timeline_results.get('hours_until_shortfall')}",
+        f"- Estimated Hours Until Critical Failure: {timeline_results.get('hours_until_critical_failure')}",
+        "",
+        "Model Limitation",
+        "TAIVAS is a decision-support simulator. It does not guarantee real-world outcomes and does not replace engineering, grid-operator, legal, security, or emergency-management validation.",
+    ]
+    return "\n".join(lines)
+
+
+def render_product_notice():
+    st.markdown(
+        """
+        <div class="notice-box">
+        <b>Decision-support notice:</b> TAIVAS converts scenario assumptions into operational risk signals.
+        It is not a disaster prediction engine, not a guarantee of physical system behavior, and not a substitute for professional engineering validation.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_executive_overview_workspace():
+    if demo_mode != "Manual":
+        st.markdown(f"<span class='demo-pill'>Demo Mode: {demo_mode}</span>", unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <div class="product-strip">
+          <div class="product-card"><div class="product-label">Location</div><div class="product-value">{active_city}</div><div class="product-sub">{active_country}</div></div>
+          <div class="product-card"><div class="product-label">Scenario</div><div class="product-value">{scenario_key.replace('_',' ').title()}</div><div class="product-sub">{energy_security_scenario.replace('_',' ').title()}</div></div>
+          <div class="product-card"><div class="product-label">Shortfall</div><div class="product-value">{results['shortfall']} MW</div><div class="product-sub">Grid dependency {results['grid_dependency']}%</div></div>
+          <div class="product-card"><div class="product-label">Recommendation Focus</div><div class="product-value">{build_status_label(results['shortfall'], (5, 15)).title()}</div><div class="product-sub">Protect critical load first</div></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    render_product_notice()
+    st.subheader("Executive Recommendation")
+    for idx, line in enumerate(recommendation_lines(results, energy_security_scenario)[:3], 1):
+        st.write(f"{idx}. {line}")
+
+
+summary_txt = build_executive_summary_text()
 buf_scen = StringIO(); comparison_dataframe(inputs, failure_ratios, reserve_recovery_lag_days).to_csv(buf_scen, index=False)
 buf_reason = StringIO(); pd.DataFrame(recommendation_reason_chain(results, energy_security_scenario, timeline_results, facility_type, facility_profile)).to_csv(buf_reason, index=False)
 audit_json = json.dumps({
+    "version": "V4 Product Polish",
+    "demo_mode": demo_mode,
     "country": active_country,
     "city": active_city,
     "facility_type": facility_type,
+    "scenario_key": scenario_key,
+    "results": results,
+    "timeline": timeline_results,
     "geopolitical_shock": geopolitical_shock,
+    "model_limitation": "Decision-support simulation only; not a prediction or guarantee.",
 }, indent=2, ensure_ascii=False)
 
-download_cols = st.columns(4)
-with download_cols[0]:
-    st.download_button(tr("download_scenario"), buf_scen.getvalue(), file_name="taivas_scenarios.csv", mime="text/csv")
-with download_cols[1]:
-    st.download_button(tr("download_reason"), buf_reason.getvalue(), file_name="taivas_reason_chain.csv", mime="text/csv")
-with download_cols[2]:
-    st.download_button(tr("download_summary"), summary_txt, file_name="taivas_executive_summary.txt", mime="text/plain")
-with download_cols[3]:
-    st.download_button(tr("download_audit"), audit_json, file_name="taivas_audit_trail.json", mime="application/json")
+with st.expander("Export Center", expanded=False):
+    st.caption("Download scenario data, reason chain, executive summary, or audit trail when needed.")
+    download_cols = st.columns(4)
+    with download_cols[0]:
+        st.download_button(tr("download_scenario"), buf_scen.getvalue(), file_name="taivas_scenarios.csv", mime="text/csv")
+    with download_cols[1]:
+        st.download_button(tr("download_reason"), buf_reason.getvalue(), file_name="taivas_reason_chain.csv", mime="text/csv")
+    with download_cols[2]:
+        st.download_button(tr("download_summary"), summary_txt, file_name="taivas_executive_summary.txt", mime="text/plain")
+    with download_cols[3]:
+        st.download_button(tr("download_audit"), audit_json, file_name="taivas_audit_trail.json", mime="application/json")
 
 def render_energy_mix_workspace():
     page_question(tr("tabs")[0])
@@ -2054,7 +2212,7 @@ def render_concept_lab_workspace():
 
 
 # -----------------------------------------------------------------------------
-# V3 Workspace Mode Layer
+# V4 Product Polish Workspace Layer
 # Users choose a workspace first, then see only the tabs relevant to that task.
 # -----------------------------------------------------------------------------
 st.markdown("---")
@@ -2074,14 +2232,16 @@ workspace_note = {
 st.markdown(f'<div class="note">{workspace_note[workspace_mode]}</div>', unsafe_allow_html=True)
 
 if workspace_mode == "Executive Dashboard":
-    executive_tabs = st.tabs(["Energy Mix", "Visual Simulator", "AI Recommendation", "Energy Security"])
+    executive_tabs = st.tabs(["Operational Overview", "Visual Simulator", "AI Recommendation", "Energy Mix", "Energy Security"])
     with executive_tabs[0]:
-        render_energy_mix_workspace()
+        render_executive_overview_workspace()
     with executive_tabs[1]:
         render_visual_simulator_workspace()
     with executive_tabs[2]:
         render_ai_recommendation_workspace()
     with executive_tabs[3]:
+        render_energy_mix_workspace()
+    with executive_tabs[4]:
         render_energy_security_workspace()
 
 elif workspace_mode == "Analyst Workspace":
