@@ -1,0 +1,13 @@
+TAIVAS V8 Product Tiers
+
+Added:
+- Product Tier sidebar selector.
+- Demo / Pro / Enterprise product tier framing.
+- Workspace access controlled by selected tier.
+- Product tier panel for external reviewers.
+
+Unchanged:
+- Core energy model.
+- Forecast model.
+- Export center.
+- Docker deployment package.
