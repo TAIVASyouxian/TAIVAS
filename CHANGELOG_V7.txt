@@ -1,0 +1,17 @@
+TAIVAS V7 - Docker / Deployment Ready
+
+Changes:
+- Added taivas_control_center_v7_docker_ready.py as the V7 entry point.
+- Added Dockerfile for container deployment.
+- Added .dockerignore to keep Docker builds clean.
+- Added README_DOCKER_DEPLOYMENT.md.
+- Added DEPLOYMENT_HEALTHCHECK.md.
+
+Not changed:
+- No formula rewrite.
+- No UI redesign.
+- No scenario logic change.
+- No Streamlit Cloud requirement change.
+
+Purpose:
+- Prepare TAIVAS for technical deployment review, VPS/cloud deployment, and future enterprise testing.
