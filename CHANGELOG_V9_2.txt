@@ -1,0 +1,7 @@
+# CHANGELOG V9.2
+
+- Added real demo preset auto-fill.
+- Added Apply buttons for guided onboarding scenarios.
+- Expanded Demo Mode options.
+- Preserved V8 product tiers and V9.1 onboarding.
+- No core formula changes.
