@@ -1,0 +1,4 @@
+V9.3
+- Fixed visible demo auto-fill.
+- Demo Mode now pre-fills country, city, scenario, weather, stress, and energy-security values.
+- No model formula changes.
