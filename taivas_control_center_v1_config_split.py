@@ -29,6 +29,11 @@ from concept_lab_components import (
     render_distributed_harvesting_buffering_concept,
 )
 
+st.set_page_config(page_title="TAIVAS Energy Control Center", layout="wide")
+
+if "ui_lang" not in st.session_state:
+    st.session_state["ui_lang"] = "English"
+
 from data_config import CITY_DATA, COUNTRY_NOTES, SCENARIOS
 from facility_config import FACILITY_PROFILES
 from i18n_config import I18N, PAGE_QUESTIONS

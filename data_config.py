@@ -2,11 +2,6 @@
 # V1 safe config split: data/config only.
 
 
-st.set_page_config(page_title="TAIVAS Energy Control Center", layout="wide")
-
-if "ui_lang" not in st.session_state:
-    st.session_state["ui_lang"] = "English"
-
 CITY_DATA = {
     "Taiwan": {
         "Taipei": {"lat": 25.0330, "lon": 121.5654, "population": 2500000, "country_model": "Island Resilience Model"},
