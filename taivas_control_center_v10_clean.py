@@ -405,7 +405,7 @@ def render_reserve_outlook_panel(reference_avg, results, timeline_results):
     c5.metric(tr("estimated_refill_time"), estimate_refill_hours(results, timeline_results))
 
 
-def st.info("Trend module disabled (V10 CLEAN)."):
+ st.info("Trend module disabled (V10 CLEAN)."):
     st.subheader(tr("trend_panel"))
     st.markdown(f'<div class="note">{tr("trend_panel_note")}</div>', unsafe_allow_html=True)
     meta_cols = st.columns(4)
