@@ -1,34 +1,17 @@
-
-# TAIVAS V10 FINAL (EXTERNAL VERSION)
-
+# TAIVAS V10 FINAL - External stable wrapper
 import streamlit as st
 
-# --- Feature Flags (External Clean Version) ---
-FEATURE_FLAGS = {
-    "trend": False,
-    "concept_lab": True,
-}
-
-# --- Safe Wrapper ---
-def safe_run(func, *args, **kwargs):
-    try:
-        return func(*args, **kwargs)
-    except:
-        return None
-
-# --- Disable trend completely ---
+# Disable trend/forecast safely. TAIVAS is positioned as decision-support simulation, not prediction.
 try:
     import taivas_core.trend_forecast as tf
     def disabled_trend(*args, **kwargs):
         return None, None, {"status": "disabled"}
     tf.compute_trend_estimates = disabled_trend
-except:
+except Exception:
     pass
 
-# --- Import original system ---
 from taivas_control_center_v9_5_clean import *
 
-# --- External Notice ---
 st.markdown("""
 ### TAIVAS Decision-Support Simulation
 
