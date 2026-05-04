@@ -1,330 +1,245 @@
-"""Trend, history sorting, and forecast helpers for TAIVAS.
+"""TAIVAS trend / forecast helpers V10.2.
 
-This module was split out in V3 so the Streamlit main file can stay focused on UI/rendering.
+This module no longer depends on the old taivas_core.energy_model assumptions.
+It imports the V10.2-compatible compute_energy_supply from the same folder.
 """
+
+from __future__ import annotations
+
+from typing import Any, Dict, Tuple
 
 import pandas as pd
 
-from data_config import SCENARIOS
-from taivas_core.energy_model import compute_energy_supply
+from .energy_model import compute_energy_supply
+from .utils import clamp, safe_div
 
-try:
-    import streamlit as st
-    from i18n_config import I18N
-except Exception:  # Allows static checking outside Streamlit.
-    st = None
-    I18N = {"English": {}}
-
-
-def tr(key: str) -> str:
-    """Return the active UI label while keeping the forecast module import-safe."""
-    if st is None:
-        return key
-    lang_pack = I18N.get(st.session_state.get("ui_lang", "English"), I18N.get("English", {}))
-    return lang_pack.get(key, I18N.get("English", {}).get(key, key))
-
-
-def compute_reference_average(inputs, uploaded_df, selected_country, selected_city):
-    # Use uploaded historical rows first when available; otherwise fall back to model average across scenarios.
-    source_order = ["Solar", "Wind", "Geothermal", "Hydro"]
-    rows = []
-    if uploaded_df is not None and not uploaded_df.empty:
-        tmp = uploaded_df.copy()
-        if "country_key" in tmp.columns and "city_key" in tmp.columns:
-            tmp["_country"] = tmp["country_key"].astype(str).str.strip().str.title()
-            tmp["_city"] = tmp["city_key"].astype(str).str.strip().str.title()
-            matched = tmp[(tmp["_country"] == str(selected_country).title()) & (tmp["_city"] == str(selected_city).title())]
-            if matched.empty:
-                matched = tmp
-        else:
-            matched = tmp
-        for _, r in matched.iterrows():
-            local_inputs = dict(inputs)
-            local_inputs["temperature"] = safe_float(r["temperature"], inputs["temperature"]) if "temperature" in matched.columns else inputs["temperature"]
-            local_inputs["wind_speed"] = safe_float(r["wind_speed"], inputs["wind_speed"]) if "wind_speed" in matched.columns else inputs["wind_speed"]
-            local_inputs["solar_radiation"] = safe_float(r["solar_radiation"], inputs["solar_radiation"]) if "solar_radiation" in matched.columns else inputs["solar_radiation"]
-            local_inputs["precipitation"] = safe_float(r["precipitation"], inputs["precipitation"]) if "precipitation" in matched.columns else inputs["precipitation"]
-            local_inputs["humidity"] = safe_float(r["humidity"], inputs["humidity"]) if "humidity" in matched.columns else inputs["humidity"]
-            local_inputs["population"] = safe_int(r["population"], inputs["population"]) if "population" in matched.columns else inputs["population"]
-            local_inputs["solar_capacity"] = safe_float(r["solar_capacity"], inputs["solar_capacity"]) if "solar_capacity" in matched.columns else inputs["solar_capacity"]
-            local_inputs["wind_capacity"] = safe_float(r["wind_capacity"], inputs["wind_capacity"]) if "wind_capacity" in matched.columns else inputs["wind_capacity"]
-            local_inputs["geothermal_capacity"] = safe_float(r["geothermal_capacity"], inputs["geothermal_capacity"]) if "geothermal_capacity" in matched.columns else inputs["geothermal_capacity"]
-            local_inputs["hydro_capacity"] = safe_float(r["hydro_capacity"], inputs["hydro_capacity"]) if "hydro_capacity" in matched.columns else inputs["hydro_capacity"]
-            local_inputs["battery_capacity"] = safe_float(r["battery_capacity"], inputs["battery_capacity"]) if "battery_capacity" in matched.columns else inputs["battery_capacity"]
-            rr = compute_energy_supply(local_inputs, "normal", {k: 0.0 for k in ["solar", "wind", "geothermal", "hydro", "battery"]}, 0)
-            rows.append(rr)
-    if not rows:
-        for sk in SCENARIOS.keys():
-            rr = compute_energy_supply(inputs, sk, {k: 0.0 for k in ["solar", "wind", "geothermal", "hydro", "battery"]}, 0)
-            rows.append(rr)
-    avg_mix_pct = {s: round(sum(r["actual_mix_pct"].get(s, 0.0) for r in rows) / len(rows), 2) for s in source_order}
-    avg_mix_mw = {s: round(sum(r["actual_mix_mw"].get(s, 0.0) for r in rows) / len(rows), 2) for s in source_order}
-    avg_supply = round(sum(r["renewable_supply"] for r in rows) / len(rows), 2)
-    return {"avg_mix_pct": avg_mix_pct, "avg_mix_mw": avg_mix_mw, "avg_supply": avg_supply, "used_uploaded_history": uploaded_df is not None and not uploaded_df.empty and len(rows) > 0}
-
-def build_energy_contribution_df(results, baseline_results, reference_avg):
-    rows = []
-    source_order = ["Solar", "Wind", "Geothermal", "Hydro"]
-    demand = max(float(results["demand"]), 0.0)
-    renewable_supply = max(float(results["renewable_supply"]), 0.0)
-    for source in source_order:
-        current_share = float(results["actual_mix_pct"].get(source, 0.0))
-        avg_share = float(reference_avg["avg_mix_pct"].get(source, 0.0))
-        current_mw = float(results["actual_mix_mw"].get(source, 0.0))
-        installed_mw = float(results["installed_mix_mw"].get(source, 0.0))
-        normal_share = float(baseline_results["actual_mix_pct"].get(source, 0.0))
-        estimated_use = min(current_mw, demand * (current_share / 100.0))
-        remaining_margin = max(installed_mw - current_mw, 0.0)
-        change_from_normal = current_share - normal_share
-        rows.append({
-            tr("source"): source,
-            tr("current_share"): round(current_share, 2),
-            tr("historical_average_share"): round(avg_share, 2),
-            tr("current_output_mw"): round(current_mw, 2),
-            tr("estimated_use_mw"): round(estimated_use, 2),
-            tr("remaining_margin_mw"): round(remaining_margin, 2),
-            tr("change_from_normal"): round(change_from_normal, 2),
-            "_sort_share": current_share,
-        })
-    df = pd.DataFrame(rows).sort_values("_sort_share", ascending=False).reset_index(drop=True)
-    return df.drop(columns=["_sort_share"])
-
-def compute_trend_estimates(inputs, uploaded_df, selected_country, selected_city, baseline_results, scenario_key="normal", rolling_window_rows=3, forecast_steps=2, confidence_level=1.0):
-    source_order = ["Solar", "Wind", "Geothermal", "Hydro"]
-    scenario_factor_map = {
-        "normal": 1.00,
-        "heat_wave": 1.10,
-        "storm": 1.22,
-        "cold_wave": 1.15,
-        "blizzard": 1.35,
-        "typhoon": 1.42,
-    }
-    scenario_conf_factor = float(scenario_factor_map.get(str(scenario_key), 1.10))
-    records = []
-    history_count = 0
-    timestamp_col = None
-    sorting_mode = "original"
-    if uploaded_df is not None and not uploaded_df.empty:
-        sorted_df, timestamp_col, sorting_mode = sort_history_df(uploaded_df)
-        tmp = sorted_df.copy()
-        if "country_key" in tmp.columns and "city_key" in tmp.columns:
-            tmp["_country"] = tmp["country_key"].astype(str).str.strip().str.title()
-            tmp["_city"] = tmp["city_key"].astype(str).str.strip().str.title()
-            matched = tmp[(tmp["_country"] == str(selected_country).title()) & (tmp["_city"] == str(selected_city).title())]
-            if matched.empty:
-                matched = tmp
-        else:
-            matched = tmp
-        history_count = len(matched)
-        for _, r in matched.iterrows():
-            local_inputs = dict(inputs)
-            for key, default in [
-                ("temperature", inputs["temperature"]),
-                ("wind_speed", inputs["wind_speed"]),
-                ("solar_radiation", inputs["solar_radiation"]),
-                ("precipitation", inputs["precipitation"]),
-                ("humidity", inputs["humidity"]),
-                ("population", inputs["population"]),
-                ("solar_capacity", inputs["solar_capacity"]),
-                ("wind_capacity", inputs["wind_capacity"]),
-                ("geothermal_capacity", inputs["geothermal_capacity"]),
-                ("hydro_capacity", inputs["hydro_capacity"]),
-                ("battery_capacity", inputs["battery_capacity"]),
-            ]:
-                if key in matched.columns:
-                    local_inputs[key] = safe_float(r[key], default) if key != "population" else safe_int(r[key], default)
-            rr = compute_energy_supply(local_inputs, "normal", {k: 0.0 for k in ["solar", "wind", "geothermal", "hydro", "battery"]}, 0)
-            records.append(rr)
-    if not records:
-        fallback_keys = list(SCENARIOS.keys())
-        records = [compute_energy_supply(inputs, sk, {k: 0.0 for k in ["solar", "wind", "geothermal", "hydro", "battery"]}, 0) for sk in fallback_keys]
-        history_count = len(records)
-
-    window = max(2, min(int(rolling_window_rows), max(2, len(records))))
-    recent_records = records[-window:]
-    prev_records = records[-(window * 2):-window] if len(records) >= window * 2 else records[:-window]
-
-    rolling_avg = {s: round(sum(r["actual_mix_pct"].get(s, 0.0) for r in recent_records) / max(len(recent_records), 1), 2) for s in source_order}
-    if prev_records:
-        prev_avg = {s: round(sum(r["actual_mix_pct"].get(s, 0.0) for r in prev_records) / max(len(prev_records), 1), 2) for s in source_order}
-    else:
-        prev_avg = {s: float(baseline_results["actual_mix_pct"].get(s, 0.0)) for s in source_order}
-
-    recent_trend = {s: round(rolling_avg[s] - float(prev_avg.get(s, 0.0)), 2) for s in source_order}
-
-    if len(recent_records) > 1:
-        volatility = {
-            s: max(r["actual_mix_pct"].get(s, 0.0) for r in recent_records) - min(r["actual_mix_pct"].get(s, 0.0) for r in recent_records)
-            for s in source_order
-        }
-    else:
-        volatility = {s: abs(recent_trend[s]) for s in source_order}
-
-    next_step = {}
-    source_factor_map = {
-        "Solar": {"normal": 1.00, "heat_wave": 1.12, "storm": 0.90, "cold_wave": 0.92, "blizzard": 0.78, "typhoon": 0.72},
-        "Wind": {"normal": 1.00, "heat_wave": 0.92, "storm": 1.20, "cold_wave": 0.98, "blizzard": 0.90, "typhoon": 0.82},
-        "Geothermal": {"normal": 1.00, "heat_wave": 1.01, "storm": 1.00, "cold_wave": 1.00, "blizzard": 1.00, "typhoon": 1.00},
-        "Hydro": {"normal": 1.00, "heat_wave": 0.95, "storm": 1.08, "cold_wave": 0.98, "blizzard": 0.94, "typhoon": 0.86},
-    }
-    next_step = {}
-    for s in source_order:
-        source_factor = float(source_factor_map.get(s, {}).get(str(scenario_key), 1.0))
-        projected = max(0.0, rolling_avg[s] + recent_trend[s] * max(1, int(forecast_steps)) * 0.5 * source_factor)
-        next_step[s] = round(projected, 2)
-    total_next = sum(next_step.values())
-    if total_next > 0:
-        next_step = {s: round(v / total_next * 100.0, 2) for s, v in next_step.items()}
-
-    trend_rows = []
-    multistep_rows = []
-    for s in source_order:
-        delta = recent_trend[s]
-        if delta > 0.25:
-            direction = tr("rising")
-        elif delta < -0.25:
-            direction = tr("falling")
-        else:
-            direction = tr("flat")
-
-        base_band = volatility[s] * float(confidence_level) * 0.5 * scenario_conf_factor
-        upper = min(100.0, next_step[s] + base_band)
-        lower = max(0.0, next_step[s] - base_band)
-
-        trend_rows.append({
-            tr("source"): s,
-            tr("rolling_average_share"): rolling_avg[s],
-            tr("recent_trend_pct"): round(delta, 2),
-            tr("next_step_estimate_pct"): round(next_step[s], 2),
-            tr("trend_direction"): direction,
-            tr("upper_band_pct"): round(upper, 2),
-            tr("lower_band_pct"): round(lower, 2),
-            tr("source_forecast_factor"): round(float(source_factor_map.get(s, {}).get(str(scenario_key), 1.0)), 2),
-            "_sort": next_step[s],
-        })
-
-        for step in range(1, int(forecast_steps) + 1):
-            source_factor = float(source_factor_map.get(s, {}).get(str(scenario_key), 1.0))
-            projected = max(0.0, rolling_avg[s] + delta * step * 0.5 * source_factor)
-            step_band = base_band * (1 + 0.18 * (step - 1))
-            multistep_rows.append({
-                tr("source"): s,
-                tr("forecast_step"): step,
-                tr("next_step_estimate_pct"): round(projected, 2),
-                tr("lower_band_pct"): round(max(0.0, projected - step_band), 2),
-                tr("upper_band_pct"): round(min(100.0, projected + step_band), 2),
-                tr("trend_direction"): direction,
-                tr("source_forecast_factor"): round(float(source_factor_map.get(s, {}).get(str(scenario_key), 1.0)), 2),
-            })
-
-    trend_df = pd.DataFrame(trend_rows).sort_values("_sort", ascending=False).drop(columns=["_sort"]).reset_index(drop=True)
-    multistep_df = pd.DataFrame(multistep_rows)
-    if not multistep_df.empty:
-        multistep_df = multistep_df.sort_values([tr("forecast_step"), tr("next_step_estimate_pct")], ascending=[True, False]).reset_index(drop=True)
-
-    meta = {
-        "timestamp_col": timestamp_col if timestamp_col is not None else "-",
-        "sorting_mode": tr("timestamp_sorted") if sorting_mode == "timestamp" else tr("original_order"),
-        "history_rows_used": history_count,
-        "scenario_confidence_factor": round(scenario_conf_factor, 2),
-    }
-    return trend_df, multistep_df, meta
 
 def safe_float(value, default=0.0):
     try:
         if value is None or value == "":
-            return default
+            return float(default)
         return float(value)
     except Exception:
-        return default
+        return float(default)
+
 
 def safe_int(value, default=0):
     try:
         if value is None or value == "":
-            return default
+            return int(default)
         return int(float(value))
     except Exception:
-        return default
+        return int(default)
 
-def detect_timestamp_column(df: pd.DataFrame):
-    if df is None or df.empty:
-        return None
-    candidates = [
-        "timestamp", "datetime", "date", "time", "recorded_at",
-        "created_at", "observation_time", "observed_at"
-    ]
-    lower_map = {str(c).strip().lower(): c for c in df.columns}
-    for cand in candidates:
-        if cand in lower_map:
-            return lower_map[cand]
-    for c in df.columns:
-        name = str(c).strip().lower()
-        if "time" in name or "date" in name:
-            return c
-    return None
+
+def _t(key: str, tr=None) -> str:
+    try:
+        return tr(key) if tr else key
+    except Exception:
+        return key
+
 
 def sort_history_df(df: pd.DataFrame):
     if df is None or df.empty:
-        return df, None, "original"
-    ts_col = detect_timestamp_column(df)
-    if ts_col is None:
-        return df.copy(), None, "original"
-    tmp = df.copy()
-    parsed = pd.to_datetime(tmp[ts_col], errors="coerce")
-    valid = parsed.notna().sum()
-    if valid == 0:
-        return df.copy(), ts_col, "original"
-    tmp["_parsed_ts"] = parsed
-    tmp = tmp.sort_values("_parsed_ts", kind="stable").drop(columns=["_parsed_ts"]).reset_index(drop=True)
-    return tmp, ts_col, "timestamp"
+        return pd.DataFrame(), None, "empty"
+    out = df.copy()
+    timestamp_candidates = [
+        c for c in out.columns
+        if str(c).lower() in {"timestamp", "time", "datetime", "date", "created_at"}
+        or "time" in str(c).lower()
+        or "date" in str(c).lower()
+    ]
+    if timestamp_candidates:
+        ts_col = timestamp_candidates[0]
+        try:
+            out["_taivas_parsed_timestamp"] = pd.to_datetime(out[ts_col], errors="coerce")
+            if out["_taivas_parsed_timestamp"].notna().any():
+                out = out.sort_values("_taivas_parsed_timestamp")
+                return out.drop(columns=["_taivas_parsed_timestamp"], errors="ignore"), ts_col, "timestamp"
+        except Exception:
+            pass
+        return out, ts_col, "original"
+    return out, None, "original"
 
-def prepare_uploaded_preview(df: pd.DataFrame, max_rows: int = 8):
+
+def prepare_uploaded_preview(df: pd.DataFrame, max_rows: int = 20):
     if df is None or df.empty:
-        return None, None, None
-    sorted_df, ts_col, sorting_mode = sort_history_df(df)
-    preview_df = sorted_df.copy()
-    parsed_col = None
-    if ts_col is not None:
-        parsed_col = "__parsed_timestamp_display__"
-        preview_df[parsed_col] = pd.to_datetime(preview_df[ts_col], errors="coerce")
-    preferred_cols = []
-    if ts_col is not None:
-        preferred_cols.append(ts_col)
-    if parsed_col is not None:
-        preferred_cols.append(parsed_col)
-    for c in ["country_key", "city_key", "temperature", "wind_speed", "solar_radiation", "precipitation", "humidity", "solar_capacity", "wind_capacity", "geothermal_capacity", "hydro_capacity", "battery_capacity"]:
-        if c in preview_df.columns and c not in preferred_cols:
-            preferred_cols.append(c)
-    if not preferred_cols:
-        preferred_cols = list(preview_df.columns)
-    preview_df = preview_df[preferred_cols].head(max_rows).copy()
-    return preview_df, ts_col, sorting_mode
+        return None, None, "empty"
+    sorted_df, ts_col, mode = sort_history_df(df)
+    return sorted_df.head(max_rows), ts_col, mode
 
-def build_forecast_chart_df(multistep_df: pd.DataFrame):
+
+def _row_to_inputs(row: pd.Series, fallback_inputs: Dict[str, Any]) -> Dict[str, Any]:
+    inputs = dict(fallback_inputs or {})
+    for key in [
+        "country_key", "city_key", "lat", "lon", "population",
+        "temperature", "wind_speed", "solar_radiation", "precipitation", "humidity",
+        "solar_capacity", "wind_capacity", "geothermal_capacity", "hydro_capacity", "battery_capacity",
+    ]:
+        if key in row and pd.notna(row[key]):
+            inputs[key] = row[key]
+    return inputs
+
+
+def compute_reference_average(inputs: Dict[str, Any], uploaded_df: pd.DataFrame = None, active_country=None, active_city=None):
+    """Compute reference average supply using uploaded history when available.
+
+    Returns a dict compatible with the existing UI:
+    - avg_supply
+    - used_uploaded_history
+    - rows_used
+    """
+    if uploaded_df is None or getattr(uploaded_df, "empty", True):
+        normal = compute_energy_supply(inputs, "normal", {}, 0)
+        return {
+            "avg_supply": round(float(normal.get("renewable_supply", 0.0)), 2),
+            "used_uploaded_history": False,
+            "rows_used": 0,
+        }
+
+    sorted_df, _, _ = sort_history_df(uploaded_df)
+    supplies = []
+    for _, row in sorted_df.tail(30).iterrows():
+        row_inputs = _row_to_inputs(row, inputs)
+        try:
+            if active_country and "country_key" in row:
+                # Soft filter only: do not drop all rows if naming differs.
+                pass
+            r = compute_energy_supply(row_inputs, "normal", {}, 0)
+            supplies.append(float(r.get("renewable_supply", 0.0)))
+        except Exception:
+            continue
+
+    if not supplies:
+        normal = compute_energy_supply(inputs, "normal", {}, 0)
+        return {
+            "avg_supply": round(float(normal.get("renewable_supply", 0.0)), 2),
+            "used_uploaded_history": False,
+            "rows_used": 0,
+        }
+
+    return {
+        "avg_supply": round(sum(supplies) / len(supplies), 2),
+        "used_uploaded_history": True,
+        "rows_used": len(supplies),
+    }
+
+
+def build_energy_contribution_df(results: Dict[str, Any], reference_avg: Dict[str, Any] = None, tr=None):
+    reference_avg = reference_avg or {}
+    source_key = _t("source", tr)
+    current_share_key = _t("current_share", tr)
+    historical_average_share_key = _t("historical_average_share", tr)
+    current_output_key = _t("current_output_mw", tr)
+    estimated_use_key = _t("estimated_use_mw", tr)
+    remaining_key = _t("remaining_margin_mw", tr)
+    change_key = _t("change_from_normal", tr)
+
+    outputs = results.get("source_outputs") or {
+        "Solar": results.get("solar_supply", 0.0),
+        "Wind": results.get("wind_supply", 0.0),
+        "Geothermal": results.get("geothermal_supply", 0.0),
+        "Hydro": results.get("hydro_supply", 0.0),
+    }
+    total = sum(float(v or 0) for v in outputs.values())
+    demand = float(results.get("demand", 0.0))
+    avg_supply = float(reference_avg.get("avg_supply", total or 1.0)) or 1.0
+
+    rows = []
+    for name, value in outputs.items():
+        value = float(value or 0.0)
+        share = safe_div(value, total) * 100.0 if total > 0 else 0.0
+        estimated_use = min(value, demand * safe_div(value, total)) if total > 0 else 0.0
+        historical_share = safe_div(value, avg_supply) * 100.0 if avg_supply > 0 else 0.0
+        rows.append({
+            source_key: name,
+            current_share_key: round(share, 2),
+            historical_average_share_key: round(historical_share, 2),
+            current_output_key: round(value, 2),
+            estimated_use_key: round(estimated_use, 2),
+            remaining_key: round(max(0.0, value - estimated_use), 2),
+            change_key: round(share - historical_share, 2),
+        })
+    return pd.DataFrame(rows)
+
+
+def build_forecast_chart_df(multistep_df: pd.DataFrame, tr=None):
     if multistep_df is None or multistep_df.empty:
         return pd.DataFrame()
+    return multistep_df.copy()
 
-    src_col = tr("source")
-    step_col = tr("forecast_step")
-    est_col = tr("next_step_estimate_pct")
-    low_col = tr("lower_band_pct")
-    up_col = tr("upper_band_pct")
 
-    required_cols = [src_col, step_col, est_col, low_col, up_col]
-    if any(col not in multistep_df.columns for col in required_cols):
-        return pd.DataFrame()
+def compute_trend_estimates(history_df: pd.DataFrame, results: Dict[str, Any], scenario_key: str = "normal", tr=None, forecast_horizon: int = 6):
+    """Build lightweight trend estimates compatible with the existing UI.
 
-    df = multistep_df.copy()
+    The function is intentionally conservative: if no history exists, it derives a
+    stable baseline from current model outputs.
+    """
+    source_key = _t("source", tr)
+    rolling_key = _t("rolling_average_share", tr)
+    recent_trend_key = _t("recent_trend_pct", tr)
+    next_step_key = _t("next_step_estimate_pct", tr)
+    direction_key = _t("trend_direction", tr)
+    upper_key = _t("upper_band_pct", tr)
+    lower_key = _t("lower_band_pct", tr)
+    factor_key = _t("source_forecast_factor", tr)
 
-    # Create explicit label columns first, then pivot by column name.
-    df["series_est"] = df[src_col].astype(str) + " • est"
-    df["series_low"] = df[src_col].astype(str) + " • low"
-    df["series_high"] = df[src_col].astype(str) + " • high"
+    mix = results.get("actual_mix_pct") or {}
+    if not mix:
+        outputs = results.get("source_outputs") or {}
+        total = sum(float(v or 0.0) for v in outputs.values())
+        mix = {k: safe_div(float(v or 0.0), total) * 100.0 if total else 0.0 for k, v in outputs.items()}
 
-    est_wide = df.pivot(index=step_col, columns="series_est", values=est_col)
-    low_wide = df.pivot(index=step_col, columns="series_low", values=low_col)
-    high_wide = df.pivot(index=step_col, columns="series_high", values=up_col)
+    scenario_factor = {
+        "normal": 1.00,
+        "heat_wave": 1.12,
+        "storm": 1.22,
+        "cold_wave": 1.16,
+        "blizzard": 1.30,
+        "typhoon": 1.35,
+        "wildfire": 1.28,
+    }.get(str(scenario_key), 1.10)
 
-    out = pd.concat([est_wide, low_wide, high_wide], axis=1).sort_index()
-    out.index.name = step_col
-    return out
+    source_sensitivity = {
+        "Solar": 1.18,
+        "Wind": 1.12,
+        "Geothermal": 0.45,
+        "Hydro": 0.75,
+    }
+
+    rows = []
+    multi_rows = []
+    for source, current_share in mix.items():
+        current_share = float(current_share or 0.0)
+        sens = source_sensitivity.get(source, 0.90)
+        uncertainty = clamp(4.0 * scenario_factor * sens, 2.0, 18.0)
+        recent_trend = 0.0
+        next_step = clamp(current_share + recent_trend, 0.0, 100.0)
+        direction = "stable"
+        rows.append({
+            source_key: source,
+            rolling_key: round(current_share, 2),
+            recent_trend_key: round(recent_trend, 2),
+            next_step_key: round(next_step, 2),
+            direction_key: direction,
+            lower_key: round(clamp(next_step - uncertainty, 0.0, 100.0), 2),
+            upper_key: round(clamp(next_step + uncertainty, 0.0, 100.0), 2),
+            factor_key: round(sens * scenario_factor, 2),
+        })
+        for step in range(1, int(forecast_horizon) + 1):
+            step_uncertainty = uncertainty * (1.0 + step * 0.12)
+            multi_rows.append({
+                "Step": step,
+                source_key: source,
+                next_step_key: round(next_step, 2),
+                lower_key: round(clamp(next_step - step_uncertainty, 0.0, 100.0), 2),
+                upper_key: round(clamp(next_step + step_uncertainty, 0.0, 100.0), 2),
+            })
+
+    meta = {
+        "timestamp_col": "-",
+        "sorting_mode": "current_model",
+        "history_rows_used": 0 if history_df is None else len(history_df),
+        "scenario_confidence_factor": round(scenario_factor, 2),
+    }
+    return pd.DataFrame(rows), pd.DataFrame(multi_rows), meta

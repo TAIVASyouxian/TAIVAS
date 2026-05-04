@@ -1,1 +1,1 @@
-# TAIVAS core package
+"""TAIVAS core package V10.2."""
