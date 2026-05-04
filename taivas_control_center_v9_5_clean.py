@@ -37,7 +37,7 @@ if "ui_lang" not in st.session_state:
 from data_config import CITY_DATA, COUNTRY_NOTES, SCENARIOS
 from facility_config import FACILITY_PROFILES
 from i18n_config import I18N, PAGE_QUESTIONS
-from taivas_core.energy_model import compute_energy_supply
+from taivas_core.energy_model import compute_energy_supply as _base_compute_energy_supply
 from taivas_core.utils import clamp, safe_div
 from taivas_core.trend_forecast import (
     safe_float,
@@ -157,6 +157,7 @@ DEMO_MODE_OPTIONS = [
     "Helsinki Blizzard Test",
     "Berlin Heatwave Test",
     "Reykjavik Storm Test",
+    "California Wildfire Test",
 ]
 
 DEMO_PRESET_DEFAULTS = {
@@ -166,7 +167,8 @@ DEMO_PRESET_DEFAULTS = {
     "Taipei Typhoon Test": {"country": "Taiwan", "city": "Taipei", "population": 2500000, "scenario_key": "typhoon", "temperature": 29, "wind_speed": 18.0, "solar_radiation": 180, "precipitation": 160, "humidity": 92, "solar_failure_ratio": 0.25, "wind_failure_ratio": 0.18, "hydro_failure_ratio": 0.12, "battery_failure_ratio": 0.08, "energy_security_scenario": "regional_disruption"},
     "Helsinki Blizzard Test": {"country": "Finland", "city": "Helsinki", "population": 664000, "scenario_key": "blizzard", "temperature": -12, "wind_speed": 14.0, "solar_radiation": 90, "precipitation": 80, "humidity": 84, "solar_failure_ratio": 0.35, "wind_failure_ratio": 0.16, "hydro_failure_ratio": 0.08, "battery_failure_ratio": 0.10, "energy_security_scenario": "normal"},
     "Berlin Heatwave Test": {"country": "Germany", "city": "Berlin", "population": 3570000, "scenario_key": "heat_wave", "temperature": 38, "wind_speed": 4.2, "solar_radiation": 920, "precipitation": 4, "humidity": 56, "solar_failure_ratio": 0.04, "wind_failure_ratio": 0.08, "hydro_failure_ratio": 0.06, "battery_failure_ratio": 0.03, "energy_security_scenario": "normal"},
-    "Reykjavik Storm Test": {"country": "Iceland", "city": "Reykjavik", "population": 139000, "scenario_key": "storm", "temperature": 5, "wind_speed": 22.0, "solar_radiation": 160, "precipitation": 120, "humidity": 88, "solar_failure_ratio": 0.20, "wind_failure_ratio": 0.12, "hydro_failure_ratio": 0.10, "battery_failure_ratio": 0.06, "energy_security_scenario": "normal"},
+    "Reykjavik Storm Test": {"country": "Iceland", "city": "Reykjavik", "population": 139000, "scenario_key": "storm", "temperature": 5, "wind_speed": 22.0, "solar_radiation": 160, "precipitation": 120, "humidity": 88, "solar_failure_ratio": 0.20, "wind_failure_ratio": 0.12, "battery_failure_ratio": 0.06, "energy_security_scenario": "normal"},
+    "California Wildfire Test": {"country": "United States", "city": "Los Angeles", "population": 3900000, "scenario_key": "wildfire", "temperature": 39, "wind_speed": 9.5, "solar_radiation": 520, "precipitation": 0, "humidity": 22, "solar_failure_ratio": 0.18, "wind_failure_ratio": 0.08, "hydro_failure_ratio": 0.12, "battery_failure_ratio": 0.06, "energy_security_scenario": "regional_disruption"},
 }
 
 def activate_demo_preset(preset_name: str):
@@ -834,7 +836,8 @@ def extend_i18n():
             "geopolitical_model_note": "This module converts geopolitical tension into energy-system stress. It is for decision support, not prediction.",
             "visual_simulator": "Visual Scenario Simulator",
             "visual_scenario": "Visual Scenario",
-            "visual_simulator_note": "This visual layer turns the current model outputs into an intuitive disruption map. It is designed for quick explanation during demos, not as a GIS or real-time weather product."
+            "visual_simulator_note": "This visual layer turns the current model outputs into an intuitive disruption map. It is designed for quick explanation during demos, not as a GIS or real-time weather product.",
+            "wildfire": "Wildfire"
         },
         "繁體中文": {
             "sim_hours": "模擬時數",
@@ -868,7 +871,8 @@ def extend_i18n():
             "geopolitical_model_note": "此模組將地緣政治緊張轉換為能源系統壓力，僅供決策支援，不是預測。",
             "visual_simulator": "情境視覺模擬器",
             "visual_scenario": "視覺情境",
-            "visual_simulator_note": "此視覺層會把目前模型輸出轉成直覺化的中斷圖，適合 Demo 快速說明；它不是 GIS，也不是即時氣象產品。"
+            "visual_simulator_note": "此視覺層會把目前模型輸出轉成直覺化的中斷圖，適合 Demo 快速說明；它不是 GIS，也不是即時氣象產品。",
+            "wildfire": "野火"
         },
     }
     for lang, mapping in extras.items():
@@ -876,6 +880,258 @@ def extend_i18n():
 
 
 extend_i18n()
+
+# =============================
+# TAIVAS Internationally Aligned Modeling Layer V10
+# Purpose: keep TAIVAS as a decision-support simulator while aligning the
+# internal calculation logic with widely used engineering modeling concepts:
+# - Solar: NREL PVWatts / SAM-style irradiance, temperature, and loss derating
+# - Wind: IEC-style turbine power-curve concept with cut-in/rated/cut-out speeds
+# - Demand: heating/cooling degree-day style weather-load sensitivity
+# - Battery: standard energy-balance and round-trip-loss logic
+# - Wildfire: smoke attenuation, line-disruption, and grid-isolation stress
+# This is not an engineering-certified model and should not be presented as one.
+# =============================
+
+SCENARIOS.setdefault("wildfire", {
+    "label": "Wildfire",
+    "description": "Wildfire smoke and grid-disruption stress scenario.",
+})
+
+MODEL_ALIGNMENT_NOTES = {
+    "solar": "NREL PVWatts / SAM-style simplified PV output: capacity × irradiance ratio × temperature derate × system-loss derate.",
+    "wind": "IEC 61400-style wind-turbine power-curve concept: cut-in, rated, and cut-out wind-speed behavior.",
+    "demand": "ASHRAE-style heating/cooling degree-day load sensitivity: demand rises outside comfort-band temperatures.",
+    "battery": "Standard storage energy-balance logic with available capacity, discharge support, and round-trip loss.",
+    "wildfire": "Wildfire stress layer includes smoke attenuation of PV output, transmission disruption, and grid-isolation risk.",
+    "limitation": "TAIVAS is a scenario-based decision-support prototype, not a certified engineering design tool or guaranteed prediction system.",
+}
+
+DATA_QUALITY_LIMITS = {
+    "temperature": {"min": -40, "max": 55, "watch_low": -25, "watch_high": 45, "unit": "°C"},
+    "wind_speed": {"min": 0, "max": 70, "watch_low": 0, "watch_high": 30, "unit": "m/s"},
+    "solar_radiation": {"min": 0, "max": 1400, "watch_low": 0, "watch_high": 1100, "unit": "W/m²"},
+    "precipitation": {"min": 0, "max": 500, "watch_low": 0, "watch_high": 250, "unit": "mm"},
+    "humidity": {"min": 0, "max": 100, "watch_low": 5, "watch_high": 98, "unit": "%"},
+}
+
+
+def _quality_flag(field, value, severity, message):
+    return {"field": field, "value": value, "severity": severity, "message": message}
+
+
+def detect_data_quality(inputs, scenario_key="normal"):
+    """Return confidence score and warning/critical flags for abnormal inputs."""
+    flags = []
+    for field, limits in DATA_QUALITY_LIMITS.items():
+        value = safe_float(inputs.get(field), 0.0)
+        unit = limits["unit"]
+        if value < limits["min"] or value > limits["max"]:
+            flags.append(_quality_flag(field, value, "critical", f"{field} is outside physically expected range: {value} {unit}"))
+        elif value < limits["watch_low"] or value > limits["watch_high"]:
+            flags.append(_quality_flag(field, value, "watch", f"{field} is unusual and should be confirmed: {value} {unit}"))
+
+    temp = safe_float(inputs.get("temperature"), 20.0)
+    wind = safe_float(inputs.get("wind_speed"), 0.0)
+    solar = safe_float(inputs.get("solar_radiation"), 0.0)
+    rain = safe_float(inputs.get("precipitation"), 0.0)
+    humidity = safe_float(inputs.get("humidity"), 50.0)
+
+    if scenario_key == "heat_wave" and temp < 30:
+        flags.append(_quality_flag("temperature", temp, "watch", "Heat-wave scenario selected, but temperature is below 30°C."))
+    if scenario_key in ["cold_wave", "blizzard"] and temp > 8:
+        flags.append(_quality_flag("temperature", temp, "watch", "Cold/blizzard scenario selected, but temperature is above 8°C."))
+    if scenario_key in ["storm", "typhoon"] and wind < 10 and rain < 50:
+        flags.append(_quality_flag("wind_speed/precipitation", f"{wind} m/s / {rain} mm", "watch", "Storm/typhoon scenario selected, but wind and rainfall are both low."))
+    if scenario_key == "wildfire" and humidity > 80 and rain > 50:
+        flags.append(_quality_flag("humidity/precipitation", f"{humidity}% / {rain} mm", "watch", "Wildfire scenario selected, but humidity/rainfall indicate low fire-weather consistency."))
+    if scenario_key == "wildfire" and solar > 950:
+        flags.append(_quality_flag("solar_radiation", solar, "watch", "Wildfire smoke scenario usually reduces solar radiation; confirm this high irradiance value."))
+
+    critical_count = sum(1 for f in flags if f["severity"] == "critical")
+    watch_count = sum(1 for f in flags if f["severity"] == "watch")
+    confidence = int(clamp(100 - critical_count * 25 - watch_count * 10, 0, 100))
+    if critical_count:
+        status = "Data abnormal"
+    elif watch_count:
+        status = "Data needs confirmation"
+    else:
+        status = "Data within expected range"
+    return {"confidence_score": confidence, "status": status, "flags": flags}
+
+
+def _pvwatts_solar_output(capacity_mw, solar_radiation_w_m2, ambient_temp_c, scenario_key, failure_ratio):
+    """Simplified PVWatts/SAM-style PV output."""
+    capacity_mw = max(float(capacity_mw), 0.0)
+    irradiance_ratio = clamp(float(solar_radiation_w_m2) / 1000.0, 0.0, 1.25)
+    module_temp_c = float(ambient_temp_c) + (float(solar_radiation_w_m2) / 800.0) * 20.0
+    temp_derate = clamp(1.0 - max(module_temp_c - 25.0, 0.0) * 0.0035, 0.70, 1.05)
+    system_loss_derate = 0.86  # PVWatts-like aggregate loss derate, simplified.
+    smoke_derate = 1.0
+    scenario_derate = 1.0
+    if scenario_key == "storm":
+        scenario_derate *= 0.72
+    elif scenario_key == "typhoon":
+        scenario_derate *= 0.55
+    elif scenario_key == "blizzard":
+        scenario_derate *= 0.45
+    elif scenario_key == "cold_wave":
+        scenario_derate *= 0.80
+    elif scenario_key == "wildfire":
+        # Smoke attenuation can be mild or severe; use a conservative mid-stress demo factor.
+        smoke_derate *= 0.65
+    return max(0.0, capacity_mw * irradiance_ratio * temp_derate * system_loss_derate * scenario_derate * smoke_derate * (1.0 - clamp(failure_ratio, 0.0, 1.0)))
+
+
+def _wind_power_curve_output(capacity_mw, wind_speed_m_s, scenario_key, failure_ratio):
+    """IEC-style simplified wind-turbine power curve: cut-in, rated, cut-out."""
+    capacity_mw = max(float(capacity_mw), 0.0)
+    v = max(float(wind_speed_m_s), 0.0)
+    cut_in, rated, cut_out = 3.0, 12.0, 25.0
+    if v < cut_in or v >= cut_out:
+        curve_factor = 0.0
+    elif v < rated:
+        curve_factor = ((v - cut_in) / (rated - cut_in)) ** 3
+    else:
+        curve_factor = 1.0
+    scenario_derate = 1.0
+    if scenario_key in ["storm", "typhoon"] and v >= 20:
+        scenario_derate *= 0.70  # high-wind curtailment / shutdown risk
+    if scenario_key == "wildfire":
+        scenario_derate *= 0.92  # smoke does not directly stop turbines, but grid/access risk can curtail output
+    return max(0.0, capacity_mw * clamp(curve_factor, 0.0, 1.0) * scenario_derate * (1.0 - clamp(failure_ratio, 0.0, 1.0)))
+
+
+def _degree_day_demand(base_demand_mw, temperature_c, humidity_pct, population, scenario_key):
+    """ASHRAE-style simplified temperature-load sensitivity."""
+    base = max(float(base_demand_mw), max(float(population), 1.0) / 100000.0 * 8.0)
+    t = float(temperature_c)
+    humidity = clamp(float(humidity_pct), 0.0, 100.0)
+    cooling_degree = max(t - 24.0, 0.0)
+    heating_degree = max(18.0 - t, 0.0)
+    load_factor = 1.0 + cooling_degree * 0.018 + heating_degree * 0.022
+    if t >= 35:
+        load_factor += 0.08
+    if t <= -5:
+        load_factor += 0.10
+    if humidity >= 85 and t >= 28:
+        load_factor += 0.04
+    if scenario_key == "heat_wave":
+        load_factor += 0.08
+    elif scenario_key == "cold_wave":
+        load_factor += 0.08
+    elif scenario_key == "blizzard":
+        load_factor += 0.14
+    elif scenario_key == "typhoon":
+        load_factor += 0.05
+    elif scenario_key == "wildfire":
+        load_factor += 0.06  # cooling + filtration/shelter load
+    return max(0.0, base * load_factor)
+
+
+def _firm_output(capacity_mw, source, scenario_key, failure_ratio, precipitation_mm=0.0):
+    capacity_mw = max(float(capacity_mw), 0.0)
+    if source == "geothermal":
+        factor = 0.88
+        if scenario_key in ["storm", "typhoon", "wildfire"]:
+            factor *= 0.96
+    elif source == "hydro":
+        rain_factor = clamp(0.85 + float(precipitation_mm) / 300.0 * 0.25, 0.75, 1.10)
+        factor = 0.72 * rain_factor
+        if scenario_key == "wildfire":
+            factor *= 0.90
+        if scenario_key == "blizzard":
+            factor *= 0.86
+    else:
+        factor = 0.80
+    return max(0.0, capacity_mw * factor * (1.0 - clamp(failure_ratio, 0.0, 1.0)))
+
+
+def compute_energy_supply(inputs, scenario_key, failure_ratios=None, reserve_recovery_lag_days=0):
+    """Wrapper over the existing TAIVAS core model, with internationally aligned output adjustments."""
+    failure_ratios = failure_ratios or {}
+    base = _base_compute_energy_supply(inputs, scenario_key, failure_ratios, reserve_recovery_lag_days)
+
+    solar = _pvwatts_solar_output(inputs.get("solar_capacity", 0), inputs.get("solar_radiation", 0), inputs.get("temperature", 20), scenario_key, failure_ratios.get("solar", 0.0))
+    wind = _wind_power_curve_output(inputs.get("wind_capacity", 0), inputs.get("wind_speed", 0), scenario_key, failure_ratios.get("wind", 0.0))
+    geothermal = _firm_output(inputs.get("geothermal_capacity", 0), "geothermal", scenario_key, failure_ratios.get("geothermal", 0.0), inputs.get("precipitation", 0))
+    hydro = _firm_output(inputs.get("hydro_capacity", 0), "hydro", scenario_key, failure_ratios.get("hydro", 0.0), inputs.get("precipitation", 0))
+    renewable_supply = solar + wind + geothermal + hydro
+
+    demand = _degree_day_demand(base.get("demand", 0), inputs.get("temperature", 20), inputs.get("humidity", 60), inputs.get("population", 100000), scenario_key)
+    transmission_derate = 1.0
+    if scenario_key == "storm":
+        transmission_derate *= 0.96
+    elif scenario_key == "typhoon":
+        transmission_derate *= 0.90
+    elif scenario_key == "wildfire":
+        transmission_derate *= 0.78
+    usable_supply_before_storage = renewable_supply * transmission_derate
+
+    available_battery = max(float(inputs.get("battery_capacity", 0)) * (1.0 - clamp(failure_ratios.get("battery", 0.0), 0.0, 1.0)) * 0.90, 0.0)
+    immediate_gap = max(demand - usable_supply_before_storage, 0.0)
+    battery_discharge_support = min(available_battery * 0.25, immediate_gap)
+    final_supply = usable_supply_before_storage + battery_discharge_support
+    shortfall = max(demand - final_supply, 0.0)
+    battery_remaining = max(available_battery - battery_discharge_support, 0.0)
+
+    actual_mix = {
+        "Solar": round(safe_div(solar, renewable_supply) * 100 if renewable_supply > 0 else 0.0, 2),
+        "Wind": round(safe_div(wind, renewable_supply) * 100 if renewable_supply > 0 else 0.0, 2),
+        "Geothermal": round(safe_div(geothermal, renewable_supply) * 100 if renewable_supply > 0 else 0.0, 2),
+        "Hydro": round(safe_div(hydro, renewable_supply) * 100 if renewable_supply > 0 else 0.0, 2),
+    }
+    quality = detect_data_quality(inputs, scenario_key)
+
+    updated = dict(base)
+    updated.update({
+        "demand": round(demand, 2),
+        "renewable_supply": round(renewable_supply, 2),
+        "final_supply": round(final_supply, 2),
+        "shortfall": round(shortfall, 2),
+        "battery_levels": round(battery_remaining, 2),
+        "renewable_ratio": round(safe_div(renewable_supply, final_supply) * 100 if final_supply > 0 else 0.0, 2),
+        "grid_dependency": round(safe_div(shortfall, demand) * 100 if demand > 0 else 0.0, 2),
+        "system_efficiency": round(clamp(100.0 - safe_div(shortfall, demand) * 100.0 - (1.0 - transmission_derate) * 20.0, 0.0, 100.0), 2),
+        "actual_mix_pct": actual_mix,
+        "model_alignment": MODEL_ALIGNMENT_NOTES,
+        "data_quality_status": quality["status"],
+        "data_confidence_score": quality["confidence_score"],
+        "data_quality_flags": quality["flags"],
+    })
+    return updated
+
+
+def render_model_alignment_panel(results):
+    st.subheader("Model Alignment / Formula Notes")
+    st.markdown(
+        """
+        <div class="note">
+        TAIVAS V10 uses simplified but internationally aligned modeling concepts: PVWatts/SAM-style PV derating, IEC-style wind power-curve behavior, degree-day demand sensitivity, and battery energy-balance logic. The purpose is credible scenario comparison, not certified engineering design or guaranteed prediction.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    rows = [{"Model Area": k.title(), "Alignment Note": v} for k, v in MODEL_ALIGNMENT_NOTES.items()]
+    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+
+def render_data_quality_panel(results):
+    confidence = int(results.get("data_confidence_score", 100))
+    status = results.get("data_quality_status", "Data within expected range")
+    flags = results.get("data_quality_flags", [])
+    st.subheader("Data Quality / Anomaly Check")
+    if any(f.get("severity") == "critical" for f in flags):
+        st.error(f"⚠ {status} — Confidence Score: {confidence}/100")
+    elif flags:
+        st.warning(f"⚠ {status} — Confidence Score: {confidence}/100")
+    else:
+        st.success(f"✅ {status} — Confidence Score: {confidence}/100")
+    if flags:
+        st.dataframe(pd.DataFrame(flags), use_container_width=True, hide_index=True)
+    else:
+        st.caption("No abnormal input values detected by the current validation range.")
+
 
 with st.sidebar:
     ui_lang = st.selectbox("Language / 語言", list(I18N.keys()), index=list(I18N.keys()).index(st.session_state.get("ui_lang", "English")))
@@ -1195,7 +1451,7 @@ trend_estimate_df, multistep_forecast_df, trend_meta = compute_trend_estimates(i
 
 st.title(tr("title"))
 st.caption(tr("caption"))
-st.caption("V9.3 Onboarding + V8 Product Tiers • Demo / Pro / Enterprise SaaS Prototype")
+st.caption("V10 International Formula Alignment + Wildfire + Data Quality Guardrails • Demo / Pro / Enterprise SaaS Prototype")
 render_onboarding_panel(product_tier)
 st.markdown(f'<div class="hero"><h3>{tr("hero_title")}</h3><p>{tr("hero_body")}</p></div>', unsafe_allow_html=True)
 
@@ -1203,6 +1459,10 @@ layer_cols = st.columns(3)
 for col, label, desc in zip(layer_cols, [tr("core"), tr("decision"), tr("concept")], [tr("core_desc"), tr("decision_desc"), tr("concept_desc")]):
     with col:
         st.markdown(f'<div class="layer-box"><div class="card-label">{label}</div><div class="card-value" style="font-size:0.98rem;">{desc}</div></div>', unsafe_allow_html=True)
+
+render_data_quality_panel(results)
+with st.expander("International Model Alignment Notes", expanded=False):
+    render_model_alignment_panel(results)
 
 top_left, top_right = st.columns([1.02, 1.08])
 with top_left:
