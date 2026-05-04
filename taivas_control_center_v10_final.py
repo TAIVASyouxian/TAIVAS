@@ -26,7 +26,7 @@ except:
     pass
 
 # --- Import original system ---
-from taivas_main_original import *
+from taivas_control_center_v9_5_clean import *
 
 # --- External Notice ---
 st.markdown("""
