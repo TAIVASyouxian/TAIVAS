@@ -1804,6 +1804,25 @@ I18N["English"].update({
     "advanced_help": "Optional expert controls for weather details, component failures, security risk, timeline, and thermal concepts.",
     "export_help": "After the simulation loads, use the Export Center in the dashboard to download CSV, TXT, or JSON reports.",
     "metric_help": "Energy Gap shows unmet demand. Renewable Share shows how much supply comes from renewables. System Stability is the simplified health score. Backup Grid Need shows how much outside grid support may be needed.",
+    "experience_mode": "Experience Mode",
+    "beginner_mode": "Beginner Mode",
+    "analyst_mode": "Analyst Mode",
+    "battery_storage": "Battery / Storage",
+    "product_positioning": "TAIVAS is an energy resilience decision-support simulator for evaluating infrastructure stability under extreme climate scenarios.",
+    "main_system_status": "Main System Status",
+    "battery_storage_status": "Battery / Storage Status",
+    "renewable_mix": "Renewable Mix",
+    "advanced_analytics": "Advanced Analytics",
+    "scenario_analysis": "Scenario Analysis",
+    "overview": "Overview",
+    "view_detailed_analysis": "View Detailed Technical Analysis",
+    "low_shortfall_risk": "Low shortfall risk",
+    "supply_stress_detected": "Supply stress detected",
+    "high_grid_instability_risk": "High grid instability risk",
+    "battery_reserve_declining": "Battery reserve declining",
+    "battery_reserve_available": "Battery reserve available",
+    "renewable_acceptable": "Renewable contribution acceptable",
+    "renewable_watch": "Renewable contribution needs attention",
 })
 # USER-FRIENDLY UI END
 
@@ -1813,6 +1832,13 @@ with st.sidebar:
     st.header(tr("controls"))
     # USER-FRIENDLY UI START
     st.markdown(f'<div class="note"><b>{tr("quick_start")}</b><br>{tr("quick_start_body")}</div>', unsafe_allow_html=True)
+    experience_mode = st.radio(
+        tr("experience_mode"),
+        [tr("beginner_mode"), tr("analyst_mode")],
+        index=0,
+        help="Beginner Mode keeps only the essential choices visible. Analyst Mode reveals technical tuning controls.",
+    )
+    is_analyst_mode = experience_mode == tr("analyst_mode")
     basic_panel = st.expander(tr("basic_setup"), expanded=True)
     basic_panel.caption(tr("basic_setup_help"))
 
@@ -1889,54 +1915,93 @@ with st.sidebar:
     wind_capacity = capacity_panel.slider(tr("wind_capacity"), 0, 500, int(clamp((uploaded_profile["wind_capacity"] if (use_uploaded and uploaded_profile) else 80), 0, 500)), 5, help="Local wind power capacity in MW.")
     geothermal_capacity = capacity_panel.slider(tr("geothermal_capacity"), 0, 500, int(clamp((uploaded_profile["geothermal_capacity"] if (use_uploaded and uploaded_profile) else 60), 0, 500)), 5, help="Stable geothermal capacity in MW.")
     hydro_capacity = capacity_panel.slider(tr("hydro_capacity"), 0, 500, int(clamp((uploaded_profile["hydro_capacity"] if (use_uploaded and uploaded_profile) else 70), 0, 500)), 5, help="Hydro power capacity in MW.")
-    battery_capacity = capacity_panel.slider(tr("battery_capacity"), 0, 1000, int(clamp((uploaded_profile["battery_capacity"] if (use_uploaded and uploaded_profile) else 180), 0, 1000)), 10, help="Battery reserve capacity in MWh.")
 
-    advanced_panel = st.expander(tr("advanced_settings"), expanded=False)
-    advanced_panel.caption(tr("advanced_help"))
-    advanced_panel.markdown("**Weather details**")
-    temperature = advanced_panel.slider(tr("temperature") + " (°C)", -20, 50, int(clamp((uploaded_profile["temperature"] if (use_uploaded and uploaded_profile) else 26), -20, 50)), 1, help="Used to estimate heating or cooling pressure.")
-    wind_speed = advanced_panel.slider(tr("wind_speed") + " (m/s)", 0.0, 30.0, float(clamp((uploaded_profile["wind_speed"] if (use_uploaded and uploaded_profile) else 4.2), 0.0, 30.0)), 0.1, help="Affects wind power output.")
-    solar_radiation = advanced_panel.slider(tr("solar_radiation") + " (W/m²)", 0, 1200, int(clamp((uploaded_profile["solar_radiation"] if (use_uploaded and uploaded_profile) else 640), 0, 1200)), 10, help="Affects solar power output.")
-    precipitation = advanced_panel.slider(tr("precipitation") + " (mm)", 0, 300, int(clamp((uploaded_profile["precipitation"] if (use_uploaded and uploaded_profile) else 12), 0, 300)), 1, help="Affects demand and hydro behavior.")
-    humidity = advanced_panel.slider(tr("humidity") + " (%)", 0, 100, int(clamp((uploaded_profile["humidity"] if (use_uploaded and uploaded_profile) else 73), 0, 100)), 1, help="Higher humidity can increase cooling pressure.")
+    battery_panel = st.expander(tr("battery_storage"), expanded=True)
+    battery_panel.caption("Set how much stored energy is available when renewable supply drops.")
+    battery_capacity = battery_panel.slider(tr("battery_capacity"), 0, 1000, int(clamp((uploaded_profile["battery_capacity"] if (use_uploaded and uploaded_profile) else 180), 0, 1000)), 10, help="Battery reserve capacity in MWh.")
 
-    advanced_panel.markdown("**Component failures**")
-    solar_failure_ratio = advanced_panel.number_input(tr("solar_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f", help="0 means no failure. 1 means fully unavailable.")
-    wind_failure_ratio = advanced_panel.number_input(tr("wind_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
-    geothermal_failure_ratio = advanced_panel.number_input(tr("geothermal_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
-    hydro_failure_ratio = advanced_panel.number_input(tr("hydro_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
-    battery_failure_ratio = advanced_panel.number_input(tr("battery_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
+    if is_analyst_mode:
+        advanced_panel = st.expander(tr("advanced_settings"), expanded=True)
+        advanced_panel.caption(tr("advanced_help"))
+        advanced_panel.markdown("**Weather details**")
+        temperature = advanced_panel.slider(tr("temperature") + " (°C)", -20, 50, int(clamp((uploaded_profile["temperature"] if (use_uploaded and uploaded_profile) else 26), -20, 50)), 1, help="Used to estimate heating or cooling pressure.")
+        wind_speed = advanced_panel.slider(tr("wind_speed") + " (m/s)", 0.0, 30.0, float(clamp((uploaded_profile["wind_speed"] if (use_uploaded and uploaded_profile) else 4.2), 0.0, 30.0)), 0.1, help="Affects wind power output.")
+        solar_radiation = advanced_panel.slider(tr("solar_radiation") + " (W/m²)", 0, 1200, int(clamp((uploaded_profile["solar_radiation"] if (use_uploaded and uploaded_profile) else 640), 0, 1200)), 10, help="Affects solar power output.")
+        precipitation = advanced_panel.slider(tr("precipitation") + " (mm)", 0, 300, int(clamp((uploaded_profile["precipitation"] if (use_uploaded and uploaded_profile) else 12), 0, 300)), 1, help="Affects demand and hydro behavior.")
+        humidity = advanced_panel.slider(tr("humidity") + " (%)", 0, 100, int(clamp((uploaded_profile["humidity"] if (use_uploaded and uploaded_profile) else 73), 0, 100)), 1, help="Higher humidity can increase cooling pressure.")
 
-    advanced_panel.markdown("**Energy security**")
-    energy_security_scenario = advanced_panel.selectbox(tr("energy_security_scenario"), list(ENERGY_SECURITY_SCENARIOS.keys()))
-    import_dependency = advanced_panel.number_input(tr("import_dependency"), 0.0, 1.0, 0.70, 0.01, format="%.2f", help="How much the system relies on external energy supply.")
-    strategic_reserve_days = advanced_panel.number_input(tr("strategic_reserve_days"), 0, 365, 20, 1)
-    shipping_dependency = advanced_panel.number_input(tr("shipping_dependency"), 0.0, 1.0, 0.85, 0.01, format="%.2f")
-    infrastructure_damage_ratio = advanced_panel.number_input(tr("infrastructure_damage_ratio"), 0.0, 1.0, 0.10, 0.01, format="%.2f")
-    reserve_recovery_lag_days = advanced_panel.number_input(tr("reserve_recovery_lag_days"), 0, 30, 3, 1)
+        advanced_panel.markdown("**Component failures**")
+        solar_failure_ratio = advanced_panel.number_input(tr("solar_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f", help="0 means no failure. 1 means fully unavailable.")
+        wind_failure_ratio = advanced_panel.number_input(tr("wind_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
+        geothermal_failure_ratio = advanced_panel.number_input(tr("geothermal_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
+        hydro_failure_ratio = advanced_panel.number_input(tr("hydro_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
+        battery_failure_ratio = advanced_panel.number_input(tr("battery_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
 
-    advanced_panel.markdown("**Geopolitical shock**")
-    enable_geopolitical_shock = advanced_panel.toggle(tr("enable_geopolitical_shock"), value=False)
-    geopolitical_event_type = advanced_panel.selectbox(tr("geopolitical_event_type"), list(GEOPOLITICAL_EVENT_WEIGHTS.keys()), index=0)
-    geopolitical_severity = advanced_panel.slider(tr("geopolitical_severity"), 0, 5, 2, 1)
-    geopolitical_duration_days = advanced_panel.slider(tr("geopolitical_duration_days"), 0, 90, 7, 1)
-    fossil_share = advanced_panel.slider(tr("fossil_share"), 0.0, 1.0, 0.40, 0.05)
+        advanced_panel.markdown("**Energy security**")
+        energy_security_scenario = advanced_panel.selectbox(tr("energy_security_scenario"), list(ENERGY_SECURITY_SCENARIOS.keys()))
+        import_dependency = advanced_panel.number_input(tr("import_dependency"), 0.0, 1.0, 0.70, 0.01, format="%.2f", help="How much the system relies on external energy supply.")
+        strategic_reserve_days = advanced_panel.number_input(tr("strategic_reserve_days"), 0, 365, 20, 1)
+        shipping_dependency = advanced_panel.number_input(tr("shipping_dependency"), 0.0, 1.0, 0.85, 0.01, format="%.2f")
+        infrastructure_damage_ratio = advanced_panel.number_input(tr("infrastructure_damage_ratio"), 0.0, 1.0, 0.10, 0.01, format="%.2f")
+        reserve_recovery_lag_days = advanced_panel.number_input(tr("reserve_recovery_lag_days"), 0, 30, 3, 1)
 
-    advanced_panel.markdown("**Timeline and forecast**")
-    rolling_window_rows = advanced_panel.slider(tr("time_window_rows"), 2, 8, 3, 1)
-    forecast_steps = advanced_panel.slider(tr("forecast_steps"), 1, 6, 2, 1)
-    confidence_level = advanced_panel.slider(tr("confidence_level"), 0.5, 2.0, 1.0, 0.1)
-    simulation_hours = advanced_panel.selectbox(tr("sim_hours"), [24, 72, 168], index=0)
-    primary_supply_failure_ratio = advanced_panel.number_input(tr("primary_supply_failure_ratio"), 0.0, 1.0, 0.30, 0.01, format="%.2f")
-    reserve_energy_per_day = advanced_panel.number_input(tr("reserve_energy_per_day"), 20.0, 300.0, 120.0, 5.0, format="%.1f")
-    survival_mode = advanced_panel.selectbox(tr("survival_mode"), ["full_load", "critical_load_only"], index=0)
+        advanced_panel.markdown("**Geopolitical shock**")
+        enable_geopolitical_shock = advanced_panel.toggle(tr("enable_geopolitical_shock"), value=False)
+        geopolitical_event_type = advanced_panel.selectbox(tr("geopolitical_event_type"), list(GEOPOLITICAL_EVENT_WEIGHTS.keys()), index=0)
+        geopolitical_severity = advanced_panel.slider(tr("geopolitical_severity"), 0, 5, 2, 1)
+        geopolitical_duration_days = advanced_panel.slider(tr("geopolitical_duration_days"), 0, 90, 7, 1)
+        fossil_share = advanced_panel.slider(tr("fossil_share"), 0.0, 1.0, 0.40, 0.05)
 
-    advanced_panel.markdown("**Thermal concept lab**")
-    thermal_concept_enabled = advanced_panel.toggle(tr("enable_thermal"), value=True)
-    fresh_air_temp_c = advanced_panel.slider(tr("outside_air") + " (°C)", -30.0, 20.0, -8.0, 0.5)
-    exhaust_air_temp_c = advanced_panel.slider(tr("indoor_exhaust_air") + " (°C)", 10.0, 35.0, 23.0, 0.5)
-    recovery_efficiency = advanced_panel.slider(tr("thermal_recovery_efficiency"), 0.0, 1.0, 0.72, 0.01)
-    thermal_animation_speed = advanced_panel.slider(tr("animation_speed"), 0.4, 2.5, 1.0, 0.1)
+        advanced_panel.markdown("**Timeline and forecast**")
+        rolling_window_rows = advanced_panel.slider(tr("time_window_rows"), 2, 8, 3, 1)
+        forecast_steps = advanced_panel.slider(tr("forecast_steps"), 1, 6, 2, 1)
+        confidence_level = advanced_panel.slider(tr("confidence_level"), 0.5, 2.0, 1.0, 0.1)
+        simulation_hours = advanced_panel.selectbox(tr("sim_hours"), [24, 72, 168], index=0)
+        primary_supply_failure_ratio = advanced_panel.number_input(tr("primary_supply_failure_ratio"), 0.0, 1.0, 0.30, 0.01, format="%.2f")
+        reserve_energy_per_day = advanced_panel.number_input(tr("reserve_energy_per_day"), 20.0, 300.0, 120.0, 5.0, format="%.1f")
+        survival_mode = advanced_panel.selectbox(tr("survival_mode"), ["full_load", "critical_load_only"], index=0)
+
+        advanced_panel.markdown("**Thermal concept lab**")
+        thermal_concept_enabled = advanced_panel.toggle(tr("enable_thermal"), value=True)
+        fresh_air_temp_c = advanced_panel.slider(tr("outside_air") + " (°C)", -30.0, 20.0, -8.0, 0.5)
+        exhaust_air_temp_c = advanced_panel.slider(tr("indoor_exhaust_air") + " (°C)", 10.0, 35.0, 23.0, 0.5)
+        recovery_efficiency = advanced_panel.slider(tr("thermal_recovery_efficiency"), 0.0, 1.0, 0.72, 0.01)
+        thermal_animation_speed = advanced_panel.slider(tr("animation_speed"), 0.4, 2.5, 1.0, 0.1)
+    else:
+        temperature = int(clamp((uploaded_profile["temperature"] if (use_uploaded and uploaded_profile) else 26), -20, 50))
+        wind_speed = float(clamp((uploaded_profile["wind_speed"] if (use_uploaded and uploaded_profile) else 4.2), 0.0, 30.0))
+        solar_radiation = int(clamp((uploaded_profile["solar_radiation"] if (use_uploaded and uploaded_profile) else 640), 0, 1200))
+        precipitation = int(clamp((uploaded_profile["precipitation"] if (use_uploaded and uploaded_profile) else 12), 0, 300))
+        humidity = int(clamp((uploaded_profile["humidity"] if (use_uploaded and uploaded_profile) else 73), 0, 100))
+        solar_failure_ratio = 0.00
+        wind_failure_ratio = 0.00
+        geothermal_failure_ratio = 0.00
+        hydro_failure_ratio = 0.00
+        battery_failure_ratio = 0.00
+        energy_security_scenario = list(ENERGY_SECURITY_SCENARIOS.keys())[0]
+        import_dependency = 0.70
+        strategic_reserve_days = 20
+        shipping_dependency = 0.85
+        infrastructure_damage_ratio = 0.10
+        reserve_recovery_lag_days = 3
+        enable_geopolitical_shock = False
+        geopolitical_event_type = "None"
+        geopolitical_severity = 0
+        geopolitical_duration_days = 0
+        fossil_share = 0.40
+        rolling_window_rows = 3
+        forecast_steps = 2
+        confidence_level = 1.0
+        simulation_hours = 24
+        primary_supply_failure_ratio = 0.30
+        reserve_energy_per_day = 120.0
+        survival_mode = "full_load"
+        thermal_concept_enabled = True
+        fresh_air_temp_c = -8.0
+        exhaust_air_temp_c = 23.0
+        recovery_efficiency = 0.72
+        thermal_animation_speed = 1.0
+        st.expander(tr("advanced_settings"), expanded=False).caption("Switch to Analyst Mode to reveal detailed technical controls.")
 
     report_panel = st.expander(tr("export_report"), expanded=False)
     report_panel.caption(tr("export_help"))
@@ -2069,73 +2134,12 @@ reference_avg = compute_reference_average(inputs, uploaded_df, active_country, a
 energy_contribution_df = build_energy_contribution_df(results, baseline_results, reference_avg)
 trend_estimate_df, multistep_forecast_df, trend_meta = compute_trend_estimates(inputs, uploaded_df, active_country, active_city, baseline_results, scenario_key=scenario_key, rolling_window_rows=rolling_window_rows, forecast_steps=forecast_steps, confidence_level=confidence_level)
 
+# PRODUCT UI RESTRUCTURE START
+# Product positioning only. Detailed results are rendered later inside tabs to reduce page length.
 st.title(tr("title"))
-st.caption(tr("caption"))
-st.caption("V4 Product Polish • Demo Mode / Export Center / Decision Support Guardrails")
-# USER-FRIENDLY UI START
+st.caption(tr("product_positioning"))
 st.markdown(f'<div class="note"><b>{tr("quick_start")}</b><br>{tr("quick_start_body")}</div>', unsafe_allow_html=True)
-# USER-FRIENDLY UI END
-st.markdown(f'<div class="hero"><h3>{tr("hero_title")}</h3><p>{tr("hero_body")}</p></div>', unsafe_allow_html=True)
-
-layer_cols = st.columns(3)
-for col, label, desc in zip(layer_cols, [tr("core"), tr("decision"), tr("concept")], [tr("core_desc"), tr("decision_desc"), tr("concept_desc")]):
-    with col:
-        st.markdown(f'<div class="layer-box"><div class="card-label">{label}</div><div class="card-value" style="font-size:0.98rem;">{desc}</div></div>', unsafe_allow_html=True)
-
-top_left, top_right = st.columns([1.02, 1.08])
-with top_left:
-    st.subheader(tr("country_logic") + f": {active_country}")
-    st.write(COUNTRY_NOTES.get(active_country, "Regional energy model loaded."))
-    st.subheader(tr("facility_logic"))
-    st.write(facility_profile["notes"])
-    info_cols = st.columns(3)
-    with info_cols[0]:
-        mini_card(tr("facility_type"), facility_type)
-    with info_cols[1]:
-        mini_card("Critical Load Share", f"{facility_profile['critical_load_share'] * 100:.0f}%")
-    with info_cols[2]:
-        mini_card("Temp Band", f"{facility_profile['temp_band_c']} °C")
-
-with top_right:
-    st.subheader(tr("input_summary"))
-    c1, c2 = st.columns(2)
-    with c1:
-        mini_card(tr("country"), active_country)
-        mini_card(tr("city"), active_city)
-        mini_card(tr("population"), f"{population:,}")
-        mini_card(tr("weather_scenario"), scenario_key.replace("_", " ").title())
-    with c2:
-        mini_card("Energy Security", energy_security_scenario.replace("_", " ").title())
-        if enable_geopolitical_shock:
-            mini_card(tr("geopolitical_risk_level"), geopolitical_shock["risk_level"])
-        mini_card("Facility Tolerance", f"{facility_profile['failure_tolerance_hours']} h")
-        mini_card("Import Dependency", f"{import_dependency * 100:.0f}%")
-        mini_card("Timeline Horizon", f"{simulation_hours} h")
-        if use_uploaded and uploaded_profile is not None:
-            mini_card(tr("selected_timestamp"), uploaded_profile.get("timestamp_value", "-") or "-")
-
-st.subheader(tr("system_perf"))
-perf_top = st.columns(4)
-perf_top[0].metric(tr("demand"), f"{results['demand']} MW", delta=f"{round(results['demand'] - baseline_results['demand'], 2)} vs baseline")
-perf_top[1].metric(tr("renewable"), f"{results['renewable_supply']} MW", delta=f"{round(results['renewable_supply'] - baseline_results['renewable_supply'], 2)}")
-perf_top[2].metric(tr("final"), f"{results['final_supply']} MW", delta=f"{round(results['final_supply'] - baseline_results['final_supply'], 2)}")
-perf_top[3].metric(tr("shortfall"), f"{results['shortfall']} MW", delta=f"{round(results['shortfall'] - baseline_results['shortfall'], 2)}")
-
-st.subheader(tr("resilience"))
-perf_bottom = st.columns(4)
-perf_bottom[0].metric(tr("battery"), f"{results['battery_levels']} MWh")
-perf_bottom[1].metric(tr("rr"), f"{results['renewable_ratio']}%")
-perf_bottom[2].metric(tr("eff"), f"{results['system_efficiency']}%")
-perf_bottom[3].metric(tr("grid"), f"{results['grid_dependency']}%")
-# USER-FRIENDLY UI START
-st.caption(tr("metric_help"))
-# USER-FRIENDLY UI END
-
-status_cols = st.columns(4)
-status_cols[0].metric(tr("status_shortfall"), build_status_label(results["shortfall"], (5, 15)))
-status_cols[1].metric(tr("status_eff"), build_status_label(results["system_efficiency"], (85, 70), reverse=True))
-status_cols[2].metric(tr("status_grid"), build_status_label(results["grid_dependency"], (10, 25)))
-status_cols[3].metric(tr("status_reserve"), build_status_label(results.get("reserve_days_remaining", 0), (14, 7), reverse=True))
+# PRODUCT UI RESTRUCTURE END
 
 def build_executive_summary_text():
     lines = [
@@ -2216,17 +2220,18 @@ audit_json = json.dumps({
     "model_limitation": "Decision-support simulation only; not a prediction or guarantee.",
 }, indent=2, ensure_ascii=False)
 
-with st.expander("Export Center", expanded=False):
-    st.caption("Download scenario data, reason chain, executive summary, or audit trail when needed.")
-    download_cols = st.columns(4)
-    with download_cols[0]:
-        st.download_button(tr("download_scenario"), buf_scen.getvalue(), file_name="taivas_scenarios.csv", mime="text/csv")
-    with download_cols[1]:
-        st.download_button(tr("download_reason"), buf_reason.getvalue(), file_name="taivas_reason_chain.csv", mime="text/csv")
-    with download_cols[2]:
-        st.download_button(tr("download_summary"), summary_txt, file_name="taivas_executive_summary.txt", mime="text/plain")
-    with download_cols[3]:
-        st.download_button(tr("download_audit"), audit_json, file_name="taivas_audit_trail.json", mime="application/json")
+def render_export_center():
+    with st.expander("Export Center", expanded=False):
+        st.caption("Download scenario data, reason chain, executive summary, or audit trail when needed.")
+        download_cols = st.columns(4)
+        with download_cols[0]:
+            st.download_button(tr("download_scenario"), buf_scen.getvalue(), file_name="taivas_scenarios.csv", mime="text/csv")
+        with download_cols[1]:
+            st.download_button(tr("download_reason"), buf_reason.getvalue(), file_name="taivas_reason_chain.csv", mime="text/csv")
+        with download_cols[2]:
+            st.download_button(tr("download_summary"), summary_txt, file_name="taivas_executive_summary.txt", mime="text/plain")
+        with download_cols[3]:
+            st.download_button(tr("download_audit"), audit_json, file_name="taivas_audit_trail.json", mime="application/json")
 
 # UI IMPROVEMENT START
 # Donut chart UI renderer only: fixed source colors and external legend prevent label overlap.
@@ -2421,52 +2426,155 @@ def render_concept_lab_workspace():
         core_hours = timeline_results["hours_until_critical_failure"] if timeline_results["hours_until_critical_failure"] != "No Failure" else 168
         render_distributed_harvesting_buffering_concept(diversification_score=thermal_results["diversification_score"], reserve_gain_hours=4.0, shortfall_reduction_pct=8.0, core_preservation_hours=float(core_hours), height=720)
 
+# PRODUCT UI RESTRUCTURE START
+# Results presentation only: calculations above remain unchanged.
+def operational_risk_label():
+    if results["shortfall"] >= 15 or results["grid_dependency"] >= 25:
+        return tr("high_grid_instability_risk")
+    if results["shortfall"] >= 5 or results["grid_dependency"] >= 10:
+        return tr("supply_stress_detected")
+    return tr("low_shortfall_risk")
+
+
+def battery_status_label():
+    if results["battery_levels"] <= max(inputs["battery_capacity"] * 0.25, 1):
+        return tr("battery_reserve_declining")
+    return tr("battery_reserve_available")
+
+
+def renewable_status_label():
+    if results["renewable_ratio"] >= 45:
+        return tr("renewable_acceptable")
+    return tr("renewable_watch")
+
+
+def render_operational_summary_panel():
+    summary_rows = [
+        ("System", operational_risk_label()),
+        ("Battery", battery_status_label()),
+        ("Renewables", renewable_status_label()),
+        ("Scenario", scenario_key.replace("_", " ").title()),
+    ]
+    st.markdown(
+        """
+        <div class="hero">
+          <h3>Operational Summary</h3>
+          <p>TAIVAS converts the selected scenario into a short resilience readout for decision review.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    cols = st.columns(4)
+    for col, (label, value) in zip(cols, summary_rows):
+        with col:
+            mini_card(label, value)
+
+
+def render_demand_supply_chart():
+    chart_df = pd.DataFrame(
+        {
+            "MW": [results["demand"], results["renewable_supply"], results["final_supply"], results["shortfall"]],
+        },
+        index=[tr("demand"), tr("renewable"), tr("final"), tr("shortfall")],
+    )
+    st.bar_chart(chart_df)
+
+
+def render_main_system_status():
+    st.subheader(tr("main_system_status"))
+    metric_cols = st.columns(4)
+    metric_cols[0].metric(tr("demand"), f"{results['demand']} MW", delta=f"{round(results['demand'] - baseline_results['demand'], 2)} vs baseline")
+    metric_cols[1].metric(tr("final"), f"{results['final_supply']} MW", delta=f"{round(results['final_supply'] - baseline_results['final_supply'], 2)}")
+    metric_cols[2].metric(tr("shortfall"), f"{results['shortfall']} MW", delta=f"{round(results['shortfall'] - baseline_results['shortfall'], 2)}")
+    metric_cols[3].metric(tr("eff"), f"{results['system_efficiency']}%")
+    st.caption(tr("metric_help"))
+    render_demand_supply_chart()
+
+
+def render_battery_storage_status():
+    st.subheader(tr("battery_storage_status"))
+    cols = st.columns(3)
+    cols[0].metric(tr("battery"), f"{results['battery_levels']} MWh")
+    cols[1].metric(tr("reserve_days"), f"{results.get('reserve_days_remaining', 0)} days")
+    cols[2].metric(tr("shortfall_hour"), timeline_results["hours_until_shortfall"])
+    timeline_df = pd.DataFrame(timeline_results["rows"])
+    if not timeline_df.empty:
+        reserve_cols = [c for c in ["battery_level", "reserve_energy", "shortfall"] if c in timeline_df.columns]
+        if reserve_cols:
+            st.line_chart(timeline_df[reserve_cols])
+
+
+def render_renewable_mix_summary():
+    st.subheader(tr("renewable_mix"))
+    mix_cols = st.columns(2)
+    with mix_cols[0]:
+        render_stable_donut_chart(results["actual_mix_pct"], results["renewable_ratio"], tr("actual_mix"))
+    with mix_cols[1]:
+        st.metric(tr("rr"), f"{results['renewable_ratio']}%")
+        st.metric(tr("renewable"), f"{results['renewable_supply']} MW")
+        st.metric(tr("dominant"), results["dominant_source"])
+
+
+def render_context_cards():
+    context_cols = st.columns(4)
+    with context_cols[0]:
+        mini_card("Location", f"{active_city}, {active_country}")
+    with context_cols[1]:
+        mini_card("Facility", facility_type)
+    with context_cols[2]:
+        mini_card("Climate Scenario", scenario_key.replace("_", " ").title())
+    with context_cols[3]:
+        mini_card("Mode", experience_mode)
+
+
+def render_product_overview():
+    render_operational_summary_panel()
+    render_context_cards()
+    render_main_system_status()
+    render_battery_storage_status()
+    render_renewable_mix_summary()
+    with st.expander(tr("view_detailed_analysis"), expanded=False):
+        render_ai_recommendation_workspace()
+        render_energy_security_workspace()
+
+
+def render_product_scenario_analysis():
+    scenario_tabs = st.tabs(["Comparison", "Visual Simulator", "Recommendations"])
+    with scenario_tabs[0]:
+        render_scenario_comparison_workspace()
+    with scenario_tabs[1]:
+        render_visual_simulator_workspace()
+    with scenario_tabs[2]:
+        render_ai_recommendation_workspace()
+
+
+def render_product_advanced_analytics():
+    st.markdown('<div class="note">Advanced analytics preserve the original technical workflow for analyst review.</div>', unsafe_allow_html=True)
+    advanced_tabs = st.tabs(["Energy Mix", "Stress Test", "Energy Security", "Survival Timeline", "Concept Lab", "Export"])
+    with advanced_tabs[0]:
+        render_energy_mix_workspace()
+    with advanced_tabs[1]:
+        render_stress_test_workspace()
+    with advanced_tabs[2]:
+        render_energy_security_workspace()
+    with advanced_tabs[3]:
+        render_survival_timeline_workspace()
+    with advanced_tabs[4]:
+        render_concept_lab_workspace()
+    with advanced_tabs[5]:
+        render_export_center()
+# PRODUCT UI RESTRUCTURE END
+
 
 # -----------------------------------------------------------------------------
-# V4 Product Polish Workspace Layer
-# Users choose a workspace first, then see only the tabs relevant to that task.
+# Product-style Workspace Layer
+# Major results are organized into three tabs to reduce vertical overload.
 # -----------------------------------------------------------------------------
 st.markdown("---")
-st.subheader("Workspace Mode")
-workspace_mode = st.radio(
-    "Choose how you want to use TAIVAS",
-    ["Executive Dashboard", "Analyst Workspace", "Concept Lab"],
-    horizontal=True,
-    help="Executive is for quick demos and decision review. Analyst is for deeper testing. Concept Lab is for thermal/resilience concept exploration.",
-)
-
-workspace_note = {
-    "Executive Dashboard": "A clean demo view for investors, institutions, and non-technical reviewers. It focuses on what is happening, why it matters, and what the system recommends.",
-    "Analyst Workspace": "A professional analysis view for scenario comparison, subsystem stress testing, survival timeline, and operational risk interpretation.",
-    "Concept Lab": "An experimental visualization area for thermal buffering, ground sink, distributed control, and harvesting concepts.",
-}
-st.markdown(f'<div class="note">{workspace_note[workspace_mode]}</div>', unsafe_allow_html=True)
-
-if workspace_mode == "Executive Dashboard":
-    executive_tabs = st.tabs(["Operational Overview", "Visual Simulator", "AI Recommendation", "Energy Mix", "Energy Security"])
-    with executive_tabs[0]:
-        render_executive_overview_workspace()
-    with executive_tabs[1]:
-        render_visual_simulator_workspace()
-    with executive_tabs[2]:
-        render_ai_recommendation_workspace()
-    with executive_tabs[3]:
-        render_energy_mix_workspace()
-    with executive_tabs[4]:
-        render_energy_security_workspace()
-
-elif workspace_mode == "Analyst Workspace":
-    analyst_tabs = st.tabs(["Scenario Comparison", "Stress Test", "Survival Timeline", "Energy Security"])
-    with analyst_tabs[0]:
-        render_scenario_comparison_workspace()
-    with analyst_tabs[1]:
-        render_stress_test_workspace()
-    with analyst_tabs[2]:
-        render_survival_timeline_workspace()
-    with analyst_tabs[3]:
-        render_energy_security_workspace()
-
-else:
-    concept_workspace_tabs = st.tabs(["Concept Lab"])
-    with concept_workspace_tabs[0]:
-        render_concept_lab_workspace()
+product_tabs = st.tabs([tr("overview"), tr("scenario_analysis"), tr("advanced_analytics")])
+with product_tabs[0]:
+    render_product_overview()
+with product_tabs[1]:
+    render_product_scenario_analysis()
+with product_tabs[2]:
+    render_product_advanced_analytics()
