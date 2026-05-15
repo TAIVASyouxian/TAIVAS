@@ -591,6 +591,49 @@ def weather_adjustment(temp: float, humidity: float, precipitation: float) -> fl
     rain_impact = precipitation * 0.08
     return 1.0 + (cooling + heating + humidity_load + rain_impact) / 100.0
 
+# CORE FORMULA UPDATE START
+# These constants and helper functions support the requested calculation model.
+# They are intentionally small and local so the Streamlit UI and data flow stay unchanged.
+DEMAND_PER_CAPITA_MW = 0.000035
+SOLAR_EFFICIENCY = 0.58
+WIND_EFFICIENCY = 0.42
+GEOTHERMAL_AVAILABILITY_FACTOR = 0.85
+BATTERY_ROUND_TRIP_LOSS_RATE = 0.04
+
+FACILITY_DEMAND_FACTORS = {
+    "Long-term Care": 1.12,
+    "Hospital": 1.22,
+    "Data Center": 1.18,
+    "School / Campus": 0.92,
+    "Residential Block": 0.88,
+}
+
+
+def scenario_temperature_stress_factor(scenario_key: str, temperature: float) -> float:
+    """Demand weather factor: combines selected scenario pressure with hot/cold temperature stress."""
+    scenario = SCENARIOS.get(scenario_key, SCENARIOS["normal"])
+    heat_stress = max(0.0, temperature - 24.0) * 0.012
+    cold_stress = max(0.0, 10.0 - temperature) * 0.010
+    return clamp(float(scenario.get("demand", 1.0)) * (1.0 + heat_stress + cold_stress), 0.65, 2.25)
+
+
+def facility_demand_factor(facility_name: str) -> float:
+    """Facility factor: critical facilities receive higher modeled demand pressure."""
+    return FACILITY_DEMAND_FACTORS.get(str(facility_name), 1.0)
+
+
+def calculate_risk_tier(shortfall: float, demand: float) -> str:
+    """Risk tier formula based on unmet demand ratio."""
+    if shortfall <= 0:
+        return "Low"
+    shortfall_ratio = safe_div(shortfall, demand)
+    if shortfall_ratio < 0.05:
+        return "Elevated"
+    if shortfall_ratio < 0.15:
+        return "High"
+    return "Critical"
+# CORE FORMULA UPDATE END
+
 def build_status_label(value: float, thresholds, reverse: bool = False) -> str:
     warn, critical = thresholds
     if reverse:
@@ -628,36 +671,78 @@ def compute_energy_supply(inputs, scenario_key: str, failure_ratios: dict, reser
     geothermal_capacity = clamp(inputs["geothermal_capacity"], 0, 5000)
     hydro_capacity = clamp(inputs["hydro_capacity"], 0, 5000)
     battery_capacity = clamp(inputs["battery_capacity"], 0, 10000)
-    base_demand = base_demand_from_population(population)
-    demand = base_demand * weather_adjustment(temperature, humidity, precipitation) * scenario["demand"]
-    solar_cf = clamp((solar_radiation / 1000.0) * 0.58, 0.0, 0.95)
-    wind_cf = clamp((wind_speed / 12.0) * 0.42, 0.0, 0.90)
-    hydro_cf = clamp((0.45 + precipitation / 500.0 * 0.35), 0.15, 0.95)
-    geo_cf = 0.85
+    facility_name = inputs.get("facility_type", globals().get("facility_type", "Residential Block"))
+
+    # Demand formula:
+    # base_demand = population * demand_per_capita_mw
+    # weather_factor depends on selected scenario and temperature stress.
+    # facility_factor depends on the selected facility type.
+    # demand = base_demand * weather_factor * facility_factor
+    base_demand = population * DEMAND_PER_CAPITA_MW
+    weather_factor = scenario_temperature_stress_factor(scenario_key, temperature)
+    facility_factor = facility_demand_factor(facility_name)
+    demand = base_demand * weather_factor * facility_factor
+
+    # Renewable resource factors convert weather inputs into normalized source availability.
+    solar_resource_factor = clamp(solar_radiation / 1000.0, 0.0, 1.20)
+    wind_resource_factor = clamp(wind_speed / 12.0, 0.0, 1.50)
+    hydro_availability_factor = clamp(0.45 + precipitation / 500.0 * 0.35, 0.15, 0.95)
+    geothermal_availability_factor = GEOTHERMAL_AVAILABILITY_FACTOR
     solar_availability = 1.0 - clamp(failure_ratios["solar"], 0.0, 1.0)
     wind_availability = 1.0 - clamp(failure_ratios["wind"], 0.0, 1.0)
     geo_availability = 1.0 - clamp(failure_ratios["geothermal"], 0.0, 1.0)
     hydro_availability = 1.0 - clamp(failure_ratios["hydro"], 0.0, 1.0)
     battery_availability = 1.0 - clamp(failure_ratios["battery"], 0.0, 1.0)
-    solar_supply = solar_capacity * solar_cf * scenario["solar"] * solar_availability
-    wind_supply = wind_capacity * wind_cf * scenario["wind"] * wind_availability
-    hydro_supply = hydro_capacity * hydro_cf * scenario["hydro"] * hydro_availability
-    geo_supply = geothermal_capacity * geo_cf * scenario["geo"] * geo_availability
+
+    # Renewable supply formulas:
+    # solar_supply = solar_capacity * solar_resource_factor * solar_efficiency * scenario_solar_factor
+    # wind_supply = wind_capacity * wind_resource_factor * wind_efficiency * scenario_wind_factor
+    # hydro_supply = hydro_capacity * hydro_availability_factor * scenario_hydro_factor
+    # geothermal_supply = geothermal_capacity * geothermal_availability_factor
+    # Existing failure ratios are preserved as availability multipliers.
+    solar_supply = solar_capacity * solar_resource_factor * SOLAR_EFFICIENCY * scenario["solar"] * solar_availability
+    wind_supply = wind_capacity * wind_resource_factor * WIND_EFFICIENCY * scenario["wind"] * wind_availability
+    hydro_supply = hydro_capacity * hydro_availability_factor * scenario["hydro"] * hydro_availability
+    geo_supply = geothermal_capacity * geothermal_availability_factor * geo_availability
     renewable_supply = solar_supply + wind_supply + hydro_supply + geo_supply
+
+    # Battery formula:
+    # battery_next = min(battery_capacity, battery_current + charge - discharge - battery_losses)
+    battery_current = clamp(inputs.get("battery_current", battery_capacity), 0, battery_capacity)
+    charge = max(0.0, renewable_supply - demand) * 0.30
     battery_dispatch_limit = battery_capacity * 0.35 * scenario["battery"] * battery_availability
     lag_penalty = max(0.70, 1.0 - reserve_recovery_lag_days * 0.015)
-    battery_dispatch = min(battery_dispatch_limit * lag_penalty, max(0.0, demand - renewable_supply))
-    final_supply = renewable_supply + battery_dispatch
+    discharge = min(battery_current, battery_dispatch_limit * lag_penalty, max(0.0, demand - renewable_supply))
+    battery_losses = (charge + discharge) * BATTERY_ROUND_TRIP_LOSS_RATE
+    battery_next = min(battery_capacity, max(0.0, battery_current + charge - discharge - battery_losses))
+
+    # Final supply formula:
+    # final_supply = renewable_supply + battery_discharge + grid_support
+    grid_support = clamp(inputs.get("grid_support", 0.0), 0.0, demand)
+    battery_dispatch = discharge
+    final_supply = renewable_supply + battery_dispatch + grid_support
+
+    # Shortfall formula:
+    # shortfall = max(demand - final_supply, 0)
     shortfall = max(0.0, demand - final_supply)
+
+    # Risk tier formula:
+    # Low when no shortfall, then Elevated/High/Critical by shortfall share of demand.
+    risk_tier = calculate_risk_tier(shortfall, demand)
     renewable_ratio = safe_div(renewable_supply, final_supply) * 100 if final_supply > 0 else 0.0
     system_efficiency = clamp(100 - shortfall * 0.55, 0, 100)
     grid_dependency = safe_div(shortfall, demand) * 100 if demand > 0 else 0.0
-    battery_levels = max(0.0, battery_capacity - battery_dispatch)
+    battery_levels = battery_next
     actual_mix_raw = {"Solar": solar_supply, "Wind": wind_supply, "Geothermal": geo_supply, "Hydro": hydro_supply}
     installed_mix_raw = {"Solar": solar_capacity, "Wind": wind_capacity, "Geothermal": geothermal_capacity, "Hydro": hydro_capacity}
     actual_mix_pct = {k: v * 100 for k, v in normalize_mix(actual_mix_raw).items()}
     installed_mix_pct = {k: v * 100 for k, v in normalize_mix(installed_mix_raw).items()}
-    capacity_factors = {"Solar": round(solar_cf * 100, 1), "Wind": round(wind_cf * 100, 1), "Geothermal": round(geo_cf * 100, 1), "Hydro": round(hydro_cf * 100, 1)}
+    capacity_factors = {
+        "Solar": round(clamp(solar_resource_factor * SOLAR_EFFICIENCY, 0.0, 1.0) * 100, 1),
+        "Wind": round(clamp(wind_resource_factor * WIND_EFFICIENCY, 0.0, 1.0) * 100, 1),
+        "Geothermal": round(geothermal_availability_factor * 100, 1),
+        "Hydro": round(hydro_availability_factor * 100, 1),
+    }
     dominant_source = max(actual_mix_raw, key=actual_mix_raw.get) if renewable_supply > 0 else "None"
     return {
         "demand": round(demand, 2),
@@ -668,6 +753,9 @@ def compute_energy_supply(inputs, scenario_key: str, failure_ratios: dict, reser
         "renewable_ratio": round(renewable_ratio, 2),
         "system_efficiency": round(system_efficiency, 2),
         "grid_dependency": round(grid_dependency, 2),
+        "risk_tier": risk_tier,
+        "grid_support": round(grid_support, 2),
+        "battery_discharge": round(battery_dispatch, 2),
         "actual_mix_pct": actual_mix_pct,
         "installed_mix_pct": installed_mix_pct,
         "actual_mix_mw": {k: round(v, 2) for k, v in actual_mix_raw.items()},
@@ -2076,6 +2164,7 @@ inputs = {
     "country_key": active_country, "city_key": active_city, "lat": active_lat, "lon": active_lon,
     "temperature": temperature, "wind_speed": wind_speed, "solar_radiation": solar_radiation,
     "precipitation": precipitation, "humidity": humidity, "population": population,
+    "facility_type": facility_type,
     "solar_capacity": solar_capacity, "wind_capacity": wind_capacity,
     "geothermal_capacity": geothermal_capacity, "hydro_capacity": hydro_capacity,
     "battery_capacity": battery_capacity,
