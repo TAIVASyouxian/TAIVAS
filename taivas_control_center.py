@@ -1784,38 +1784,66 @@ def extend_i18n():
 
 extend_i18n()
 
+# USER-FRIENDLY UI START
+# Plain-English display labels and helper copy only. Calculation keys and formulas stay unchanged.
+I18N["English"].update({
+    "shortfall": "Energy Gap",
+    "grid": "Backup Grid Need",
+    "rr": "Renewable Share",
+    "eff": "System Stability",
+    "quick_start": "Quick Start",
+    "quick_start_body": "Choose a city, select a climate scenario, then run the simulation.",
+    "basic_setup": "Basic Setup",
+    "scenario_setup": "Scenario",
+    "energy_capacity": "Energy Capacity",
+    "advanced_settings": "Advanced Settings",
+    "export_report": "Export / Report",
+    "basic_setup_help": "Start here. Pick the location, facility type, and population.",
+    "scenario_help": "Choose the climate or disruption situation you want to test.",
+    "capacity_help": "Set the available local energy resources. Higher capacity usually improves resilience.",
+    "advanced_help": "Optional expert controls for weather details, component failures, security risk, timeline, and thermal concepts.",
+    "export_help": "After the simulation loads, use the Export Center in the dashboard to download CSV, TXT, or JSON reports.",
+    "metric_help": "Energy Gap shows unmet demand. Renewable Share shows how much supply comes from renewables. System Stability is the simplified health score. Backup Grid Need shows how much outside grid support may be needed.",
+})
+# USER-FRIENDLY UI END
+
 with st.sidebar:
     ui_lang = st.selectbox("Language / 語言", list(I18N.keys()), index=list(I18N.keys()).index(st.session_state.get("ui_lang", "English")))
     st.session_state["ui_lang"] = ui_lang
     st.header(tr("controls"))
+    # USER-FRIENDLY UI START
+    st.markdown(f'<div class="note"><b>{tr("quick_start")}</b><br>{tr("quick_start_body")}</div>', unsafe_allow_html=True)
+    basic_panel = st.expander(tr("basic_setup"), expanded=True)
+    basic_panel.caption(tr("basic_setup_help"))
 
-    demo_mode = st.selectbox(
+    demo_mode = basic_panel.selectbox(
         "Demo Mode",
         ["Manual", "Taiwan Typhoon", "Finland Blizzard", "Germany Energy Security", "Middle East Shock"],
         index=0,
         help="Use a prepared scenario for fast demos. Manual keeps all sidebar values unchanged.",
     )
     if demo_mode != "Manual":
-        st.caption(f"Demo preset active: {demo_mode}")
+        basic_panel.caption(f"Demo preset active: {demo_mode}")
 
-    uploaded_baseline_file = st.file_uploader(tr("uploaded_data"), type=["csv"], key="uploaded_baseline_csv")
+    uploaded_baseline_file = basic_panel.file_uploader(tr("uploaded_data"), type=["csv"], key="uploaded_baseline_csv")
     uploaded_df = safe_read_csv(uploaded_baseline_file)
     uploaded_profiles = build_uploaded_profiles(uploaded_df)
     use_uploaded = False
     uploaded_profile = None
     uploaded_preview_df, uploaded_ts_col, uploaded_sorting_mode = prepare_uploaded_preview(uploaded_df)
     if uploaded_profiles:
-        use_uploaded = st.toggle(tr("use_uploaded"), value=True)
-        uploaded_row_key = st.selectbox(tr("uploaded_row"), list(uploaded_profiles.keys()))
+        use_uploaded = basic_panel.toggle(tr("use_uploaded"), value=True)
+        uploaded_row_key = basic_panel.selectbox(tr("uploaded_row"), list(uploaded_profiles.keys()))
         uploaded_profile = uploaded_profiles.get(uploaded_row_key)
-        st.caption(f"{tr('csv_mode')}: {uploaded_row_key}")
+        basic_panel.caption(f"{tr('csv_mode')}: {uploaded_row_key}")
         if uploaded_profile is not None:
-            st.caption(f"{tr('selected_timestamp')}: {uploaded_profile.get('timestamp_value', '-') or '-'}")
-        with st.expander(tr("uploaded_preview"), expanded=False):
+            basic_panel.caption(f"{tr('selected_timestamp')}: {uploaded_profile.get('timestamp_value', '-') or '-'}")
+        show_uploaded_preview = basic_panel.checkbox(tr("uploaded_preview"), value=False)
+        if show_uploaded_preview:
             if uploaded_ts_col is not None:
-                st.caption(f"{tr('timestamp_col')}: {uploaded_ts_col} • {tr('sorting_mode')}: {tr('timestamp_sorted') if uploaded_sorting_mode == 'timestamp' else tr('original_order')}")
+                basic_panel.caption(f"{tr('timestamp_col')}: {uploaded_ts_col} • {tr('sorting_mode')}: {tr('timestamp_sorted') if uploaded_sorting_mode == 'timestamp' else tr('original_order')}")
             if uploaded_preview_df is not None:
-                st.dataframe(uploaded_preview_df, use_container_width=True, hide_index=True)
+                basic_panel.dataframe(uploaded_preview_df, use_container_width=True, hide_index=True)
 
     merged_city_data = {country_name: dict(cities) for country_name, cities in CITY_DATA.items()}
     for profile in uploaded_profiles.values():
@@ -1832,12 +1860,12 @@ with st.sidebar:
     default_country = uploaded_profile["country"] if (use_uploaded and uploaded_profile) else list(merged_city_data.keys())[0]
     country_options = list(merged_city_data.keys())
     country_index = country_options.index(default_country) if default_country in country_options else 0
-    country = st.selectbox(tr("country"), country_options, index=country_index, disabled=(use_uploaded and uploaded_profile is not None))
+    country = basic_panel.selectbox(tr("country"), country_options, index=country_index, disabled=(use_uploaded and uploaded_profile is not None), help="Choose the country or uploaded location profile.")
 
     city_options = list(merged_city_data[country].keys())
     default_city = uploaded_profile["city"] if (use_uploaded and uploaded_profile and uploaded_profile["country"] == country) else city_options[0]
     city_index = city_options.index(default_city) if default_city in city_options else 0
-    city = st.selectbox(tr("city"), city_options, index=city_index, disabled=(use_uploaded and uploaded_profile is not None))
+    city = basic_panel.selectbox(tr("city"), city_options, index=city_index, disabled=(use_uploaded and uploaded_profile is not None), help="Choose the city to simulate.")
     city_profile = merged_city_data[country][city]
 
     active_country = uploaded_profile["country"] if (use_uploaded and uploaded_profile) else country
@@ -1846,68 +1874,73 @@ with st.sidebar:
     active_lon = uploaded_profile["lon"] if (use_uploaded and uploaded_profile) else city_profile["lon"]
     active_population = uploaded_profile["population"] if (use_uploaded and uploaded_profile) else int(city_profile["population"])
 
-    facility_type = st.selectbox(tr("facility_type"), list(FACILITY_PROFILES.keys()))
+    facility_type = basic_panel.selectbox(tr("facility_type"), list(FACILITY_PROFILES.keys()), help="Choose the kind of building or site being protected.")
     facility_profile = FACILITY_PROFILES[facility_type]
-    population = st.slider(tr("population"), 10000, 5000000, int(clamp(active_population, 10000, 5000000)), step=10000)
-    st.caption(f"{tr('population')}: {population:,}")
+    population = basic_panel.slider(tr("population"), 10000, 5000000, int(clamp(active_population, 10000, 5000000)), step=10000, help="Approximate number of people affected by this energy system.")
+    basic_panel.caption(f"{tr('population')}: {population:,}")
 
-    # UI IMPROVEMENT START
-    # Sidebar grouping only: keep all widgets and variable names intact while reducing control clutter.
-    capacity_panel = st.expander(tr("capacity_inputs"), expanded=True)
-    solar_capacity = capacity_panel.slider(tr("solar_capacity"), 0, 500, int(clamp((uploaded_profile["solar_capacity"] if (use_uploaded and uploaded_profile) else 120), 0, 500)), 5)
-    wind_capacity = capacity_panel.slider(tr("wind_capacity"), 0, 500, int(clamp((uploaded_profile["wind_capacity"] if (use_uploaded and uploaded_profile) else 80), 0, 500)), 5)
-    geothermal_capacity = capacity_panel.slider(tr("geothermal_capacity"), 0, 500, int(clamp((uploaded_profile["geothermal_capacity"] if (use_uploaded and uploaded_profile) else 60), 0, 500)), 5)
-    hydro_capacity = capacity_panel.slider(tr("hydro_capacity"), 0, 500, int(clamp((uploaded_profile["hydro_capacity"] if (use_uploaded and uploaded_profile) else 70), 0, 500)), 5)
-    battery_capacity = capacity_panel.slider(tr("battery_capacity"), 0, 1000, int(clamp((uploaded_profile["battery_capacity"] if (use_uploaded and uploaded_profile) else 180), 0, 1000)), 10)
+    scenario_panel = st.expander(tr("scenario_setup"), expanded=True)
+    scenario_panel.caption(tr("scenario_help"))
+    scenario_key = scenario_panel.selectbox(tr("weather_scenario"), list(SCENARIOS.keys()), help="Pick the main situation to simulate, such as normal, heat wave, storm, blizzard, or typhoon.")
 
-    weather_panel = st.expander(tr("weather_inputs"), expanded=True)
-    temperature = weather_panel.slider(tr("temperature") + " (°C)", -20, 50, int(clamp((uploaded_profile["temperature"] if (use_uploaded and uploaded_profile) else 26), -20, 50)), 1)
-    wind_speed = weather_panel.slider(tr("wind_speed") + " (m/s)", 0.0, 30.0, float(clamp((uploaded_profile["wind_speed"] if (use_uploaded and uploaded_profile) else 4.2), 0.0, 30.0)), 0.1)
-    solar_radiation = weather_panel.slider(tr("solar_radiation") + " (W/m²)", 0, 1200, int(clamp((uploaded_profile["solar_radiation"] if (use_uploaded and uploaded_profile) else 640), 0, 1200)), 10)
-    precipitation = weather_panel.slider(tr("precipitation") + " (mm)", 0, 300, int(clamp((uploaded_profile["precipitation"] if (use_uploaded and uploaded_profile) else 12), 0, 300)), 1)
-    humidity = weather_panel.slider(tr("humidity") + " (%)", 0, 100, int(clamp((uploaded_profile["humidity"] if (use_uploaded and uploaded_profile) else 73), 0, 100)), 1)
-    scenario_key = weather_panel.selectbox(tr("weather_scenario"), list(SCENARIOS.keys()))
+    capacity_panel = st.expander(tr("energy_capacity"), expanded=True)
+    capacity_panel.caption(tr("capacity_help"))
+    solar_capacity = capacity_panel.slider(tr("solar_capacity"), 0, 500, int(clamp((uploaded_profile["solar_capacity"] if (use_uploaded and uploaded_profile) else 120), 0, 500)), 5, help="Local solar power capacity in MW.")
+    wind_capacity = capacity_panel.slider(tr("wind_capacity"), 0, 500, int(clamp((uploaded_profile["wind_capacity"] if (use_uploaded and uploaded_profile) else 80), 0, 500)), 5, help="Local wind power capacity in MW.")
+    geothermal_capacity = capacity_panel.slider(tr("geothermal_capacity"), 0, 500, int(clamp((uploaded_profile["geothermal_capacity"] if (use_uploaded and uploaded_profile) else 60), 0, 500)), 5, help="Stable geothermal capacity in MW.")
+    hydro_capacity = capacity_panel.slider(tr("hydro_capacity"), 0, 500, int(clamp((uploaded_profile["hydro_capacity"] if (use_uploaded and uploaded_profile) else 70), 0, 500)), 5, help="Hydro power capacity in MW.")
+    battery_capacity = capacity_panel.slider(tr("battery_capacity"), 0, 1000, int(clamp((uploaded_profile["battery_capacity"] if (use_uploaded and uploaded_profile) else 180), 0, 1000)), 10, help="Battery reserve capacity in MWh.")
 
-    stress_panel = st.expander(tr("stress_inputs"), expanded=False)
-    solar_failure_ratio = stress_panel.number_input(tr("solar_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
-    wind_failure_ratio = stress_panel.number_input(tr("wind_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
-    geothermal_failure_ratio = stress_panel.number_input(tr("geothermal_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
-    hydro_failure_ratio = stress_panel.number_input(tr("hydro_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
-    battery_failure_ratio = stress_panel.number_input(tr("battery_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
+    advanced_panel = st.expander(tr("advanced_settings"), expanded=False)
+    advanced_panel.caption(tr("advanced_help"))
+    advanced_panel.markdown("**Weather details**")
+    temperature = advanced_panel.slider(tr("temperature") + " (°C)", -20, 50, int(clamp((uploaded_profile["temperature"] if (use_uploaded and uploaded_profile) else 26), -20, 50)), 1, help="Used to estimate heating or cooling pressure.")
+    wind_speed = advanced_panel.slider(tr("wind_speed") + " (m/s)", 0.0, 30.0, float(clamp((uploaded_profile["wind_speed"] if (use_uploaded and uploaded_profile) else 4.2), 0.0, 30.0)), 0.1, help="Affects wind power output.")
+    solar_radiation = advanced_panel.slider(tr("solar_radiation") + " (W/m²)", 0, 1200, int(clamp((uploaded_profile["solar_radiation"] if (use_uploaded and uploaded_profile) else 640), 0, 1200)), 10, help="Affects solar power output.")
+    precipitation = advanced_panel.slider(tr("precipitation") + " (mm)", 0, 300, int(clamp((uploaded_profile["precipitation"] if (use_uploaded and uploaded_profile) else 12), 0, 300)), 1, help="Affects demand and hydro behavior.")
+    humidity = advanced_panel.slider(tr("humidity") + " (%)", 0, 100, int(clamp((uploaded_profile["humidity"] if (use_uploaded and uploaded_profile) else 73), 0, 100)), 1, help="Higher humidity can increase cooling pressure.")
 
-    security_panel = st.expander(tr("security_inputs"), expanded=False)
-    energy_security_scenario = security_panel.selectbox(tr("energy_security_scenario"), list(ENERGY_SECURITY_SCENARIOS.keys()))
-    import_dependency = security_panel.number_input(tr("import_dependency"), 0.0, 1.0, 0.70, 0.01, format="%.2f")
-    strategic_reserve_days = security_panel.number_input(tr("strategic_reserve_days"), 0, 365, 20, 1)
-    shipping_dependency = security_panel.number_input(tr("shipping_dependency"), 0.0, 1.0, 0.85, 0.01, format="%.2f")
-    infrastructure_damage_ratio = security_panel.number_input(tr("infrastructure_damage_ratio"), 0.0, 1.0, 0.10, 0.01, format="%.2f")
-    reserve_recovery_lag_days = security_panel.number_input(tr("reserve_recovery_lag_days"), 0, 30, 3, 1)
+    advanced_panel.markdown("**Component failures**")
+    solar_failure_ratio = advanced_panel.number_input(tr("solar_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f", help="0 means no failure. 1 means fully unavailable.")
+    wind_failure_ratio = advanced_panel.number_input(tr("wind_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
+    geothermal_failure_ratio = advanced_panel.number_input(tr("geothermal_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
+    hydro_failure_ratio = advanced_panel.number_input(tr("hydro_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
+    battery_failure_ratio = advanced_panel.number_input(tr("battery_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f")
 
-    geopolitical_panel = st.expander(tr("geopolitical_inputs"), expanded=False)
-    enable_geopolitical_shock = geopolitical_panel.toggle(tr("enable_geopolitical_shock"), value=False)
-    geopolitical_event_type = geopolitical_panel.selectbox(tr("geopolitical_event_type"), list(GEOPOLITICAL_EVENT_WEIGHTS.keys()), index=0)
-    geopolitical_severity = geopolitical_panel.slider(tr("geopolitical_severity"), 0, 5, 2, 1)
-    geopolitical_duration_days = geopolitical_panel.slider(tr("geopolitical_duration_days"), 0, 90, 7, 1)
-    fossil_share = geopolitical_panel.slider(tr("fossil_share"), 0.0, 1.0, 0.40, 0.05)
+    advanced_panel.markdown("**Energy security**")
+    energy_security_scenario = advanced_panel.selectbox(tr("energy_security_scenario"), list(ENERGY_SECURITY_SCENARIOS.keys()))
+    import_dependency = advanced_panel.number_input(tr("import_dependency"), 0.0, 1.0, 0.70, 0.01, format="%.2f", help="How much the system relies on external energy supply.")
+    strategic_reserve_days = advanced_panel.number_input(tr("strategic_reserve_days"), 0, 365, 20, 1)
+    shipping_dependency = advanced_panel.number_input(tr("shipping_dependency"), 0.0, 1.0, 0.85, 0.01, format="%.2f")
+    infrastructure_damage_ratio = advanced_panel.number_input(tr("infrastructure_damage_ratio"), 0.0, 1.0, 0.10, 0.01, format="%.2f")
+    reserve_recovery_lag_days = advanced_panel.number_input(tr("reserve_recovery_lag_days"), 0, 30, 3, 1)
 
-    time_window_panel = st.expander(tr("time_window_control"), expanded=False)
-    rolling_window_rows = time_window_panel.slider(tr("time_window_rows"), 2, 8, 3, 1)
-    forecast_steps = time_window_panel.slider(tr("forecast_steps"), 1, 6, 2, 1)
-    confidence_level = time_window_panel.slider(tr("confidence_level"), 0.5, 2.0, 1.0, 0.1)
+    advanced_panel.markdown("**Geopolitical shock**")
+    enable_geopolitical_shock = advanced_panel.toggle(tr("enable_geopolitical_shock"), value=False)
+    geopolitical_event_type = advanced_panel.selectbox(tr("geopolitical_event_type"), list(GEOPOLITICAL_EVENT_WEIGHTS.keys()), index=0)
+    geopolitical_severity = advanced_panel.slider(tr("geopolitical_severity"), 0, 5, 2, 1)
+    geopolitical_duration_days = advanced_panel.slider(tr("geopolitical_duration_days"), 0, 90, 7, 1)
+    fossil_share = advanced_panel.slider(tr("fossil_share"), 0.0, 1.0, 0.40, 0.05)
 
-    timeline_panel = st.expander(tr("timeline_inputs"), expanded=False)
-    simulation_hours = timeline_panel.selectbox(tr("sim_hours"), [24, 72, 168], index=0)
-    primary_supply_failure_ratio = timeline_panel.number_input(tr("primary_supply_failure_ratio"), 0.0, 1.0, 0.30, 0.01, format="%.2f")
-    reserve_energy_per_day = timeline_panel.number_input(tr("reserve_energy_per_day"), 20.0, 300.0, 120.0, 5.0, format="%.1f")
-    survival_mode = timeline_panel.selectbox(tr("survival_mode"), ["full_load", "critical_load_only"], index=0)
+    advanced_panel.markdown("**Timeline and forecast**")
+    rolling_window_rows = advanced_panel.slider(tr("time_window_rows"), 2, 8, 3, 1)
+    forecast_steps = advanced_panel.slider(tr("forecast_steps"), 1, 6, 2, 1)
+    confidence_level = advanced_panel.slider(tr("confidence_level"), 0.5, 2.0, 1.0, 0.1)
+    simulation_hours = advanced_panel.selectbox(tr("sim_hours"), [24, 72, 168], index=0)
+    primary_supply_failure_ratio = advanced_panel.number_input(tr("primary_supply_failure_ratio"), 0.0, 1.0, 0.30, 0.01, format="%.2f")
+    reserve_energy_per_day = advanced_panel.number_input(tr("reserve_energy_per_day"), 20.0, 300.0, 120.0, 5.0, format="%.1f")
+    survival_mode = advanced_panel.selectbox(tr("survival_mode"), ["full_load", "critical_load_only"], index=0)
 
-    thermal_panel = st.expander(tr("thermal_inputs"), expanded=False)
-    thermal_concept_enabled = thermal_panel.toggle(tr("enable_thermal"), value=True)
-    fresh_air_temp_c = thermal_panel.slider(tr("outside_air") + " (°C)", -30.0, 20.0, -8.0, 0.5)
-    exhaust_air_temp_c = thermal_panel.slider(tr("indoor_exhaust_air") + " (°C)", 10.0, 35.0, 23.0, 0.5)
-    recovery_efficiency = thermal_panel.slider(tr("thermal_recovery_efficiency"), 0.0, 1.0, 0.72, 0.01)
-    thermal_animation_speed = thermal_panel.slider(tr("animation_speed"), 0.4, 2.5, 1.0, 0.1)
-    # UI IMPROVEMENT END
+    advanced_panel.markdown("**Thermal concept lab**")
+    thermal_concept_enabled = advanced_panel.toggle(tr("enable_thermal"), value=True)
+    fresh_air_temp_c = advanced_panel.slider(tr("outside_air") + " (°C)", -30.0, 20.0, -8.0, 0.5)
+    exhaust_air_temp_c = advanced_panel.slider(tr("indoor_exhaust_air") + " (°C)", 10.0, 35.0, 23.0, 0.5)
+    recovery_efficiency = advanced_panel.slider(tr("thermal_recovery_efficiency"), 0.0, 1.0, 0.72, 0.01)
+    thermal_animation_speed = advanced_panel.slider(tr("animation_speed"), 0.4, 2.5, 1.0, 0.1)
+
+    report_panel = st.expander(tr("export_report"), expanded=False)
+    report_panel.caption(tr("export_help"))
+    # USER-FRIENDLY UI END
 
 # V4 Demo Mode presets: override runtime values after widgets are created,
 # so manual controls remain available while demos can be activated instantly.
@@ -2039,6 +2072,9 @@ trend_estimate_df, multistep_forecast_df, trend_meta = compute_trend_estimates(i
 st.title(tr("title"))
 st.caption(tr("caption"))
 st.caption("V4 Product Polish • Demo Mode / Export Center / Decision Support Guardrails")
+# USER-FRIENDLY UI START
+st.markdown(f'<div class="note"><b>{tr("quick_start")}</b><br>{tr("quick_start_body")}</div>', unsafe_allow_html=True)
+# USER-FRIENDLY UI END
 st.markdown(f'<div class="hero"><h3>{tr("hero_title")}</h3><p>{tr("hero_body")}</p></div>', unsafe_allow_html=True)
 
 layer_cols = st.columns(3)
@@ -2091,6 +2127,9 @@ perf_bottom[0].metric(tr("battery"), f"{results['battery_levels']} MWh")
 perf_bottom[1].metric(tr("rr"), f"{results['renewable_ratio']}%")
 perf_bottom[2].metric(tr("eff"), f"{results['system_efficiency']}%")
 perf_bottom[3].metric(tr("grid"), f"{results['grid_dependency']}%")
+# USER-FRIENDLY UI START
+st.caption(tr("metric_help"))
+# USER-FRIENDLY UI END
 
 status_cols = st.columns(4)
 status_cols[0].metric(tr("status_shortfall"), build_status_label(results["shortfall"], (5, 15)))
