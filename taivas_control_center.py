@@ -719,6 +719,8 @@ def critical_load_breakdown(total_demand, critical_share, split):
     critical_total = total_demand * critical_share
     return pd.DataFrame({"Category": list(split.keys()), f"{tr('demand')} (MW)": [round(critical_total * w, 2) for w in split.values()]})
 
+# UI IMPROVEMENT START
+# Chart readability polish only: larger canvas, fixed colors, clearer labels.
 def render_capacity_factor_chart(capacity_factors):
     labels = list(capacity_factors.keys())
     values = [capacity_factors[k] for k in labels]
@@ -773,6 +775,7 @@ def render_critical_load_chart(df):
     plt.xticks(rotation=18, ha="right")
     plt.tight_layout(pad=1.5)
     st.pyplot(fig, clear_figure=True)
+# UI IMPROVEMENT END
 
 
 def compute_reference_average(inputs, uploaded_df, selected_country, selected_city):
@@ -1092,6 +1095,8 @@ def render_trend_estimate_panel(trend_df, multistep_df, trend_meta):
     st.dataframe(multistep_df, use_container_width=True, hide_index=True)
 
 
+# UI IMPROVEMENT START
+# Global visual hierarchy, responsive layout, sidebar spacing, metric cards, tabs, and buttons.
 st.markdown("""
 <style>
 /* UI polish block: spacing, typography, mobile layout, metrics, buttons, and scenario hierarchy. */
@@ -1255,6 +1260,7 @@ div[data-testid="stDataFrame"] {font-size: 0.95rem;}
 }
 </style>
 """, unsafe_allow_html=True)
+# UI IMPROVEMENT END
 
 
 
@@ -1567,6 +1573,8 @@ def _scenario_stress_profile(results, geopolitical_shock=None):
         "price_spike": round(float(shock.get("price_spike_index", 0.0)), 1),
     }
 
+# UI IMPROVEMENT START
+# Visual simulator layout polish only: card consistency and mobile-friendly grids.
 def render_visual_simulator_header():
     st.markdown("""
         <style>
@@ -1618,6 +1626,7 @@ def render_visual_metric_cards(profile):
           <div class="flow-card {_risk_color_class(profile['geopolitical_stress'])}"><div class="flow-label">Geo Shock Stress</div><div class="flow-value">{profile['geopolitical_stress']}</div></div>
         </div>
         """, unsafe_allow_html=True)
+# UI IMPROVEMENT END
 
 def render_scenario_visual_map(visual_scenario, profile):
     try:
@@ -1842,6 +1851,8 @@ with st.sidebar:
     population = st.slider(tr("population"), 10000, 5000000, int(clamp(active_population, 10000, 5000000)), step=10000)
     st.caption(f"{tr('population')}: {population:,}")
 
+    # UI IMPROVEMENT START
+    # Sidebar grouping only: keep all widgets and variable names intact while reducing control clutter.
     capacity_panel = st.expander(tr("capacity_inputs"), expanded=True)
     solar_capacity = capacity_panel.slider(tr("solar_capacity"), 0, 500, int(clamp((uploaded_profile["solar_capacity"] if (use_uploaded and uploaded_profile) else 120), 0, 500)), 5)
     wind_capacity = capacity_panel.slider(tr("wind_capacity"), 0, 500, int(clamp((uploaded_profile["wind_capacity"] if (use_uploaded and uploaded_profile) else 80), 0, 500)), 5)
@@ -1896,6 +1907,7 @@ with st.sidebar:
     exhaust_air_temp_c = thermal_panel.slider(tr("indoor_exhaust_air") + " (°C)", 10.0, 35.0, 23.0, 0.5)
     recovery_efficiency = thermal_panel.slider(tr("thermal_recovery_efficiency"), 0.0, 1.0, 0.72, 0.01)
     thermal_animation_speed = thermal_panel.slider(tr("animation_speed"), 0.4, 2.5, 1.0, 0.1)
+    # UI IMPROVEMENT END
 
 # V4 Demo Mode presets: override runtime values after widgets are created,
 # so manual controls remain available while demos can be activated instantly.
@@ -2177,6 +2189,8 @@ with st.expander("Export Center", expanded=False):
     with download_cols[3]:
         st.download_button(tr("download_audit"), audit_json, file_name="taivas_audit_trail.json", mime="application/json")
 
+# UI IMPROVEMENT START
+# Donut chart UI renderer only: fixed source colors and external legend prevent label overlap.
 def render_stable_donut_chart(mix_pct, center_value, title):
     # UI-only chart renderer: fixed source colors and external legend prevent label overlap.
     source_colors = {
@@ -2220,6 +2234,7 @@ def render_stable_donut_chart(mix_pct, center_value, title):
         ax.set_aspect("equal")
     plt.tight_layout(pad=1.6)
     st.pyplot(fig, clear_figure=True)
+# UI IMPROVEMENT END
 
 def render_energy_mix_workspace():
     page_question(tr("tabs")[0])
