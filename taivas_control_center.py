@@ -31,6 +31,89 @@ from concept_lab_components import (
 
 st.set_page_config(page_title="TAIVAS Energy Control Center", layout="wide")
 
+# UI-ONLY CHANGE START
+# TAIVAS UI Design System / UI Rules
+# This section is an internal design reference for future TAIVAS UI work.
+# It is documentation only: it must not drive calculations, scenario logic, or data flow.
+TAIVAS_UI_DESIGN_SYSTEM = """
+TAIVAS UI DESIGN SYSTEM
+
+Identity:
+- Calm sci-fi command center.
+- 70% professional analytical dashboard, 30% restrained futuristic control center.
+- Serious, institutional, high-value, future-oriented, crisis-aware, operational, trustworthy.
+- Information clarity comes before visual effects.
+
+Avoid:
+- Video game HUD, cyberpunk arcade, toy dashboard, overdecorated sci-fi cockpit.
+- Academic PDF density or plain Excel-dashboard flatness.
+- Excessive neon, flashing lights, distracting particles, rapid animation, random sci-fi decoration.
+
+Primary UI Layers:
+1. Situation Awareness Layer
+   Purpose: scenario impact, risk state, system pressure, approaching disruption.
+   Examples: typhoon/storm visual, extreme-weather influence map, risk state panel.
+
+2. Energy System Layer
+   Purpose: demand, supply, storage, energy gap, grid dependency, renewable contribution.
+   Examples: energy balance cards, stress chain, storage buffer depletion.
+
+3. Infrastructure Resilience Layer
+   Purpose: subsystem mechanisms that reduce risk or stabilize the system.
+   Examples: thermal resilience buffer, passive heat recovery, cold-climate stabilization.
+
+4. Decision Support Layer
+   Purpose: recommendations, warnings, risk tier, model boundaries, user interpretation.
+   Examples: recommendation card, public risk summary, operational priority, model boundary notice.
+
+Color Semantics:
+- Blue / cyan: cooling, fresh air, water, stable flow, external environment.
+- Green: normal, safe, renewable supply, healthy buffer.
+- Yellow / amber: caution, stress rising, limited buffer.
+- Orange: high stress, warning, transition to risk.
+- Red: critical risk, energy gap, failure pressure, severe disruption.
+- Purple: uncertainty, scenario simulation, forecast band.
+- Gray / slate: neutral structure, inactive state, baseline.
+- Gold: high-value emphasis, protected core, recovery efficiency, controlled priority.
+
+Metric Display Rules:
+- Critical values use short label, large numeric value, unit, and one-line interpretation when useful.
+- Avoid long paragraphs inside operational panels.
+- Prefer short bullets, chips, status labels, and compact cards.
+
+Panel Naming Rules:
+- Prefer system-oriented names:
+  Storage Buffer Depletion, Thermal Resilience Buffer, Scenario Impact Field,
+  Energy Stress Chain, Resilience State, Grid Dependency, Renewable Supply Stability,
+  Operational Recommendation.
+- Avoid weak names:
+  Chart, Graph, Result, Data View, Demo, Toy, Fancy UI.
+
+Animation Rules:
+- Allowed: slow pulse for active risk zones, gentle directional flow, subtle cloud/rain bands,
+  soft glow change based on state, lightweight CSS-only animation.
+- Not allowed: flashing emergency lights, rapid movement, distracting loops,
+  heavy JavaScript animation, external animation libraries.
+
+Streamlit Cloud Constraints:
+- Standard Streamlit + safe HTML/CSS via st.markdown(..., unsafe_allow_html=True).
+- Avoid external JS/CDN dependencies, large images, videos, and heavy frontend frameworks.
+- Keep CSS lightweight and deployment-safe.
+
+Architecture Rules:
+- Keep calculation/simulation logic separate from presentation.
+- UI changes must not modify formulas, scenario engine, data structures, CSV parsing,
+  forecast flow, export workflow, or session_state unless explicitly requested.
+- Before editing, classify the target as:
+  a) calculation logic, b) data processing, c) UI presentation, or d) mixed-risk logic.
+- Clearly mark UI-only changes and prefer modular render functions.
+"""
+
+# Major render functions should be annotated with one of:
+# Situation Awareness Layer, Energy System Layer, Infrastructure Resilience Layer,
+# or Decision Support Layer.
+# UI-ONLY CHANGE END
+
 if "ui_lang" not in st.session_state:
     st.session_state["ui_lang"] = "English"
 
@@ -2171,6 +2254,7 @@ def render_visual_metric_cards(profile):
 # UI IMPROVEMENT END
 
 def render_scenario_visual_map(visual_scenario, profile):
+    # Situation Awareness Layer: scenario impact field and disruption visualization.
     visual_title = "Storage Buffer Depletion" if visual_scenario == "Battery Depletion" else visual_scenario
     try:
         battery_pct = int(clamp(profile.get("battery", 0.0) / max(float(inputs.get("battery_capacity", 1.0)), 1.0) * 100.0, 0.0, 100.0))
@@ -2303,6 +2387,7 @@ def render_energy_flow_diagram(profile):
             """, unsafe_allow_html=True)
 
 def render_visual_scenario_layer(results, baseline_results, geopolitical_shock=None):
+    # Situation Awareness Layer: combines scenario visual, stress chain, and system pressure cues.
     render_visual_simulator_header()
     st.markdown(f'<div class="note">{tr("visual_simulator_note")}</div>', unsafe_allow_html=True)
     left, right = st.columns([1.05, 1.4])
@@ -2754,6 +2839,7 @@ def plain_language_severity():
 
 
 def render_plain_language_emergency_summary():
+    # Decision Support Layer: plain-language operational interpretation.
     concern = main_emergency_concern()
     severity = plain_language_severity()
     scenario_label = scenario_key.replace("_", " ").title()
@@ -2807,6 +2893,7 @@ def decision_brief_message():
 
 
 def render_public_risk_communication_summary():
+    # Decision Support Layer: public and official communication summary.
     technical_basis = pd.DataFrame([
         {"Metric": "Energy Gap", "Value": f"{results['shortfall']} MW"},
         {"Metric": "Battery Stability", "Value": f"{results['battery_levels']} MWh"},
@@ -3004,6 +3091,7 @@ def render_stable_donut_chart(mix_pct, center_value, title):
 # UI IMPROVEMENT END
 
 def render_energy_mix_workspace():
+    # Energy System Layer: renewable supply composition and contribution context.
     page_question(tr("tabs")[0])
     st.markdown(f'<div class="note">{tr("mix_note")}</div>', unsafe_allow_html=True)
     mix_cols = st.columns(2)
@@ -3164,6 +3252,7 @@ def render_system_explanation_panel():
 
 
 def render_scenario_comparison_workspace():
+    # Situation Awareness Layer: baseline-vs-selected scenario resilience comparison.
     page_question(tr("tabs")[1])
     delta_df = scenario_delta_df(baseline_results, results)
     scenario_df = comparison_dataframe(inputs, failure_ratios, reserve_recovery_lag_days)
@@ -3248,6 +3337,7 @@ def render_survival_timeline_workspace():
 
 
 def render_visual_simulator_workspace():
+    # Situation Awareness Layer: visual crisis-monitoring scenario display.
     page_question(tr("tabs")[6])
     st.subheader(tr("visual_simulator"))
     render_visual_scenario_layer(results, baseline_results, geopolitical_shock)
@@ -3264,6 +3354,9 @@ def render_thermal_principle_simulation(
     airflow_speed=1.0,
     height=820,
 ):
+    # Infrastructure Resilience Layer: thermal stabilization subsystem presentation.
+    from textwrap import dedent
+
     efficiency_pct = round(clamp(float(recovery_efficiency), 0.0, 1.0) * 100)
     delta_c = float(exhaust_air_temp_c) - float(fresh_air_temp_c)
     delivered_supply_c = float(fresh_air_temp_c) + delta_c * float(recovery_efficiency)
@@ -3273,7 +3366,7 @@ def render_thermal_principle_simulation(
     flow_duration = max(4.2, 7.0 / max(flow_speed, 0.4))
 
     st.markdown(
-        f"""
+        dedent(f"""
         <style>
         .thermal-layer-shell {{
             border: 1px solid rgba(56,189,248,0.22);
@@ -3603,7 +3696,7 @@ def render_thermal_principle_simulation(
             </div>
           </div>
         </div>
-        """,
+        """).strip(),
         unsafe_allow_html=True,
     )
 # UI-ONLY CHANGE END
@@ -3670,6 +3763,7 @@ def renewable_status_label():
 
 
 def render_operational_summary_panel():
+    # Decision Support Layer: concise operational state for non-technical users.
     summary_rows = [
         ("System", operational_risk_label()),
         ("Battery", battery_status_label()),
@@ -3713,6 +3807,7 @@ def render_demand_supply_chart():
 
 
 def render_main_system_status():
+    # Energy System Layer: demand, supply, energy gap, and system stability.
     st.subheader(tr("main_system_status"))
     # UI REFINEMENT START
     status_left, status_right = st.columns([0.9, 1.35])
@@ -3730,6 +3825,7 @@ def render_main_system_status():
 
 
 def render_battery_storage_status():
+    # Energy System Layer: storage buffer and reserve behavior.
     st.subheader(tr("battery_storage_status"))
     cols = st.columns(3)
     cols[0].metric(tr("battery"), f"{results['battery_levels']} MWh")
