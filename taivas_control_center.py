@@ -1250,6 +1250,21 @@ section[data-testid="stSidebar"] .stFileUploader {
     line-height: 1.48;
     font-size: 0.98rem;
 }
+.quick-start {
+    padding: 0.72rem 0.9rem;
+    border-radius: 10px;
+    background: rgba(59,130,246,0.09);
+    border: 1px solid rgba(96,165,250,0.22);
+    margin: 0.65rem 0 0.9rem 0;
+    line-height: 1.42;
+    font-size: 0.96rem;
+}
+.quick-start b {display:block; margin-bottom:0.18rem;}
+.section-break {
+    height: 1px;
+    background: rgba(148,163,184,0.18);
+    margin: 1.1rem 0 0.75rem 0;
+}
 .question {
     padding: 0.9rem 1.05rem;
     border-radius: 12px;
@@ -1299,7 +1314,7 @@ section[data-testid="stSidebar"] .stFileUploader {
     margin-bottom: 0.55rem;
 }
 div[data-testid="stMetric"] {
-    min-height: 88px;
+    min-height: 78px;
     padding: 0.78rem 0.9rem;
     border: 1px solid var(--taivas-border);
     border-radius: 12px;
@@ -1938,7 +1953,8 @@ with st.sidebar:
     if demo_mode != "Manual":
         basic_panel.caption(f"Demo preset active: {demo_mode}")
 
-    uploaded_baseline_file = basic_panel.file_uploader(tr("uploaded_data"), type=["csv"], key="uploaded_baseline_csv")
+    use_csv_upload = basic_panel.checkbox("Use uploaded CSV", value=False, help="Optional. Leave this off for a simple guided setup.")
+    uploaded_baseline_file = basic_panel.file_uploader(tr("uploaded_data"), type=["csv"], key="uploaded_baseline_csv") if use_csv_upload else None
     uploaded_df = safe_read_csv(uploaded_baseline_file)
     uploaded_profiles = build_uploaded_profiles(uploaded_df)
     use_uploaded = False
@@ -2000,12 +2016,13 @@ with st.sidebar:
     capacity_panel.caption(tr("capacity_help"))
     solar_capacity = capacity_panel.slider(tr("solar_capacity"), 0, 500, int(clamp((uploaded_profile["solar_capacity"] if (use_uploaded and uploaded_profile) else 120), 0, 500)), 5, help="Local solar power capacity in MW.")
     wind_capacity = capacity_panel.slider(tr("wind_capacity"), 0, 500, int(clamp((uploaded_profile["wind_capacity"] if (use_uploaded and uploaded_profile) else 80), 0, 500)), 5, help="Local wind power capacity in MW.")
-    geothermal_capacity = capacity_panel.slider(tr("geothermal_capacity"), 0, 500, int(clamp((uploaded_profile["geothermal_capacity"] if (use_uploaded and uploaded_profile) else 60), 0, 500)), 5, help="Stable geothermal capacity in MW.")
-    hydro_capacity = capacity_panel.slider(tr("hydro_capacity"), 0, 500, int(clamp((uploaded_profile["hydro_capacity"] if (use_uploaded and uploaded_profile) else 70), 0, 500)), 5, help="Hydro power capacity in MW.")
     battery_capacity = capacity_panel.slider(tr("battery_capacity"), 0, 1000, int(clamp((uploaded_profile["battery_capacity"] if (use_uploaded and uploaded_profile) else 180), 0, 1000)), 10, help="Battery reserve capacity in MWh.")
 
     advanced_panel = st.expander(tr("advanced_settings"), expanded=False)
     advanced_panel.caption(tr("advanced_help"))
+    advanced_panel.markdown("**Additional energy sources**")
+    geothermal_capacity = advanced_panel.slider(tr("geothermal_capacity"), 0, 500, int(clamp((uploaded_profile["geothermal_capacity"] if (use_uploaded and uploaded_profile) else 60), 0, 500)), 5, help="Stable geothermal capacity in MW.")
+    hydro_capacity = advanced_panel.slider(tr("hydro_capacity"), 0, 500, int(clamp((uploaded_profile["hydro_capacity"] if (use_uploaded and uploaded_profile) else 70), 0, 500)), 5, help="Hydro power capacity in MW.")
     advanced_panel.markdown("**Weather details**")
     temperature = advanced_panel.slider(tr("temperature") + " (°C)", -20, 50, int(clamp((uploaded_profile["temperature"] if (use_uploaded and uploaded_profile) else 26), -20, 50)), 1, help="Used to estimate heating or cooling pressure.")
     wind_speed = advanced_panel.slider(tr("wind_speed") + " (m/s)", 0.0, 30.0, float(clamp((uploaded_profile["wind_speed"] if (use_uploaded and uploaded_profile) else 4.2), 0.0, 30.0)), 0.1, help="Affects wind power output.")
@@ -2187,7 +2204,7 @@ trend_estimate_df, multistep_forecast_df, trend_meta = compute_trend_estimates(i
 # Product positioning only. Detailed results are rendered later inside tabs to reduce page length.
 st.title(tr("title"))
 st.caption(tr("product_positioning"))
-st.markdown(f'<div class="note"><b>{tr("quick_start")}</b><br>{tr("quick_start_body")}</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="quick-start"><b>{tr("quick_start")}</b>{tr("quick_start_body")}</div>', unsafe_allow_html=True)
 # PRODUCT UI RESTRUCTURE END
 
 def build_executive_summary_text():
@@ -2635,7 +2652,7 @@ def render_product_advanced_analytics():
 # Product-style Workspace Layer
 # Major results are organized into three tabs to reduce vertical overload.
 # -----------------------------------------------------------------------------
-st.markdown("---")
+st.markdown('<div class="section-break"></div>', unsafe_allow_html=True)
 product_tabs = st.tabs([tr("overview"), tr("scenario_analysis"), tr("advanced_analytics")])
 with product_tabs[0]:
     render_product_overview()
