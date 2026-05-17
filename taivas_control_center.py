@@ -3253,6 +3253,362 @@ def render_visual_simulator_workspace():
     render_visual_scenario_layer(results, baseline_results, geopolitical_shock)
 
 
+# UI-ONLY CHANGE START
+# Presentation-only override for the Concept Lab thermal panel.
+# It preserves the same inputs and conceptual outputs while changing the interface
+# from equipment-centric to system-flow-centric.
+def render_thermal_principle_simulation(
+    fresh_air_temp_c=-8.0,
+    exhaust_air_temp_c=23.0,
+    recovery_efficiency=0.72,
+    airflow_speed=1.0,
+    height=820,
+):
+    efficiency_pct = round(clamp(float(recovery_efficiency), 0.0, 1.0) * 100)
+    delta_c = float(exhaust_air_temp_c) - float(fresh_air_temp_c)
+    delivered_supply_c = float(fresh_air_temp_c) + delta_c * float(recovery_efficiency)
+    exhaust_after_c = float(exhaust_air_temp_c) - delta_c * float(recovery_efficiency)
+    heating_relief_pct = round(clamp(float(recovery_efficiency) * 0.82, 0.0, 1.0) * 100)
+    flow_speed = round(float(airflow_speed), 2)
+    flow_duration = max(4.2, 7.0 / max(flow_speed, 0.4))
+
+    st.markdown(
+        f"""
+        <style>
+        .thermal-layer-shell {{
+            border: 1px solid rgba(56,189,248,0.22);
+            border-radius: 14px;
+            background:
+                linear-gradient(145deg, rgba(15,23,42,0.86), rgba(8,47,73,0.22)),
+                radial-gradient(circle at 74% 18%, rgba(56,189,248,0.10), transparent 26%);
+            padding: 1.05rem;
+            min-height: {max(int(height) - 120, 560)}px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 48px rgba(0,0,0,0.20);
+        }}
+        .thermal-layer-header {{
+            display:flex;
+            align-items:flex-start;
+            justify-content:space-between;
+            gap:1rem;
+            margin-bottom:1rem;
+        }}
+        .thermal-kicker {{
+            color:rgba(125,211,252,0.78);
+            font-size:.76rem;
+            font-weight:850;
+            letter-spacing:.10em;
+            text-transform:uppercase;
+            margin-bottom:.35rem;
+        }}
+        .thermal-title {{
+            color:#F8FAFC;
+            font-size:clamp(1.35rem, 1.8vw, 2rem);
+            line-height:1.12;
+            font-weight:900;
+            margin:0;
+        }}
+        .thermal-subtitle {{
+            color:#A7B3C7;
+            margin-top:.45rem;
+            max-width:720px;
+            line-height:1.48;
+            font-size:.95rem;
+        }}
+        .thermal-status-pill {{
+            white-space:nowrap;
+            padding:.42rem .68rem;
+            border-radius:999px;
+            border:1px solid rgba(34,197,94,0.34);
+            background:rgba(34,197,94,0.12);
+            color:#86EFAC;
+            font-size:.78rem;
+            font-weight:850;
+        }}
+        .thermal-grid {{
+            display:grid;
+            grid-template-columns:minmax(0, 1.85fr) minmax(280px, .85fr);
+            gap:1rem;
+            align-items:stretch;
+        }}
+        .thermal-flow-panel, .thermal-side-panel {{
+            border:1px solid rgba(148,163,184,0.22);
+            border-radius:14px;
+            background:rgba(8,13,28,0.56);
+            padding:1rem;
+        }}
+        .thermal-flow-map {{
+            position:relative;
+            min-height:390px;
+            overflow:hidden;
+            border-radius:12px;
+            background:
+                radial-gradient(circle at 16% 48%, rgba(56,189,248,0.18), transparent 26%),
+                radial-gradient(circle at 72% 48%, rgba(251,191,36,0.16), transparent 28%),
+                linear-gradient(90deg, rgba(8,47,73,0.34), rgba(15,23,42,0.72), rgba(69,26,3,0.22));
+            border:1px solid rgba(56,189,248,0.14);
+        }}
+        .thermal-flow-map::before {{
+            content:"";
+            position:absolute;
+            inset:0;
+            background-image:
+                linear-gradient(rgba(148,163,184,0.055) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(148,163,184,0.055) 1px, transparent 1px);
+            background-size:42px 42px;
+            opacity:.7;
+        }}
+        .thermal-zone {{
+            position:absolute;
+            top:46px;
+            bottom:46px;
+            width:28%;
+            border-radius:18px;
+            border:1px solid rgba(148,163,184,0.16);
+            display:flex;
+            flex-direction:column;
+            justify-content:flex-end;
+            padding:1rem;
+            color:#E5E7EB;
+        }}
+        .thermal-zone.cold {{left:4%; background:linear-gradient(180deg, rgba(14,165,233,0.18), rgba(8,47,73,0.20));}}
+        .thermal-zone.protected {{right:4%; background:linear-gradient(180deg, rgba(251,191,36,0.16), rgba(69,26,3,0.22));}}
+        .thermal-zone-label {{font-size:.82rem; color:#A7B3C7; font-weight:800; text-transform:uppercase; letter-spacing:.05em;}}
+        .thermal-zone-value {{font-size:1.55rem; font-weight:900; margin-top:.25rem;}}
+        .thermal-exchange-core {{
+            position:absolute;
+            left:calc(50% - 82px);
+            top:calc(50% - 82px);
+            width:164px;
+            height:164px;
+            border-radius:50%;
+            border:1px solid rgba(125,211,252,0.32);
+            background:
+                radial-gradient(circle, rgba(253,224,71,0.34), rgba(56,189,248,0.13) 48%, rgba(15,23,42,0.40) 72%);
+            box-shadow:0 0 44px rgba(56,189,248,0.12), inset 0 0 28px rgba(251,191,36,0.12);
+        }}
+        .thermal-exchange-core::before {{
+            content:"";
+            position:absolute;
+            inset:22px;
+            border-radius:50%;
+            border:1px dashed rgba(226,232,240,0.24);
+            animation:typhoon-spin 16s linear infinite;
+        }}
+        .thermal-exchange-core::after {{
+            content:"{efficiency_pct}%";
+            position:absolute;
+            inset:0;
+            display:grid;
+            place-items:center;
+            color:#FDE68A;
+            font-size:1.45rem;
+            font-weight:950;
+        }}
+        .thermal-flow-line {{
+            position:absolute;
+            left:8%;
+            right:8%;
+            height:18px;
+            border-radius:999px;
+            overflow:hidden;
+            background:rgba(15,23,42,0.62);
+            border:1px solid rgba(148,163,184,0.16);
+        }}
+        .thermal-flow-line.intake {{top:38%;}}
+        .thermal-flow-line.supply {{top:57%;}}
+        .thermal-flow-line.exhaust {{top:47%; opacity:.70;}}
+        .thermal-flow-line.intake::before,
+        .thermal-flow-line.supply::before,
+        .thermal-flow-line.exhaust::before {{
+            content:"";
+            position:absolute;
+            inset:0;
+            width:42%;
+            border-radius:999px;
+            animation:thermal-flow {flow_duration}s linear infinite;
+        }}
+        .thermal-flow-line.intake::before {{background:linear-gradient(90deg, transparent, rgba(56,189,248,0.92), transparent);}}
+        .thermal-flow-line.supply::before {{background:linear-gradient(90deg, transparent, rgba(251,191,36,0.88), transparent); animation-delay:1.1s;}}
+        .thermal-flow-line.exhaust::before {{background:linear-gradient(90deg, transparent, rgba(248,113,113,0.76), transparent); animation-delay:2.0s;}}
+        .thermal-transfer-arrow {{
+            position:absolute;
+            left:calc(50% - 125px);
+            top:calc(50% - 1px);
+            width:250px;
+            height:2px;
+            background:linear-gradient(90deg, rgba(56,189,248,0.18), rgba(253,224,71,0.72), rgba(248,113,113,0.18));
+            transform:rotate(-28deg);
+            opacity:.78;
+        }}
+        .thermal-transfer-arrow.a2 {{transform:rotate(28deg); opacity:.52;}}
+        .thermal-map-caption {{
+            position:absolute;
+            left:1rem;
+            top:1rem;
+            padding:.45rem .6rem;
+            border-radius:999px;
+            background:rgba(15,23,42,0.66);
+            border:1px solid rgba(125,211,252,0.18);
+            color:#CBD5E1;
+            font-size:.76rem;
+            font-weight:800;
+        }}
+        .thermal-indicators {{
+            display:grid;
+            grid-template-columns:repeat(4, minmax(0, 1fr));
+            gap:.7rem;
+            margin-top:.8rem;
+        }}
+        .thermal-indicator {{
+            border:1px solid rgba(148,163,184,0.18);
+            border-radius:12px;
+            padding:.75rem;
+            background:rgba(15,23,42,0.50);
+            min-height:86px;
+        }}
+        .thermal-indicator-label {{color:#A7B3C7; font-size:.78rem; font-weight:800; line-height:1.3;}}
+        .thermal-indicator-value {{color:#F8FAFC; font-size:1.16rem; font-weight:900; margin-top:.25rem;}}
+        .thermal-indicator-note {{color:#8EA0B8; font-size:.74rem; margin-top:.22rem; line-height:1.3;}}
+        .thermal-side-panel h4 {{
+            margin:.1rem 0 .65rem 0;
+            color:#F8FAFC;
+            font-size:1.04rem;
+        }}
+        .thermal-status-list {{
+            display:grid;
+            gap:.62rem;
+            margin-bottom:.9rem;
+        }}
+        .thermal-status-row {{
+            display:flex;
+            justify-content:space-between;
+            gap:.75rem;
+            padding:.62rem .7rem;
+            border-radius:10px;
+            background:rgba(15,23,42,0.48);
+            border:1px solid rgba(148,163,184,0.16);
+            color:#D7DEE9;
+            font-size:.84rem;
+        }}
+        .thermal-status-row b {{color:#F8FAFC;}}
+        .thermal-brief {{
+            border-left:3px solid rgba(56,189,248,0.70);
+            padding-left:.72rem;
+            color:#CBD5E1;
+            line-height:1.5;
+            font-size:.9rem;
+            margin:.75rem 0 .9rem 0;
+        }}
+        .thermal-boundary {{
+            padding:.72rem .78rem;
+            border-radius:12px;
+            background:rgba(245,158,11,0.10);
+            border:1px solid rgba(245,158,11,0.24);
+            color:#FDE68A;
+            font-size:.82rem;
+            line-height:1.45;
+        }}
+        @keyframes thermal-flow {{
+            0% {{transform:translateX(-120%);}}
+            100% {{transform:translateX(250%);}}
+        }}
+        @media (max-width: 980px) {{
+            .thermal-grid {{grid-template-columns:1fr;}}
+            .thermal-indicators {{grid-template-columns:repeat(2, minmax(0, 1fr));}}
+        }}
+        @media (max-width: 560px) {{
+            .thermal-layer-header {{display:block;}}
+            .thermal-status-pill {{display:inline-block; margin-top:.75rem;}}
+            .thermal-flow-map {{min-height:330px;}}
+            .thermal-zone {{display:none;}}
+            .thermal-indicators {{grid-template-columns:1fr;}}
+        }}
+        </style>
+
+        <div class="thermal-layer-shell">
+          <div class="thermal-layer-header">
+            <div>
+              <div class="thermal-kicker">CONCEPT LAB // THERMAL RESILIENCE</div>
+              <h2 class="thermal-title">Thermal Resilience Exchange Layer</h2>
+              <div class="thermal-subtitle">
+                Cold outside air is stabilized by recovered indoor exhaust heat before delivery into the protected environment.
+                The layer acts as a passive thermal buffer that can reduce heating pressure during cold-weather disruption.
+              </div>
+            </div>
+            <div class="thermal-status-pill">Thermal Buffer Active</div>
+          </div>
+
+          <div class="thermal-grid">
+            <div class="thermal-flow-panel">
+              <div class="thermal-flow-map">
+                <div class="thermal-map-caption">System-flow view - conceptual simulation</div>
+                <div class="thermal-zone cold">
+                  <div class="thermal-zone-label">External Cold Air</div>
+                  <div class="thermal-zone-value">{fresh_air_temp_c:.1f} C</div>
+                </div>
+                <div class="thermal-zone protected">
+                  <div class="thermal-zone-label">Protected Supply Zone</div>
+                  <div class="thermal-zone-value">{delivered_supply_c:.1f} C</div>
+                </div>
+                <div class="thermal-flow-line intake"></div>
+                <div class="thermal-flow-line exhaust"></div>
+                <div class="thermal-flow-line supply"></div>
+                <div class="thermal-transfer-arrow"></div>
+                <div class="thermal-transfer-arrow a2"></div>
+                <div class="thermal-exchange-core"></div>
+              </div>
+
+              <div class="thermal-indicators">
+                <div class="thermal-indicator">
+                  <div class="thermal-indicator-label">Outside air</div>
+                  <div class="thermal-indicator-value">{fresh_air_temp_c:.1f} C</div>
+                  <div class="thermal-indicator-note">Cold-climate intake condition</div>
+                </div>
+                <div class="thermal-indicator">
+                  <div class="thermal-indicator-label">Delivered supply</div>
+                  <div class="thermal-indicator-value">{delivered_supply_c:.1f} C</div>
+                  <div class="thermal-indicator-note">Stabilized air after exchange</div>
+                </div>
+                <div class="thermal-indicator">
+                  <div class="thermal-indicator-label">Recovery efficiency</div>
+                  <div class="thermal-indicator-value">{efficiency_pct}%</div>
+                  <div class="thermal-indicator-note">Thermal buffer transfer level</div>
+                </div>
+                <div class="thermal-indicator">
+                  <div class="thermal-indicator-label">Heating demand relief</div>
+                  <div class="thermal-indicator-value">{heating_relief_pct}%</div>
+                  <div class="thermal-indicator-note">Conceptual resilience contribution</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="thermal-side-panel">
+              <h4>Operational Meaning</h4>
+              <div class="thermal-brief">
+                This layer is shown as a resilience subsystem, not a hardware blueprint.
+                It buffers cold intake air and helps reduce immediate heating load on protected facilities.
+              </div>
+              <div class="thermal-status-list">
+                <div class="thermal-status-row"><span>Thermal status</span><b>Stabilizing</b></div>
+                <div class="thermal-status-row"><span>Recovery efficiency</span><b>{efficiency_pct}%</b></div>
+                <div class="thermal-status-row"><span>Grid load relief</span><b>{heating_relief_pct}%</b></div>
+                <div class="thermal-status-row"><span>Airflow speed</span><b>{flow_speed:.2f}x</b></div>
+                <div class="thermal-status-row"><span>Exhaust after exchange</span><b>{exhaust_after_c:.1f} C</b></div>
+              </div>
+              <div class="thermal-boundary">
+                <b>Model boundary</b><br>
+                Scenario-based concept visualization only. It does not represent validated hardware design,
+                physical engineering performance, or a guaranteed energy outcome.
+              </div>
+            </div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+# UI-ONLY CHANGE END
+
+
 def render_concept_lab_workspace():
     page_question(tr("tabs")[7])
     st.markdown(f'<div class="note">{tr("concept_note")}</div>', unsafe_allow_html=True)
