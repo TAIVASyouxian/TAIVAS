@@ -1939,6 +1939,26 @@ def render_visual_simulator_header():
         .pulse {position:absolute; border:1px solid rgba(125,211,252,0.35); border-radius:999px; animation:pulse-ring 3s infinite ease-out;}
         .pulse.p2 {animation-delay:.65s;} .pulse.p3 {animation-delay:1.25s;}
         .storm-core {position:absolute; width:116px; height:116px; left:22%; top:24%; border-radius:999px; background:conic-gradient(from 45deg, rgba(148,163,184,0.10), rgba(56,189,248,0.75), rgba(15,23,42,0.15), rgba(96,165,250,0.65)); animation:spin 7s linear infinite; opacity:.9;}
+        /* UI-ONLY CHANGE START: satellite-style typhoon visualization. */
+        .satellite-layer {position:absolute; inset:0; background:radial-gradient(circle at 30% 34%, rgba(14,165,233,0.20), transparent 28%), radial-gradient(circle at 68% 62%, rgba(20,184,166,0.12), transparent 26%), linear-gradient(145deg, rgba(3,7,18,0.98), rgba(8,20,43,0.96));}
+        .satellite-layer::before {content:""; position:absolute; inset:-30%; background-image:linear-gradient(115deg, transparent 0 44%, rgba(148,163,184,0.08) 46%, transparent 48% 100%); background-size:74px 74px; opacity:.34; animation:satellite-scan 13s linear infinite;}
+        .satellite-grid {position:absolute; inset:0; background-image:linear-gradient(rgba(125,211,252,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(125,211,252,0.08) 1px, transparent 1px); background-size:56px 56px; opacity:.18;}
+        .coastline {position:absolute; right:9%; top:14%; width:28%; height:78%; border-left:2px solid rgba(34,211,238,0.34); border-radius:52% 0 0 48%; transform:rotate(8deg); box-shadow:-18px 0 30px rgba(14,165,233,0.10);}
+        .typhoon-system {position:absolute; left:17%; top:15%; width:270px; height:270px; border-radius:999px; animation:typhoon-drift 8s ease-in-out infinite;}
+        .cloud-band {position:absolute; inset:0; border-radius:999px; filter:blur(.2px); opacity:.92; animation:typhoon-spin 12s linear infinite; background:conic-gradient(from 30deg, transparent 0deg, rgba(226,232,240,0.10) 30deg, rgba(241,245,249,0.72) 58deg, transparent 92deg, rgba(186,230,253,0.18) 124deg, rgba(248,250,252,0.78) 158deg, transparent 204deg, rgba(148,163,184,0.14) 245deg, rgba(241,245,249,0.64) 285deg, transparent 330deg);}
+        .cloud-band.b2 {inset:30px; opacity:.74; animation-duration:8.5s; animation-direction:reverse; background:conic-gradient(from 140deg, transparent 0deg, rgba(248,250,252,0.72) 42deg, transparent 82deg, rgba(186,230,253,0.22) 118deg, rgba(241,245,249,0.78) 154deg, transparent 198deg, rgba(226,232,240,0.62) 278deg, transparent 330deg);}
+        .cloud-band.b3 {inset:68px; opacity:.86; animation-duration:6s; background:conic-gradient(from 60deg, rgba(248,250,252,0.86), transparent 62deg, rgba(191,219,254,0.34) 118deg, rgba(255,255,255,0.78) 168deg, transparent 230deg, rgba(248,250,252,0.72) 300deg, transparent 340deg);}
+        .typhoon-eye {position:absolute; left:calc(50% - 21px); top:calc(50% - 21px); width:42px; height:42px; border-radius:999px; background:radial-gradient(circle, rgba(15,23,42,0.98) 0 34%, rgba(226,232,240,0.82) 35% 52%, rgba(14,165,233,0.30) 53% 100%); box-shadow:0 0 28px rgba(125,211,252,0.38); z-index:3;}
+        .rain-band {position:absolute; width:58%; height:2px; left:32%; top:38%; background:linear-gradient(90deg, transparent, rgba(125,211,252,0.72), transparent); transform:rotate(18deg); opacity:.66; animation:rain-sweep 3.2s ease-in-out infinite;}
+        .rain-band.r2 {top:54%; left:27%; width:68%; animation-delay:.6s; opacity:.48;}
+        .rain-band.r3 {top:68%; left:36%; width:50%; animation-delay:1.15s; opacity:.38;}
+        .satellite-city-node {position:absolute; right:22%; top:50%; width:14px; height:14px; border-radius:99px; background:#ffffff; box-shadow:0 0 18px rgba(255,255,255,0.9), 0 0 38px rgba(56,189,248,0.55); z-index:4;}
+        .impact-ring {position:absolute; right:calc(22% - 43px); top:calc(50% - 43px); width:100px; height:100px; border-radius:999px; border:1px solid rgba(125,211,252,0.34); animation:impact-pulse 2.8s ease-out infinite;}
+        .impact-ring.r2 {animation-delay:.9s;}
+        .satellite-badge {position:absolute; left:14px; bottom:14px; padding:7px 10px; border-radius:999px; background:rgba(15,23,42,0.76); border:1px solid rgba(148,163,184,0.28); color:#cbd5e1; font-size:.76rem; letter-spacing:.01em;}
+        .satellite-metric {position:absolute; right:14px; bottom:14px; display:grid; gap:6px; min-width:156px;}
+        .satellite-metric span {display:flex; justify-content:space-between; gap:12px; padding:6px 9px; border-radius:10px; background:rgba(15,23,42,0.72); border:1px solid rgba(148,163,184,0.20); font-size:.78rem; color:#dbeafe;}
+        /* UI-ONLY CHANGE END */
         .heat-dome {position:absolute; width:240px; height:180px; left:28%; top:28%; border-radius:999px; background:radial-gradient(circle, rgba(251,146,60,0.38), rgba(239,68,68,0.16), transparent 70%); animation:heat-breathe 3.2s infinite ease-in-out;}
         .snow-band {position:absolute; inset:0; background-image:radial-gradient(circle, rgba(255,255,255,.55) 1px, transparent 1.5px); background-size:28px 28px; animation:drift 10s linear infinite; opacity:.45;}
         .route-line {position:absolute; left:14%; top:54%; width:72%; height:3px; background:linear-gradient(90deg, rgba(56,189,248,.15), rgba(248,113,113,.95), rgba(56,189,248,.15)); transform:rotate(-8deg); box-shadow:0 0 18px rgba(248,113,113,.65);}
@@ -1949,6 +1969,11 @@ def render_visual_simulator_header():
         @keyframes pulse-ring {0%{width:40px;height:40px;left:calc(50% - 20px);top:calc(50% - 20px);opacity:.75;}100%{width:300px;height:300px;left:calc(50% - 150px);top:calc(50% - 150px);opacity:0;}}
         @keyframes pulse-red {0%,100%{transform:scale(.78);opacity:.7;}50%{transform:scale(1.28);opacity:.25;}}
         @keyframes spin {to{transform:rotate(360deg);}}
+        @keyframes typhoon-spin {to{transform:rotate(360deg);}}
+        @keyframes typhoon-drift {0%,100%{transform:translate(0,0) scale(1);}50%{transform:translate(12px,6px) scale(1.03);}}
+        @keyframes rain-sweep {0%,100%{transform:translateX(-8px) rotate(18deg); opacity:.28;}50%{transform:translateX(14px) rotate(18deg); opacity:.74;}}
+        @keyframes satellite-scan {to{transform:translate(74px,74px);}}
+        @keyframes impact-pulse {0%{transform:scale(.55); opacity:.78;}100%{transform:scale(1.55); opacity:0;}}
         @keyframes heat-breathe {0%,100%{transform:scale(.92);opacity:.58;}50%{transform:scale(1.14);opacity:.9;}}
         @keyframes drift {to{background-position:60px 120px;}}
         @media (max-width: 900px) {
@@ -1959,6 +1984,8 @@ def render_visual_simulator_header():
             .flow-grid {grid-template-columns: 1fr;}
             .visual-wrap {padding:14px;}
             .scenario-map {height:260px;}
+            .typhoon-system {left:8%; top:20%; width:210px; height:210px;}
+            .satellite-metric {left:14px; right:auto; bottom:48px; min-width:0;}
         }
         </style>
         """, unsafe_allow_html=True)
@@ -1980,8 +2007,33 @@ def render_scenario_visual_map(visual_scenario, profile):
     except Exception:
         battery_pct = 50
     if visual_scenario == "Typhoon Impact":
-        inner = '<div class="storm-core"></div><div class="pulse"></div><div class="pulse p2"></div><div class="pulse p3"></div><div class="city-node"></div>'
-        caption = "Typhoon bands reduce solar output, destabilize wind contribution, and push the system toward battery support."
+        # UI-ONLY CHANGE START
+        inner = f"""
+            <div class="satellite-layer">
+              <div class="satellite-grid"></div>
+              <div class="coastline"></div>
+              <div class="typhoon-system">
+                <div class="cloud-band"></div>
+                <div class="cloud-band b2"></div>
+                <div class="cloud-band b3"></div>
+                <div class="typhoon-eye"></div>
+              </div>
+              <div class="rain-band"></div>
+              <div class="rain-band r2"></div>
+              <div class="rain-band r3"></div>
+              <div class="impact-ring"></div>
+              <div class="impact-ring r2"></div>
+              <div class="satellite-city-node"></div>
+              <div class="satellite-badge">Scenario visualization • Not live weather data</div>
+              <div class="satellite-metric">
+                <span><b>Solar</b><b>{profile.get("solar", 0)}%</b></span>
+                <span><b>Wind</b><b>{profile.get("wind", 0)}%</b></span>
+                <span><b>Battery</b><b>{profile.get("battery", 0)} MWh</b></span>
+              </div>
+            </div>
+        """
+        caption = "Satellite-style scenario view: cloud bands represent typhoon pressure on solar output, wind stability, and battery support. This is a simulation visual, not live weather data."
+        # UI-ONLY CHANGE END
     elif visual_scenario == "Heat Wave Spread":
         inner = '<div class="heat-dome"></div><div class="pulse"></div><div class="pulse p2"></div><div class="city-node"></div>'
         caption = "Heat load expands around the city; demand rises while cooling-sensitive facilities consume reserve margin faster."
