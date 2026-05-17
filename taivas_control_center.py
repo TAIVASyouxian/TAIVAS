@@ -1452,6 +1452,118 @@ section[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {
 # UI REFINEMENT END
 
 # UI-ONLY CHANGE START
+# Calm sci-fi command-center shell. Presentation only; no simulation values or data flow are changed.
+st.markdown("""
+<style>
+body {
+    background:
+        radial-gradient(circle at 24% 8%, rgba(56,189,248,0.08), transparent 24%),
+        radial-gradient(circle at 80% 0%, rgba(14,165,233,0.06), transparent 22%),
+        #0B101B;
+}
+.block-container {
+    position: relative;
+}
+.block-container::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(148,163,184,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148,163,184,0.035) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: linear-gradient(180deg, rgba(0,0,0,0.70), transparent 72%);
+}
+.taivas-brand {
+    position: relative;
+    padding: 1.05rem 1.15rem 1rem 1.15rem;
+    border: 1px solid rgba(56,189,248,0.22);
+    border-radius: 14px;
+    background:
+        linear-gradient(135deg, rgba(15,23,42,0.78), rgba(8,47,73,0.28)),
+        radial-gradient(circle at 88% 30%, rgba(56,189,248,0.10), transparent 22%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 48px rgba(0,0,0,0.22);
+}
+.taivas-brand::after {
+    content: "RESILIENCE COMMAND INTERFACE";
+    position: absolute;
+    top: 0.9rem;
+    right: 1rem;
+    color: rgba(125,211,252,0.72);
+    font-size: 0.72rem;
+    font-weight: 850;
+    letter-spacing: 0.10em;
+}
+.command-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.9rem;
+}
+.command-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.42rem;
+    padding: 0.36rem 0.58rem;
+    border-radius: 999px;
+    border: 1px solid rgba(148,163,184,0.22);
+    background: rgba(15,23,42,0.48);
+    color: #CBD5E1;
+    font-size: 0.78rem;
+    font-weight: 760;
+}
+.command-chip::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: #22C55E;
+    box-shadow: 0 0 10px rgba(34,197,94,0.45);
+}
+.quick-start,
+.communication-summary,
+.emergency-summary,
+.risk-strip,
+.scenario-card,
+.chart-panel,
+.visual-wrap,
+div[data-testid="stMetric"],
+.product-card,
+.card,
+.layer-box {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.035), 0 10px 28px rgba(0,0,0,0.14);
+}
+.visual-wrap {
+    background:
+        linear-gradient(145deg, rgba(15,23,42,0.88), rgba(17,24,39,0.72)),
+        radial-gradient(circle at 85% 15%, rgba(56,189,248,0.12), transparent 24%);
+    border-color: rgba(56,189,248,0.20);
+}
+.visual-title::before {
+    content: "MONITOR // ";
+    color: rgba(125,211,252,0.70);
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+}
+.scenario-map {
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.035), inset 0 -30px 90px rgba(8,13,28,0.42);
+}
+section[data-testid="stSidebar"] {
+    border-right: 1px solid rgba(56,189,248,0.10);
+}
+@media (max-width: 760px) {
+    .taivas-brand::after {
+        position: static;
+        display: block;
+        margin-top: 0.7rem;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
+# UI-ONLY CHANGE END
+
+# UI-ONLY CHANGE START
 # Scenario comparison and risk storytelling styling only. No calculation logic or data source changes.
 st.markdown("""
 <style>
@@ -2059,6 +2171,7 @@ def render_visual_metric_cards(profile):
 # UI IMPROVEMENT END
 
 def render_scenario_visual_map(visual_scenario, profile):
+    visual_title = "Storage Buffer Depletion" if visual_scenario == "Battery Depletion" else visual_scenario
     try:
         battery_pct = int(clamp(profile.get("battery", 0.0) / max(float(inputs.get("battery_capacity", 1.0)), 1.0) * 100.0, 0.0, 100.0))
     except Exception:
@@ -2150,7 +2263,7 @@ def render_scenario_visual_map(visual_scenario, profile):
             </div>
         """
         # UI-ONLY CHANGE END
-        caption = "Battery reserve becomes the visible buffer between disrupted supply and critical facility failure."
+        caption = "Storage reserve is the visible emergency buffer between disrupted supply and critical facility failure."
     else:
         # UI-ONLY CHANGE START
         inner = f"""
@@ -2169,7 +2282,7 @@ def render_scenario_visual_map(visual_scenario, profile):
         caption = "External shock travels through fuel markets, import routes, logistics, and grid dependency before appearing as shortfall."
     st.markdown(f"""
         <div class="visual-wrap">
-          <div class="visual-title">{visual_scenario}</div>
+          <div class="visual-title">{visual_title}</div>
           <div class="visual-note">{caption}</div>
           <div class="scenario-map">{inner}</div>
         </div>
@@ -2194,7 +2307,14 @@ def render_visual_scenario_layer(results, baseline_results, geopolitical_shock=N
     st.markdown(f'<div class="note">{tr("visual_simulator_note")}</div>', unsafe_allow_html=True)
     left, right = st.columns([1.05, 1.4])
     with left:
-        visual_scenario = st.selectbox(tr("visual_scenario"), ["Typhoon Impact", "Heat Wave Spread", "Blizzard / Cold Wave", "Battery Depletion", "Geopolitical Shock"])
+        # UI-ONLY CHANGE START
+        visual_labels = {"Battery Depletion": "Storage Buffer Depletion"}
+        visual_scenario = st.selectbox(
+            tr("visual_scenario"),
+            ["Typhoon Impact", "Heat Wave Spread", "Blizzard / Cold Wave", "Battery Depletion", "Geopolitical Shock"],
+            format_func=lambda option: visual_labels.get(option, option),
+        )
+        # UI-ONLY CHANGE END
         profile = _scenario_stress_profile(results, geopolitical_shock)
         render_visual_metric_cards(profile)
         st.markdown("#### Stress Chain")
@@ -2210,8 +2330,8 @@ def render_visual_scenario_layer(results, baseline_results, geopolitical_shock=N
             chain_df = pd.DataFrame([
                 {"Stage": "Demand", "Signal": f"{results.get('demand', 0)} MW"},
                 {"Stage": "Renewable supply", "Signal": f"{results.get('renewable_supply', 0)} MW"},
-                {"Stage": "Battery remaining", "Signal": f"{profile['battery']} MWh"},
-                {"Stage": "Shortfall", "Signal": f"{profile['shortfall']} MW"},
+                {"Stage": "Storage buffer remaining", "Signal": f"{profile['battery']} MWh"},
+                {"Stage": "Energy gap", "Signal": f"{profile['shortfall']} MW"},
             ])
         else:
             chain_df = pd.DataFrame([
@@ -2727,6 +2847,11 @@ st.markdown(
       <div class="taivas-brand-title">TAIVAS</div>
       <div class="taivas-brand-subtitle">Climate &amp; Energy Resilience Platform</div>
       <div class="taivas-brand-kicker">Decision-Support Simulation Environment</div>
+      <div class="command-meta">
+        <span class="command-chip">Scenario-based</span>
+        <span class="command-chip">Decision support</span>
+        <span class="command-chip">Simulation integrity preserved</span>
+      </div>
     </div>
     """,
     unsafe_allow_html=True,
