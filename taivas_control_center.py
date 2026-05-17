@@ -1940,24 +1940,35 @@ def render_visual_simulator_header():
         .pulse.p2 {animation-delay:.65s;} .pulse.p3 {animation-delay:1.25s;}
         .storm-core {position:absolute; width:116px; height:116px; left:22%; top:24%; border-radius:999px; background:conic-gradient(from 45deg, rgba(148,163,184,0.10), rgba(56,189,248,0.75), rgba(15,23,42,0.15), rgba(96,165,250,0.65)); animation:spin 7s linear infinite; opacity:.9;}
         /* UI-ONLY CHANGE START: satellite-style typhoon visualization. */
-        .satellite-layer {position:absolute; inset:0; background:radial-gradient(circle at 30% 34%, rgba(14,165,233,0.20), transparent 28%), radial-gradient(circle at 68% 62%, rgba(20,184,166,0.12), transparent 26%), linear-gradient(145deg, rgba(3,7,18,0.98), rgba(8,20,43,0.96));}
-        .satellite-layer::before {content:""; position:absolute; inset:-30%; background-image:linear-gradient(115deg, transparent 0 44%, rgba(148,163,184,0.08) 46%, transparent 48% 100%); background-size:74px 74px; opacity:.34; animation:satellite-scan 13s linear infinite;}
-        .satellite-grid {position:absolute; inset:0; background-image:linear-gradient(rgba(125,211,252,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(125,211,252,0.08) 1px, transparent 1px); background-size:56px 56px; opacity:.18;}
-        .coastline {position:absolute; right:9%; top:14%; width:28%; height:78%; border-left:2px solid rgba(34,211,238,0.34); border-radius:52% 0 0 48%; transform:rotate(8deg); box-shadow:-18px 0 30px rgba(14,165,233,0.10);}
-        .typhoon-system {position:absolute; left:16%; top:14%; width:300px; height:260px; border-radius:999px; animation:typhoon-drift 8s ease-in-out infinite;}
-        .typhoon-system::before {content:""; position:absolute; left:66px; top:54px; width:142px; height:142px; border-radius:999px; background:radial-gradient(circle, rgba(241,245,249,0.52), rgba(186,230,253,0.18) 38%, transparent 64%); filter:blur(10px); opacity:.74;}
-        .cloud-band {position:absolute; left:16px; top:78px; width:240px; height:72px; border-radius:68% 38% 62% 42%; transform-origin:76% 50%; filter:blur(1.5px); opacity:.88; animation:typhoon-spin 16s linear infinite; background:radial-gradient(ellipse at 18% 50%, rgba(255,255,255,0.92), rgba(226,232,240,0.48) 38%, transparent 72%), linear-gradient(90deg, rgba(248,250,252,0.72), rgba(186,230,253,0.24), transparent 82%);}
-        .cloud-band::before {content:""; position:absolute; left:34px; top:-28px; width:132px; height:78px; border-radius:70% 42% 68% 46%; background:radial-gradient(ellipse, rgba(255,255,255,0.76), rgba(203,213,225,0.28) 52%, transparent 76%);}
-        .cloud-band::after {content:""; position:absolute; right:28px; bottom:-22px; width:116px; height:58px; border-radius:66% 40% 72% 44%; background:radial-gradient(ellipse, rgba(241,245,249,0.54), rgba(125,211,252,0.16) 54%, transparent 78%);}
-        .cloud-band.b2 {left:72px; top:38px; width:225px; height:64px; opacity:.72; animation-duration:20s; animation-direction:reverse; transform-origin:22% 118%; background:radial-gradient(ellipse at 82% 50%, rgba(255,255,255,0.78), rgba(203,213,225,0.30) 42%, transparent 74%), linear-gradient(270deg, rgba(248,250,252,0.54), rgba(186,230,253,0.18), transparent 80%);}
-        .cloud-band.b3 {left:62px; top:146px; width:210px; height:58px; opacity:.70; animation-duration:13s; transform-origin:30% -38%; background:radial-gradient(ellipse at 70% 48%, rgba(248,250,252,0.74), rgba(226,232,240,0.30) 42%, transparent 75%), linear-gradient(105deg, transparent, rgba(255,255,255,0.52), rgba(125,211,252,0.16), transparent);}
-        .typhoon-eye {position:absolute; left:calc(50% - 18px); top:calc(50% - 18px); width:36px; height:36px; border-radius:999px; background:radial-gradient(circle, rgba(4,10,24,0.98) 0 38%, rgba(241,245,249,0.86) 39% 57%, rgba(14,165,233,0.28) 58% 100%); box-shadow:0 0 22px rgba(125,211,252,0.40); z-index:3;}
-        .rain-band {position:absolute; width:58%; height:2px; left:32%; top:38%; background:linear-gradient(90deg, transparent, rgba(125,211,252,0.72), transparent); transform:rotate(18deg); opacity:.66; animation:rain-sweep 3.2s ease-in-out infinite;}
-        .rain-band.r2 {top:54%; left:27%; width:68%; animation-delay:.6s; opacity:.48;}
-        .rain-band.r3 {top:68%; left:36%; width:50%; animation-delay:1.15s; opacity:.38;}
-        .satellite-city-node {position:absolute; right:22%; top:50%; width:14px; height:14px; border-radius:99px; background:#ffffff; box-shadow:0 0 18px rgba(255,255,255,0.9), 0 0 38px rgba(56,189,248,0.55); z-index:4;}
-        .impact-ring {position:absolute; right:calc(22% - 43px); top:calc(50% - 43px); width:100px; height:100px; border-radius:999px; border:1px solid rgba(125,211,252,0.34); animation:impact-pulse 2.8s ease-out infinite;}
+        .satellite-layer {position:absolute; inset:0; background:radial-gradient(circle at 72% 48%, rgba(236,72,153,0.36), transparent 24%), radial-gradient(circle at 63% 52%, rgba(250,204,21,0.26), transparent 32%), radial-gradient(circle at 18% 42%, rgba(34,197,94,0.24), transparent 26%), linear-gradient(135deg, #143762 0%, #0f5b72 36%, #163f66 62%, #10223f 100%);}
+        .satellite-layer::before {content:""; position:absolute; inset:-20%; background-image:repeating-linear-gradient(105deg, transparent 0 23px, rgba(255,255,255,0.10) 24px, transparent 26px); opacity:.28; animation:wind-field-drift 11s linear infinite;}
+        .satellite-grid {position:absolute; inset:0; background-image:linear-gradient(rgba(226,232,240,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(226,232,240,0.12) 1px, transparent 1px); background-size:64px 64px; opacity:.16;}
+        .weather-land {position:absolute; left:-4%; top:-8%; width:38%; height:124%; background:linear-gradient(140deg, rgba(47,94,44,0.92), rgba(61,125,63,0.70)); clip-path:polygon(0 0, 74% 0, 56% 12%, 70% 22%, 50% 36%, 64% 50%, 45% 66%, 58% 78%, 34% 100%, 0 100%); filter:drop-shadow(0 0 16px rgba(0,0,0,0.35));}
+        .taiwan-island {position:absolute; left:18%; top:38%; width:58px; height:116px; border-radius:52% 48% 58% 42%; background:linear-gradient(150deg, rgba(100,181,92,0.95), rgba(45,112,80,0.82)); transform:rotate(16deg); box-shadow:0 0 0 1px rgba(226,232,240,0.28), 0 10px 24px rgba(0,0,0,0.25);}
+        .map-label {position:absolute; left:16%; top:33%; color:rgba(226,232,240,0.62); font-size:.74rem; letter-spacing:.06em;}
+        .wind-stream {position:absolute; height:2px; border-radius:999px; background:linear-gradient(90deg, transparent, rgba(240,249,255,0.88), transparent); opacity:.62; transform-origin:left center; animation:stream-flow 3.8s ease-in-out infinite;}
+        .wind-stream.s1 {left:34%; top:19%; width:33%; transform:rotate(15deg);}
+        .wind-stream.s2 {left:38%; top:31%; width:42%; transform:rotate(28deg); animation-delay:.4s;}
+        .wind-stream.s3 {left:36%; top:48%; width:48%; transform:rotate(-7deg); animation-delay:.8s;}
+        .wind-stream.s4 {left:30%; top:65%; width:42%; transform:rotate(-25deg); animation-delay:1.2s;}
+        .wind-stream.s5 {left:55%; top:77%; width:34%; transform:rotate(-42deg); animation-delay:1.6s;}
+        .typhoon-system {position:absolute; left:51%; top:26%; width:245px; height:245px; border-radius:999px; animation:typhoon-drift 8s ease-in-out infinite;}
+        .typhoon-system::before {content:""; position:absolute; inset:4px; border-radius:999px; background:repeating-conic-gradient(from 28deg, rgba(255,255,255,0.82) 0 8deg, rgba(186,230,253,0.34) 9deg 18deg, transparent 20deg 34deg); filter:blur(.7px); opacity:.78; animation:typhoon-spin 18s linear infinite;}
+        .cloud-band {position:absolute; inset:18px; border-radius:999px; background:repeating-conic-gradient(from 90deg, transparent 0 18deg, rgba(248,250,252,0.72) 19deg 31deg, transparent 34deg 54deg); filter:blur(1px); opacity:.82; animation:typhoon-spin 12s linear infinite reverse;}
+        .cloud-band.b2 {inset:52px; opacity:.70; animation-duration:9s; background:repeating-conic-gradient(from 25deg, rgba(255,255,255,0.82) 0 10deg, transparent 12deg 28deg, rgba(186,230,253,0.26) 30deg 42deg, transparent 44deg 60deg);}
+        .cloud-band.b3 {inset:86px; opacity:.86; animation-duration:7s; background:conic-gradient(from 10deg, rgba(255,255,255,0.86), transparent 54deg, rgba(226,232,240,0.72) 118deg, transparent 184deg, rgba(255,255,255,0.74) 260deg, transparent 330deg);}
+        .typhoon-eye {position:absolute; left:calc(50% - 15px); top:calc(50% - 15px); width:30px; height:30px; border-radius:999px; background:radial-gradient(circle, rgba(9,16,31,0.98) 0 36%, rgba(255,255,255,0.92) 37% 58%, rgba(56,189,248,0.34) 59% 100%); box-shadow:0 0 18px rgba(125,211,252,0.5); z-index:3;}
+        .rain-band {position:absolute; width:58%; height:2px; left:31%; top:36%; background:linear-gradient(90deg, transparent, rgba(240,249,255,0.82), transparent); transform:rotate(21deg); opacity:.62; animation:rain-sweep 3.2s ease-in-out infinite;}
+        .rain-band.r2 {top:52%; left:29%; width:64%; animation-delay:.6s; opacity:.52;}
+        .rain-band.r3 {top:68%; left:36%; width:50%; animation-delay:1.15s; opacity:.42;}
+        .satellite-city-node {position:absolute; left:20.7%; top:50%; width:11px; height:11px; border-radius:99px; background:#ffffff; box-shadow:0 0 14px rgba(255,255,255,0.9), 0 0 30px rgba(56,189,248,0.55); z-index:4;}
+        .impact-ring {position:absolute; left:calc(20.7% - 42px); top:calc(50% - 42px); width:94px; height:94px; border-radius:999px; border:1px solid rgba(125,211,252,0.34); animation:impact-pulse 2.8s ease-out infinite;}
         .impact-ring.r2 {animation-delay:.9s;}
+        .storm-info-box {position:absolute; right:18%; top:21%; padding:8px 10px; border-left:1px solid rgba(255,255,255,0.68); background:rgba(15,23,42,0.32); color:#f8fafc; font-size:.8rem; line-height:1.35; min-width:112px;}
+        .storm-info-box b {font-size:1.02rem;}
+        .storm-info-box::before {content:""; position:absolute; left:-2px; top:100%; width:1px; height:112px; background:rgba(255,255,255,0.42);}
+        .weather-scale {position:absolute; right:14px; bottom:14px; width:132px; height:10px; border-radius:999px; background:linear-gradient(90deg, #22c55e, #facc15, #fb7185, #a855f7, #38bdf8); box-shadow:0 0 0 1px rgba(255,255,255,0.18);}
+        .weather-scale::before {content:"wind / rain intensity"; position:absolute; right:0; bottom:14px; color:#cbd5e1; font-size:.7rem;}
         .satellite-badge {position:absolute; left:14px; bottom:14px; padding:7px 10px; border-radius:999px; background:rgba(15,23,42,0.76); border:1px solid rgba(148,163,184,0.28); color:#cbd5e1; font-size:.76rem; letter-spacing:.01em;}
         .satellite-metric {position:absolute; right:14px; bottom:14px; display:grid; gap:6px; min-width:156px;}
         .satellite-metric span {display:flex; justify-content:space-between; gap:12px; padding:6px 9px; border-radius:10px; background:rgba(15,23,42,0.72); border:1px solid rgba(148,163,184,0.20); font-size:.78rem; color:#dbeafe;}
@@ -1975,6 +1986,8 @@ def render_visual_simulator_header():
         @keyframes typhoon-spin {to{transform:rotate(360deg);}}
         @keyframes typhoon-drift {0%,100%{transform:translate(0,0) scale(1);}50%{transform:translate(12px,6px) scale(1.03);}}
         @keyframes rain-sweep {0%,100%{transform:translateX(-8px) rotate(18deg); opacity:.28;}50%{transform:translateX(14px) rotate(18deg); opacity:.74;}}
+        @keyframes wind-field-drift {to{transform:translate(72px, 18px);}}
+        @keyframes stream-flow {0%,100%{opacity:.24; filter:blur(.4px);}50%{opacity:.82; filter:blur(0);}}
         @keyframes satellite-scan {to{transform:translate(74px,74px);}}
         @keyframes impact-pulse {0%{transform:scale(.55); opacity:.78;}100%{transform:scale(1.55); opacity:0;}}
         @keyframes heat-breathe {0%,100%{transform:scale(.92);opacity:.58;}50%{transform:scale(1.14);opacity:.9;}}
@@ -1987,7 +2000,10 @@ def render_visual_simulator_header():
             .flow-grid {grid-template-columns: 1fr;}
             .visual-wrap {padding:14px;}
             .scenario-map {height:260px;}
-            .typhoon-system {left:8%; top:20%; width:210px; height:210px;}
+            .typhoon-system {left:45%; top:28%; width:190px; height:190px;}
+            .weather-land {width:42%;}
+            .taiwan-island {width:44px; height:88px;}
+            .storm-info-box {right:10%; top:16%; transform:scale(.86); transform-origin:top right;}
             .satellite-metric {left:14px; right:auto; bottom:48px; min-width:0;}
         }
         </style>
@@ -2014,20 +2030,29 @@ def render_scenario_visual_map(visual_scenario, profile):
         inner = f"""
             <div class="satellite-layer">
               <div class="satellite-grid"></div>
-              <div class="coastline"></div>
+              <div class="weather-land"></div>
+              <div class="taiwan-island"></div>
+              <div class="map-label">TAIWAN</div>
+              <div class="wind-stream s1"></div>
+              <div class="wind-stream s2"></div>
+              <div class="wind-stream s3"></div>
+              <div class="wind-stream s4"></div>
+              <div class="wind-stream s5"></div>
               <div class="typhoon-system">
                 <div class="cloud-band"></div>
                 <div class="cloud-band b2"></div>
                 <div class="cloud-band b3"></div>
                 <div class="typhoon-eye"></div>
               </div>
+              <div class="storm-info-box">mode<br><b>{scenario_key.replace("_", " ").title()}</b><br>scenario field</div>
               <div class="rain-band"></div>
               <div class="rain-band r2"></div>
               <div class="rain-band r3"></div>
               <div class="impact-ring"></div>
               <div class="impact-ring r2"></div>
               <div class="satellite-city-node"></div>
-              <div class="satellite-badge">Scenario visualization • Not live weather data</div>
+              <div class="satellite-badge">Scenario visualization - Not live weather data</div>
+              <div class="weather-scale"></div>
               <div class="satellite-metric">
                 <span><b>Solar</b><b>{profile.get("solar", 0)}%</b></span>
                 <span><b>Wind</b><b>{profile.get("wind", 0)}%</b></span>
