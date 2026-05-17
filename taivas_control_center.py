@@ -1376,6 +1376,81 @@ div[data-testid="stDataFrame"] {font-size: 0.95rem;}
 """, unsafe_allow_html=True)
 # UI IMPROVEMENT END
 
+# UI REFINEMENT START
+# Deployment-safe visual polish for product-style header, tabs, sidebar, and chart containers.
+st.markdown("""
+<style>
+.taivas-brand {
+    margin: 0.25rem 0 0.55rem 0;
+}
+.taivas-brand-title {
+    font-size: clamp(2.2rem, 3vw, 3.35rem);
+    line-height: 0.98;
+    font-weight: 900;
+    letter-spacing: 0;
+}
+.taivas-brand-subtitle {
+    margin-top: 0.28rem;
+    font-size: clamp(1.05rem, 1.45vw, 1.42rem);
+    color: #CBD5E1;
+    font-weight: 700;
+}
+.taivas-brand-kicker {
+    margin-top: 0.42rem;
+    color: #8EA0B8;
+    font-size: 0.94rem;
+}
+.status-grid {
+    display: grid;
+    grid-template-columns: minmax(280px, 0.9fr) minmax(420px, 1.35fr);
+    gap: 0.95rem;
+    align-items: stretch;
+}
+.status-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+.chart-panel {
+    border: 1px solid rgba(148,163,184,0.22);
+    border-radius: 12px;
+    background: rgba(15,23,42,0.36);
+    padding: 0.75rem 0.85rem 0.35rem 0.85rem;
+}
+section[data-testid="stSidebar"] label {
+    color: #F8FAFC !important;
+    font-weight: 750 !important;
+}
+section[data-testid="stSidebar"] [data-testid="stExpander"] {
+    background: rgba(17,24,39,0.52);
+}
+section[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {
+    color: #67E8F9;
+}
+.stTabs [data-baseweb="tab-list"] {
+    border-bottom: 1px solid rgba(148,163,184,0.18);
+    padding-bottom: 0;
+}
+.stTabs [data-baseweb="tab"] {
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #CBD5E1;
+    font-weight: 750;
+}
+.stTabs [aria-selected="true"] {
+    color: #67E8F9 !important;
+    border-bottom: 2px solid #38BDF8 !important;
+}
+@media (max-width: 980px) {
+    .status-grid {grid-template-columns: 1fr;}
+}
+@media (max-width: 560px) {
+    .status-metrics {grid-template-columns: 1fr;}
+}
+</style>
+""", unsafe_allow_html=True)
+# UI REFINEMENT END
+
 
 
 def safe_float(value, default=0.0):
@@ -2202,8 +2277,18 @@ trend_estimate_df, multistep_forecast_df, trend_meta = compute_trend_estimates(i
 
 # PRODUCT UI RESTRUCTURE START
 # Product positioning only. Detailed results are rendered later inside tabs to reduce page length.
-st.title(tr("title"))
-st.caption(tr("product_positioning"))
+# UI REFINEMENT START
+st.markdown(
+    """
+    <div class="taivas-brand">
+      <div class="taivas-brand-title">TAIVAS</div>
+      <div class="taivas-brand-subtitle">Climate &amp; Energy Resilience Platform</div>
+      <div class="taivas-brand-kicker">Decision-Support Simulation Environment</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+# UI REFINEMENT END
 st.markdown(f'<div class="quick-start"><b>{tr("quick_start")}</b>{tr("quick_start_body")}</div>', unsafe_allow_html=True)
 # PRODUCT UI RESTRUCTURE END
 
@@ -2559,13 +2644,19 @@ def render_demand_supply_chart():
 
 def render_main_system_status():
     st.subheader(tr("main_system_status"))
-    metric_cols = st.columns(4)
-    metric_cols[0].metric(tr("demand"), f"{results['demand']} MW", delta=f"{round(results['demand'] - baseline_results['demand'], 2)} vs baseline")
-    metric_cols[1].metric(tr("final"), f"{results['final_supply']} MW", delta=f"{round(results['final_supply'] - baseline_results['final_supply'], 2)}")
-    metric_cols[2].metric(tr("shortfall"), f"{results['shortfall']} MW", delta=f"{round(results['shortfall'] - baseline_results['shortfall'], 2)}")
-    metric_cols[3].metric(tr("eff"), f"{results['system_efficiency']}%")
+    # UI REFINEMENT START
+    status_left, status_right = st.columns([0.9, 1.35])
+    with status_left:
+        metric_cols = st.columns(2)
+        metric_cols[0].metric(tr("demand"), f"{results['demand']} MW", delta=f"{round(results['demand'] - baseline_results['demand'], 2)} vs baseline")
+        metric_cols[1].metric(tr("final"), f"{results['final_supply']} MW", delta=f"{round(results['final_supply'] - baseline_results['final_supply'], 2)}")
+        metric_cols = st.columns(2)
+        metric_cols[0].metric(tr("shortfall"), f"{results['shortfall']} MW", delta=f"{round(results['shortfall'] - baseline_results['shortfall'], 2)}")
+        metric_cols[1].metric(tr("eff"), f"{results['system_efficiency']}%")
+    with status_right:
+        render_demand_supply_chart()
     st.caption(tr("metric_help"))
-    render_demand_supply_chart()
+    # UI REFINEMENT END
 
 
 def render_battery_storage_status():
