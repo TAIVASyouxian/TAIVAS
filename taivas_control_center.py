@@ -1978,6 +1978,35 @@ def render_visual_simulator_header():
         .satellite-metric {position:absolute; right:14px; bottom:14px; display:grid; gap:6px; min-width:156px;}
         .satellite-metric span {display:flex; justify-content:space-between; gap:12px; padding:6px 9px; border-radius:10px; background:rgba(15,23,42,0.72); border:1px solid rgba(148,163,184,0.20); font-size:.78rem; color:#dbeafe;}
         /* UI-ONLY CHANGE END */
+        /* UI-ONLY CHANGE START: richer non-typhoon visual scenarios. */
+        .heat-map {position:absolute; inset:0; background:radial-gradient(circle at 47% 52%, rgba(248,113,113,0.45), transparent 18%), radial-gradient(circle at 34% 38%, rgba(251,146,60,0.22), transparent 22%), linear-gradient(135deg, #1a2440, #311c35 46%, #422016 100%);}
+        .urban-grid {position:absolute; inset:0; background-image:linear-gradient(rgba(251,191,36,0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(251,191,36,0.10) 1px, transparent 1px); background-size:44px 44px; opacity:.34;}
+        .heat-core {position:absolute; left:38%; top:34%; width:190px; height:150px; border-radius:999px; background:radial-gradient(circle, rgba(254,240,138,0.72), rgba(251,146,60,0.44) 38%, rgba(239,68,68,0.20) 66%, transparent 78%); filter:blur(7px); animation:heat-breathe 3.2s infinite ease-in-out;}
+        .heat-ring {position:absolute; left:calc(50% - 100px); top:calc(50% - 100px); width:200px; height:200px; border:1px solid rgba(251,191,36,0.26); border-radius:999px; animation:impact-pulse 3.4s ease-out infinite;}
+        .heat-ring.r2 {animation-delay:1.2s;}
+        .heat-arrow {position:absolute; width:130px; height:2px; background:linear-gradient(90deg, transparent, rgba(251,191,36,0.86)); opacity:.70; transform-origin:right center; animation:stream-flow 3s ease-in-out infinite;}
+        .heat-arrow.a1 {left:14%; top:28%; transform:rotate(18deg);} .heat-arrow.a2 {left:16%; top:62%; transform:rotate(-18deg); animation-delay:.7s;} .heat-arrow.a3 {right:16%; top:32%; transform:rotate(160deg); animation-delay:1.1s;}
+        .heat-panel {position:absolute; right:18px; top:18px; padding:10px 12px; border-radius:12px; background:rgba(15,23,42,0.64); border:1px solid rgba(251,191,36,0.28); color:#fde68a; font-size:.78rem; line-height:1.45;}
+        .cold-map {position:absolute; inset:0; background:radial-gradient(circle at 50% 52%, rgba(96,165,250,0.20), transparent 22%), linear-gradient(135deg, #061526, #0d2442 48%, #17213c 100%);}
+        .cold-map::before {content:""; position:absolute; inset:0; background-image:radial-gradient(circle, rgba(219,234,254,.65) 1px, transparent 1.7px); background-size:30px 30px; opacity:.44; animation:drift 10s linear infinite;}
+        .cold-front {position:absolute; left:-8%; top:36%; width:116%; height:96px; background:linear-gradient(105deg, transparent, rgba(191,219,254,0.10), rgba(147,197,253,0.42), rgba(226,232,240,0.28), transparent); transform:rotate(-12deg); filter:blur(1px); animation:cold-front-slide 7s ease-in-out infinite;}
+        .ice-band {position:absolute; left:14%; top:22%; width:72%; height:2px; background:linear-gradient(90deg, transparent, rgba(191,219,254,0.74), transparent); transform:rotate(-18deg); opacity:.60;}
+        .ice-band.b2 {top:57%; transform:rotate(12deg); opacity:.46;} .ice-band.b3 {top:74%; transform:rotate(-7deg); opacity:.35;}
+        .cold-core {position:absolute; left:calc(50% - 70px); top:calc(50% - 70px); width:140px; height:140px; border-radius:999px; background:radial-gradient(circle, rgba(219,234,254,0.42), rgba(59,130,246,0.18), transparent 72%); box-shadow:0 0 0 1px rgba(147,197,253,0.20);}
+        .battery-dashboard {position:absolute; inset:0; background:radial-gradient(circle at 50% 50%, rgba(59,130,246,0.16), transparent 28%), linear-gradient(145deg, #071126, #111827);}
+        .battery-flow {position:absolute; left:14%; right:14%; top:31%; height:2px; background:linear-gradient(90deg, transparent, rgba(34,197,94,0.76), rgba(250,204,21,0.70), rgba(239,68,68,0.58), transparent); opacity:.55; animation:stream-flow 2.6s ease-in-out infinite;}
+        .battery-frame {position:absolute; left:26%; top:39%; width:48%; height:82px; border:2px solid rgba(226,232,240,.72); border-radius:22px; padding:9px; background:rgba(15,23,42,0.42); box-shadow:0 18px 40px rgba(0,0,0,.24);}
+        .battery-frame::after {content:""; position:absolute; right:-25px; top:25px; width:20px; height:34px; border:2px solid rgba(226,232,240,.72); border-left:0; border-radius:0 8px 8px 0;}
+        .battery-charge {height:100%; border-radius:14px; background:linear-gradient(90deg, #22c55e, #a3e635, #facc15, #fb923c, #ef4444); box-shadow:inset 0 0 18px rgba(255,255,255,0.18);}
+        .battery-readout {position:absolute; left:26%; top:65%; display:flex; gap:8px; flex-wrap:wrap;}
+        .battery-readout span {padding:6px 9px; border-radius:999px; background:rgba(15,23,42,0.70); border:1px solid rgba(148,163,184,0.24); color:#dbeafe; font-size:.76rem;}
+        .geo-map {position:absolute; inset:0; background:radial-gradient(circle at 51% 50%, rgba(248,113,113,0.18), transparent 16%), linear-gradient(145deg, #091223, #111b32);}
+        .geo-node {position:absolute; width:12px; height:12px; border-radius:999px; background:#f8fafc; box-shadow:0 0 18px rgba(248,250,252,0.78);}
+        .geo-node.n1 {left:16%; top:52%;} .geo-node.n2 {left:50%; top:50%;} .geo-node.n3 {right:15%; top:42%;}
+        .trade-route {position:absolute; left:16%; top:52%; width:70%; height:2px; background:linear-gradient(90deg, rgba(56,189,248,.20), rgba(248,113,113,.92), rgba(56,189,248,.18)); transform:rotate(-8deg); box-shadow:0 0 18px rgba(248,113,113,.42);}
+        .route-pulse {position:absolute; left:48%; top:42%; width:82px; height:82px; border-radius:999px; background:radial-gradient(circle, rgba(248,113,113,.42), transparent 64%); animation:pulse-red 2.2s infinite ease-in-out;}
+        .geo-panel {position:absolute; right:18px; bottom:18px; width:190px; padding:10px 12px; border-radius:12px; background:rgba(15,23,42,0.72); border:1px solid rgba(248,113,113,0.22); color:#e5e7eb; font-size:.76rem; line-height:1.5;}
+        /* UI-ONLY CHANGE END */
         .heat-dome {position:absolute; width:240px; height:180px; left:28%; top:28%; border-radius:999px; background:radial-gradient(circle, rgba(251,146,60,0.38), rgba(239,68,68,0.16), transparent 70%); animation:heat-breathe 3.2s infinite ease-in-out;}
         .snow-band {position:absolute; inset:0; background-image:radial-gradient(circle, rgba(255,255,255,.55) 1px, transparent 1.5px); background-size:28px 28px; animation:drift 10s linear infinite; opacity:.45;}
         .route-line {position:absolute; left:14%; top:54%; width:72%; height:3px; background:linear-gradient(90deg, rgba(56,189,248,.15), rgba(248,113,113,.95), rgba(56,189,248,.15)); transform:rotate(-8deg); box-shadow:0 0 18px rgba(248,113,113,.65);}
@@ -1994,6 +2023,7 @@ def render_visual_simulator_header():
         @keyframes cloud-arm-two {0%,100%{transform:rotate(34deg) translateX(0); opacity:.62;}50%{transform:rotate(46deg) translateX(-8px); opacity:.86;}}
         @keyframes cloud-arm-three {0%,100%{transform:rotate(-44deg) translateX(0); opacity:.58;}50%{transform:rotate(-34deg) translateX(8px); opacity:.82;}}
         @keyframes rain-sweep {0%,100%{transform:translateX(-8px) rotate(18deg); opacity:.28;}50%{transform:translateX(14px) rotate(18deg); opacity:.74;}}
+        @keyframes cold-front-slide {0%,100%{transform:translateX(-18px) rotate(-12deg); opacity:.44;}50%{transform:translateX(18px) rotate(-12deg); opacity:.78;}}
         @keyframes wind-field-drift {to{transform:translate(72px, 18px);}}
         @keyframes stream-flow {0%,100%{opacity:.24; filter:blur(.4px);}50%{opacity:.82; filter:blur(0);}}
         @keyframes satellite-scan {to{transform:translate(74px,74px);}}
@@ -2071,16 +2101,71 @@ def render_scenario_visual_map(visual_scenario, profile):
         caption = "Satellite-style scenario view: cloud bands represent typhoon pressure on solar output, wind stability, and battery support. This is a simulation visual, not live weather data."
         # UI-ONLY CHANGE END
     elif visual_scenario == "Heat Wave Spread":
-        inner = '<div class="heat-dome"></div><div class="pulse"></div><div class="pulse p2"></div><div class="city-node"></div>'
+        # UI-ONLY CHANGE START
+        inner = f"""
+            <div class="heat-map">
+              <div class="urban-grid"></div>
+              <div class="heat-core"></div>
+              <div class="heat-ring"></div>
+              <div class="heat-ring r2"></div>
+              <div class="heat-arrow a1"></div>
+              <div class="heat-arrow a2"></div>
+              <div class="heat-arrow a3"></div>
+              <div class="satellite-city-node" style="left:50%; top:52%;"></div>
+              <div class="heat-panel">Heat load<br><b>{results.get("demand", 0)} MW</b><br>Cooling pressure</div>
+              <div class="satellite-badge">Scenario heat-risk field - Not live weather data</div>
+            </div>
+        """
+        # UI-ONLY CHANGE END
         caption = "Heat load expands around the city; demand rises while cooling-sensitive facilities consume reserve margin faster."
     elif visual_scenario == "Blizzard / Cold Wave":
-        inner = '<div class="snow-band"></div><div class="pulse"></div><div class="pulse p2"></div><div class="city-node"></div>'
+        # UI-ONLY CHANGE START
+        inner = """
+            <div class="cold-map">
+              <div class="cold-front"></div>
+              <div class="ice-band"></div>
+              <div class="ice-band b2"></div>
+              <div class="ice-band b3"></div>
+              <div class="cold-core"></div>
+              <div class="impact-ring" style="left:calc(50% - 47px); top:calc(50% - 47px);"></div>
+              <div class="impact-ring r2" style="left:calc(50% - 47px); top:calc(50% - 47px);"></div>
+              <div class="satellite-city-node" style="left:50%; top:50%;"></div>
+              <div class="satellite-badge">Cold-front simulation field</div>
+            </div>
+        """
+        # UI-ONLY CHANGE END
         caption = "Cold stress suppresses solar availability, raises heating load, and shortens survival time when reserve is weak."
     elif visual_scenario == "Battery Depletion":
-        inner = f'<div class="battery-shell"><div class="battery-fill" style="width:{battery_pct}%;"></div></div><div class="battery-tip"></div><div class="pulse"></div>'
+        # UI-ONLY CHANGE START
+        inner = f"""
+            <div class="battery-dashboard">
+              <div class="battery-flow"></div>
+              <div class="battery-frame"><div class="battery-charge" style="width:{battery_pct}%;"></div></div>
+              <div class="battery-readout">
+                <span>Reserve {battery_pct}%</span>
+                <span>{profile.get("battery", 0)} MWh</span>
+                <span>Gap {profile.get("shortfall", 0)} MW</span>
+              </div>
+              <div class="satellite-badge">Storage buffer view</div>
+            </div>
+        """
+        # UI-ONLY CHANGE END
         caption = "Battery reserve becomes the visible buffer between disrupted supply and critical facility failure."
     else:
-        inner = '<div class="route-line"></div><div class="route-shock"></div><div class="pulse"></div><div class="pulse p2"></div><div class="city-node"></div>'
+        # UI-ONLY CHANGE START
+        inner = f"""
+            <div class="geo-map">
+              <div class="trade-route"></div>
+              <div class="route-pulse"></div>
+              <div class="geo-node n1"></div>
+              <div class="geo-node n2"></div>
+              <div class="geo-node n3"></div>
+              <div class="impact-ring" style="left:calc(50% - 47px); top:calc(50% - 47px);"></div>
+              <div class="geo-panel">Route pressure<br><b>{profile.get("geopolitical_stress", 0)}</b><br>Grid stress signal</div>
+              <div class="satellite-badge">Supply-route risk simulation</div>
+            </div>
+        """
+        # UI-ONLY CHANGE END
         caption = "External shock travels through fuel markets, import routes, logistics, and grid dependency before appearing as shortfall."
     st.markdown(f"""
         <div class="visual-wrap">
