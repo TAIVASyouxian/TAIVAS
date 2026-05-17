@@ -1557,8 +1557,43 @@ st.markdown("""
     font-size: 0.94rem;
     line-height: 1.42;
 }
+.communication-summary {
+    border: 1px solid rgba(56,189,248,0.24);
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(8,47,73,0.42), rgba(15,23,42,0.64));
+    padding: 0.95rem 1rem;
+    margin: 0.75rem 0 1rem 0;
+}
+.communication-summary h3 {
+    margin: 0 0 0.72rem 0;
+    font-size: 1.05rem;
+}
+.communication-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+.communication-card {
+    border: 1px solid rgba(148,163,184,0.18);
+    border-radius: 12px;
+    background: rgba(15,23,42,0.42);
+    padding: 0.85rem 0.95rem;
+}
+.communication-label {
+    color: #A7B3C7;
+    font-size: 0.8rem;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-bottom: 0.35rem;
+}
+.communication-text {
+    color: #F8FAFC;
+    line-height: 1.5;
+    font-size: 0.95rem;
+}
 @media (max-width: 820px) {
-    .comparison-grid, .explain-grid, .emergency-grid {grid-template-columns: 1fr;}
+    .comparison-grid, .explain-grid, .emergency-grid, .communication-grid {grid-template-columns: 1fr;}
     .risk-strip {align-items: flex-start; flex-direction: column;}
 }
 </style>
@@ -2447,6 +2482,58 @@ def render_plain_language_emergency_summary():
         """,
         unsafe_allow_html=True,
     )
+
+
+def public_risk_message():
+    severity = plain_language_severity()
+    concern = main_emergency_concern()
+    if severity in ("critical", "high risk"):
+        return f"Energy stress is elevated under the selected scenario. Please reduce non-essential electricity use and follow official updates."
+    if severity == "stressed":
+        return f"Energy conditions require monitoring. Please conserve electricity where possible and follow official updates."
+    return f"Energy conditions appear stable in this simulation. Continue normal use and monitor official updates."
+
+
+def decision_brief_message():
+    concern = main_emergency_concern()
+    gap = results["shortfall"]
+    grid_need = results["grid_dependency"]
+    return (
+        f"The selected scenario shows {concern.lower()} as the first communication priority. "
+        f"Current modeled energy gap is {gap:.2f} MW and backup grid need is {grid_need:.2f}%. "
+        "Review battery reserve, energy gap, and backup grid need before issuing operational guidance."
+    )
+
+
+def render_public_risk_communication_summary():
+    technical_basis = pd.DataFrame([
+        {"Metric": "Energy Gap", "Value": f"{results['shortfall']} MW"},
+        {"Metric": "Battery Stability", "Value": f"{results['battery_levels']} MWh"},
+        {"Metric": "Backup Grid Need", "Value": f"{results['grid_dependency']}%"},
+        {"Metric": "Renewable Share", "Value": f"{results['renewable_ratio']}%"},
+        {"Metric": "System Stability", "Value": f"{results['system_efficiency']}%"},
+        {"Metric": "Risk Tier", "Value": results.get("risk_tier", plain_language_severity().title())},
+    ])
+    st.markdown(
+        f"""
+        <div class="communication-summary">
+          <h3>Public Risk Communication Summary</h3>
+          <div class="communication-grid">
+            <div class="communication-card">
+              <div class="communication-label">Public Message</div>
+              <div class="communication-text">{public_risk_message()}</div>
+            </div>
+            <div class="communication-card">
+              <div class="communication-label">Decision Brief</div>
+              <div class="communication-text">{decision_brief_message()}</div>
+            </div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    with st.expander("Technical Basis", expanded=False):
+        st.dataframe(technical_basis, use_container_width=True, hide_index=True)
 # UI-ONLY CHANGE END
 
 # PRODUCT UI RESTRUCTURE START
@@ -2466,6 +2553,7 @@ st.markdown(
 st.markdown(f'<div class="quick-start"><b>{tr("quick_start")}</b>{tr("quick_start_body")}</div>', unsafe_allow_html=True)
 # UI-ONLY CHANGE START
 render_plain_language_emergency_summary()
+render_public_risk_communication_summary()
 # UI-ONLY CHANGE END
 # PRODUCT UI RESTRUCTURE END
 
