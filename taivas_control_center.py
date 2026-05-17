@@ -1524,8 +1524,41 @@ st.markdown("""
     color: #D7DEE9;
     line-height: 1.5;
 }
+.emergency-summary {
+    border: 1px solid rgba(148,163,184,0.22);
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(15,23,42,0.72), rgba(8,47,73,0.28));
+    padding: 0.95rem 1rem;
+    margin: 0.75rem 0 1rem 0;
+}
+.emergency-summary h3 {
+    margin: 0 0 0.65rem 0;
+    font-size: 1.05rem;
+}
+.emergency-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.72rem;
+}
+.emergency-item {
+    border-left: 3px solid rgba(56,189,248,0.72);
+    padding: 0.2rem 0 0.2rem 0.68rem;
+}
+.emergency-label {
+    color: #A7B3C7;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-bottom: 0.2rem;
+}
+.emergency-text {
+    color: #F8FAFC;
+    font-size: 0.94rem;
+    line-height: 1.42;
+}
 @media (max-width: 820px) {
-    .comparison-grid, .explain-grid {grid-template-columns: 1fr;}
+    .comparison-grid, .explain-grid, .emergency-grid {grid-template-columns: 1fr;}
     .risk-strip {align-items: flex-start; flex-direction: column;}
 }
 </style>
@@ -2356,6 +2389,66 @@ reference_avg = compute_reference_average(inputs, uploaded_df, active_country, a
 energy_contribution_df = build_energy_contribution_df(results, baseline_results, reference_avg)
 trend_estimate_df, multistep_forecast_df, trend_meta = compute_trend_estimates(inputs, uploaded_df, active_country, active_city, baseline_results, scenario_key=scenario_key, rolling_window_rows=rolling_window_rows, forecast_steps=forecast_steps, confidence_level=confidence_level)
 
+# UI-ONLY CHANGE START
+# Plain-language emergency summary only. Uses existing calculated outputs without changing formulas or data flow.
+def main_emergency_concern():
+    battery_ratio = safe_div(results["battery_levels"], inputs["battery_capacity"]) if inputs["battery_capacity"] > 0 else 1.0
+    if results["shortfall"] > 0:
+        return "Energy Gap"
+    if battery_ratio < 0.30:
+        return "Battery Reserve"
+    if results["grid_dependency"] >= 10:
+        return "Backup Grid Need"
+    if results["renewable_supply"] < baseline_results["renewable_supply"]:
+        return "Renewable Supply"
+    return "System Stability"
+
+
+def plain_language_severity():
+    tier = results.get("risk_tier", "")
+    if tier == "Critical":
+        return "critical"
+    if tier == "High":
+        return "high risk"
+    if tier == "Elevated":
+        return "stressed"
+    if results["shortfall"] > 0 or results["grid_dependency"] >= 10:
+        return "stressed"
+    return "stable"
+
+
+def render_plain_language_emergency_summary():
+    concern = main_emergency_concern()
+    severity = plain_language_severity()
+    scenario_label = scenario_key.replace("_", " ").title()
+    st.markdown(
+        f"""
+        <div class="emergency-summary">
+          <h3>Plain-Language Emergency Summary</h3>
+          <div class="emergency-grid">
+            <div class="emergency-item">
+              <div class="emergency-label">Current situation</div>
+              <div class="emergency-text">{active_city}, {active_country} under the {scenario_label} scenario.</div>
+            </div>
+            <div class="emergency-item">
+              <div class="emergency-label">Main risk</div>
+              <div class="emergency-text">{concern} is the main item to watch in this simulation.</div>
+            </div>
+            <div class="emergency-item">
+              <div class="emergency-label">Expected impact</div>
+              <div class="emergency-text">The system appears {severity} based on current simulation outputs.</div>
+            </div>
+            <div class="emergency-item">
+              <div class="emergency-label">First check</div>
+              <div class="emergency-text">Review battery reserve, energy gap, and backup grid need first.</div>
+            </div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+# UI-ONLY CHANGE END
+
 # PRODUCT UI RESTRUCTURE START
 # Product positioning only. Detailed results are rendered later inside tabs to reduce page length.
 # UI REFINEMENT START
@@ -2371,6 +2464,9 @@ st.markdown(
 )
 # UI REFINEMENT END
 st.markdown(f'<div class="quick-start"><b>{tr("quick_start")}</b>{tr("quick_start_body")}</div>', unsafe_allow_html=True)
+# UI-ONLY CHANGE START
+render_plain_language_emergency_summary()
+# UI-ONLY CHANGE END
 # PRODUCT UI RESTRUCTURE END
 
 def build_executive_summary_text():
