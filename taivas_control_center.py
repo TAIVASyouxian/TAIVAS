@@ -1200,8 +1200,8 @@ st.markdown("""
     --taivas-violet: #A78BFA;
 }
 html, body, [class*="css"] {font-size: 16px;}
-.block-container {padding-top: 1.15rem; padding-bottom: 2.4rem; max-width: 1440px;}
-h1 {font-size: clamp(2rem, 2.6vw, 3rem) !important; line-height: 1.12 !important; margin-bottom: 0.35rem !important;}
+.block-container {padding-top: 0.85rem; padding-bottom: 2.2rem; max-width: 1440px;}
+h1 {font-size: clamp(1.9rem, 2.4vw, 2.75rem) !important; line-height: 1.1 !important; margin-bottom: 0.25rem !important;}
 h2, h3 {letter-spacing: 0;}
 div[data-testid="stMarkdownContainer"] p,
 div[data-testid="stCaptionContainer"],
@@ -1233,21 +1233,21 @@ section[data-testid="stSidebar"] .stFileUploader {
     margin-bottom: 0.7rem;
 }
 .hero {
-    padding: 1.15rem 1.25rem;
+    padding: 0.95rem 1.1rem;
     border: 1px solid var(--taivas-border);
     border-radius: 14px;
     background: linear-gradient(135deg, rgba(14,116,144,0.38), rgba(15,23,42,0.52));
-    margin-bottom: 1.05rem;
+    margin-bottom: 0.85rem;
 }
-.hero h3 { margin: 0 0 0.45rem 0; font-size: 1.38rem; }
-.hero p { margin: 0; opacity: 0.94; line-height: 1.62; font-size: 1.02rem; }
+.hero h3 { margin: 0 0 0.35rem 0; font-size: 1.26rem; }
+.hero p { margin: 0; opacity: 0.94; line-height: 1.5; font-size: 0.98rem; }
 .note {
-    padding: 0.95rem 1.05rem;
+    padding: 0.78rem 0.95rem;
     border-radius: 12px;
     background: rgba(59,130,246,0.10);
     border: 1px solid rgba(96,165,250,0.24);
-    margin-bottom: 0.85rem;
-    line-height: 1.6;
+    margin-bottom: 0.7rem;
+    line-height: 1.48;
     font-size: 0.98rem;
 }
 .question {
@@ -1267,12 +1267,12 @@ section[data-testid="stSidebar"] .stFileUploader {
 .notice-box {padding:0.95rem 1.05rem; border-radius:12px; background:rgba(245,158,11,0.10); border:1px solid rgba(245,158,11,0.28); line-height:1.6; margin:0.9rem 0; font-size:0.98rem;}
 .demo-pill {display:inline-block; padding:0.3rem 0.65rem; border-radius:999px; margin-left:0.35rem; background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.32); font-size:0.86rem; font-weight:700;}
 .card {
-    padding: 0.95rem 1rem;
+    padding: 0.78rem 0.9rem;
     border-radius: 12px;
     background: var(--taivas-panel-soft);
     border: 1px solid var(--taivas-border);
-    margin-bottom: 0.75rem;
-    min-height: 96px;
+    margin-bottom: 0.6rem;
+    min-height: 76px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -1299,15 +1299,26 @@ section[data-testid="stSidebar"] .stFileUploader {
     margin-bottom: 0.55rem;
 }
 div[data-testid="stMetric"] {
-    min-height: 116px;
-    padding: 0.95rem 1rem;
+    min-height: 88px;
+    padding: 0.78rem 0.9rem;
     border: 1px solid var(--taivas-border);
     border-radius: 12px;
     background: rgba(15,23,42,0.48);
 }
 div[data-testid="stMetricLabel"] p {font-size:0.9rem !important; color:var(--taivas-muted) !important; line-height:1.3 !important;}
-div[data-testid="stMetricValue"] {font-size:1.45rem !important; line-height:1.15 !important;}
+div[data-testid="stMetricValue"] {font-size:1.22rem !important; line-height:1.15 !important;}
 div[data-testid="stMetricDelta"] {font-size:0.86rem !important;}
+section[data-testid="stSidebar"] .stSlider [data-baseweb="slider"] > div:first-child {
+    background: rgba(56,189,248,0.26) !important;
+}
+section[data-testid="stSidebar"] .stSlider [role="slider"] {
+    background-color: var(--taivas-blue) !important;
+    border-color: var(--taivas-blue) !important;
+    box-shadow: 0 0 0 2px rgba(56,189,248,0.18) !important;
+}
+section[data-testid="stSidebar"] .stSlider [data-baseweb="slider"] div[style*="background-color"] {
+    background-color: var(--taivas-blue) !important;
+}
 .stButton > button,
 .stDownloadButton > button,
 button[kind="primary"],
@@ -1915,7 +1926,6 @@ with st.sidebar:
     st.session_state["ui_lang"] = ui_lang
     st.header(tr("controls"))
     # USER-FRIENDLY UI START
-    st.markdown(f'<div class="note"><b>{tr("quick_start")}</b><br>{tr("quick_start_body")}</div>', unsafe_allow_html=True)
     basic_panel = st.expander(tr("basic_setup"), expanded=True)
     basic_panel.caption(tr("basic_setup_help"))
 
@@ -2510,13 +2520,24 @@ def render_operational_summary_panel():
 
 
 def render_demand_supply_chart():
-    chart_df = pd.DataFrame(
-        {
-            "MW": [results["demand"], results["renewable_supply"], results["final_supply"], results["shortfall"]],
-        },
-        index=[tr("demand"), tr("renewable"), tr("final"), tr("shortfall")],
-    )
-    st.bar_chart(chart_df)
+    chart_labels = [tr("demand"), tr("renewable"), tr("final"), tr("shortfall")]
+    chart_values = [results["demand"], results["renewable_supply"], results["final_supply"], results["shortfall"]]
+    chart_colors = ["#38BDF8", "#22C55E", "#60A5FA", "#F97316"]
+    fig, ax = plt.subplots(figsize=(9.5, 3.2))
+    fig.patch.set_alpha(0.0)
+    ax.set_facecolor("none")
+    ax.barh(chart_labels, chart_values, color=chart_colors, alpha=0.92)
+    ax.invert_yaxis()
+    ax.set_xlabel("MW")
+    ax.set_title("Demand vs Supply", fontsize=14, pad=12)
+    ax.grid(axis="x", alpha=0.22)
+    ax.tick_params(axis="both", labelsize=11)
+    max_value = max(chart_values) if chart_values else 1
+    for i, value in enumerate(chart_values):
+        ax.text(value + max_value * 0.015, i, f"{value:.2f}", va="center", fontsize=10, color="#E5E7EB")
+    ax.set_xlim(0, max_value * 1.16 if max_value > 0 else 1)
+    plt.tight_layout(pad=1.2)
+    st.pyplot(fig, clear_figure=True)
 
 
 def render_main_system_status():
@@ -2540,7 +2561,12 @@ def render_battery_storage_status():
     if not timeline_df.empty:
         reserve_cols = [c for c in ["battery_level", "reserve_energy", "shortfall"] if c in timeline_df.columns]
         if reserve_cols:
-            st.line_chart(timeline_df[reserve_cols])
+            friendly_names = {
+                "battery_level": "Battery Level",
+                "reserve_energy": "Reserve Energy",
+                "shortfall": "Energy Gap",
+            }
+            st.line_chart(timeline_df[reserve_cols].rename(columns=friendly_names))
 
 
 def render_renewable_mix_summary():
