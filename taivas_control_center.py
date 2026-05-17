@@ -1592,6 +1592,14 @@ st.markdown("""
     line-height: 1.5;
     font-size: 0.95rem;
 }
+.communication-disclaimer {
+    margin-top: 0.72rem;
+    color: #A7B3C7;
+    font-size: 0.84rem;
+    line-height: 1.45;
+    border-top: 1px solid rgba(148,163,184,0.14);
+    padding-top: 0.62rem;
+}
 @media (max-width: 820px) {
     .comparison-grid, .explain-grid, .emergency-grid, .communication-grid {grid-template-columns: 1fr;}
     .risk-strip {align-items: flex-start; flex-direction: column;}
@@ -2488,10 +2496,10 @@ def public_risk_message():
     severity = plain_language_severity()
     concern = main_emergency_concern()
     if severity in ("critical", "high risk"):
-        return f"Energy stress is elevated under the selected scenario. Please reduce non-essential electricity use and follow official updates."
+        return "Energy demand may increase under this scenario. Please reduce non-essential electricity use and follow official updates."
     if severity == "stressed":
-        return f"Energy conditions require monitoring. Please conserve electricity where possible and follow official updates."
-    return f"Energy conditions appear stable in this simulation. Continue normal use and monitor official updates."
+        return "Energy conditions require monitoring. Please conserve electricity where possible and follow official updates."
+    return "Energy conditions appear stable in this simulation. Continue normal use and follow official updates."
 
 
 def decision_brief_message():
@@ -2499,9 +2507,9 @@ def decision_brief_message():
     gap = results["shortfall"]
     grid_need = results["grid_dependency"]
     return (
-        f"The selected scenario shows {concern.lower()} as the first communication priority. "
+        f"The simulation indicates {concern.lower()} as the first communication priority. "
         f"Current modeled energy gap is {gap:.2f} MW and backup grid need is {grid_need:.2f}%. "
-        "Review battery reserve, energy gap, and backup grid need before issuing operational guidance."
+        "Review battery reserve, energy gap, and backup grid support before issuing operational guidance."
     )
 
 
@@ -2528,6 +2536,7 @@ def render_public_risk_communication_summary():
               <div class="communication-text">{decision_brief_message()}</div>
             </div>
           </div>
+          <div class="communication-disclaimer">This summary is scenario-based decision-support information and not a confirmed prediction.</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -2787,38 +2796,30 @@ def render_baseline_extreme_cards():
     selected_rows = []
     for label, base_value, selected_value, unit, invert in metrics:
         baseline_rows.append(
-            f"""
-            <div class="comparison-row">
-              <div class="comparison-label">{label}</div>
-              <div class="comparison-value">{format_metric_value(base_value, unit)}</div>
-              <div class="comparison-delta delta-flat">baseline</div>
-            </div>
-            """
+            f'<div class="comparison-row">'
+            f'<div class="comparison-label">{label}</div>'
+            f'<div class="comparison-value">{format_metric_value(base_value, unit)}</div>'
+            f'<div class="comparison-delta delta-flat">baseline</div>'
+            f'</div>'
         )
         selected_rows.append(
-            f"""
-            <div class="comparison-row">
-              <div class="comparison-label">{label}</div>
-              <div class="comparison-value">{format_metric_value(selected_value, unit)}</div>
-              <div>{display_delta(selected_value, base_value, unit, invert)}</div>
-            </div>
-            """
+            f'<div class="comparison-row">'
+            f'<div class="comparison-label">{label}</div>'
+            f'<div class="comparison-value">{format_metric_value(selected_value, unit)}</div>'
+            f'<div>{display_delta(selected_value, base_value, unit, invert)}</div>'
+            f'</div>'
         )
-    st.markdown(
-        f"""
-        <div class="comparison-grid">
-          <div class="scenario-card">
-            <h4>Baseline Scenario</h4>
-            {''.join(baseline_rows)}
-          </div>
-          <div class="scenario-card">
-            <h4>Selected Scenario: {scenario_key.replace("_", " ").title()}</h4>
-            {''.join(selected_rows)}
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    selected_title = scenario_key.replace("_", " ").title()
+    comparison_html = (
+        '<div class="comparison-grid">'
+        '<div class="scenario-card"><h4>Baseline Scenario</h4>'
+        + "".join(baseline_rows)
+        + '</div>'
+        + f'<div class="scenario-card"><h4>Selected Scenario: {selected_title}</h4>'
+        + "".join(selected_rows)
+        + '</div></div>'
     )
+    st.markdown(comparison_html, unsafe_allow_html=True)
 
 
 def render_resilience_storytelling():
