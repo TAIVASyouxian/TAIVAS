@@ -1451,6 +1451,87 @@ section[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {
 """, unsafe_allow_html=True)
 # UI REFINEMENT END
 
+# UI-ONLY CHANGE START
+# Scenario comparison and risk storytelling styling only. No calculation logic or data source changes.
+st.markdown("""
+<style>
+.risk-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid rgba(148,163,184,0.22);
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(15,23,42,0.82), rgba(8,47,73,0.34));
+    margin: 0.7rem 0 0.95rem 0;
+}
+.risk-title {font-size: 1rem; font-weight: 850; color: #F8FAFC;}
+.risk-note {font-size: 0.9rem; color: #A7B3C7; margin-top: 0.2rem;}
+.risk-badge {
+    white-space: nowrap;
+    border-radius: 999px;
+    padding: 0.38rem 0.7rem;
+    font-weight: 850;
+    border: 1px solid rgba(148,163,184,0.26);
+}
+.risk-low {background: rgba(34,197,94,0.13); color: #86EFAC; border-color: rgba(34,197,94,0.34);}
+.risk-moderate {background: rgba(56,189,248,0.13); color: #7DD3FC; border-color: rgba(56,189,248,0.34);}
+.risk-high {background: rgba(245,158,11,0.14); color: #FCD34D; border-color: rgba(245,158,11,0.36);}
+.risk-critical {background: rgba(248,113,113,0.14); color: #FCA5A5; border-color: rgba(248,113,113,0.34);}
+.comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin: 0.85rem 0 1rem 0;
+}
+.scenario-card {
+    border: 1px solid rgba(148,163,184,0.22);
+    border-radius: 12px;
+    background: rgba(15,23,42,0.46);
+    padding: 0.95rem;
+}
+.scenario-card h4 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1rem;
+}
+.comparison-row {
+    display: grid;
+    grid-template-columns: minmax(112px, 1fr) minmax(82px, auto) minmax(92px, auto);
+    gap: 0.55rem;
+    align-items: center;
+    padding: 0.48rem 0;
+    border-top: 1px solid rgba(148,163,184,0.12);
+}
+.comparison-row:first-of-type {border-top: 0;}
+.comparison-label {color: #A7B3C7; font-size: 0.88rem;}
+.comparison-value {font-weight: 850; text-align: right;}
+.comparison-delta {font-size: 0.84rem; text-align: right; border-radius: 999px; padding: 0.2rem 0.44rem;}
+.delta-up {background: rgba(245,158,11,0.13); color: #FCD34D;}
+.delta-down {background: rgba(56,189,248,0.12); color: #7DD3FC;}
+.delta-flat {background: rgba(148,163,184,0.12); color: #CBD5E1;}
+.explain-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin: 0.65rem 0 1rem 0;
+}
+.explain-card {
+    border: 1px solid rgba(148,163,184,0.18);
+    border-radius: 12px;
+    background: rgba(15,23,42,0.34);
+    padding: 0.85rem 0.95rem;
+    color: #D7DEE9;
+    line-height: 1.5;
+}
+@media (max-width: 820px) {
+    .comparison-grid, .explain-grid {grid-template-columns: 1fr;}
+    .risk-strip {align-items: flex-start; flex-direction: column;}
+}
+</style>
+""", unsafe_allow_html=True)
+# UI-ONLY CHANGE END
+
 
 
 def safe_float(value, default=0.0):
@@ -2457,26 +2538,176 @@ def render_energy_mix_workspace():
     st.caption(f"{tr('dominant')}: {results['dominant_source']}")
 
 
+# UI-ONLY CHANGE START
+# Scenario comparison presentation helpers only. They read existing result dictionaries without modifying calculations.
+def display_delta(current_value, baseline_value, unit="", invert=False):
+    delta = current_value - baseline_value
+    pct = safe_div(delta, abs(baseline_value)) * 100 if baseline_value not in (0, 0.0) else 0.0
+    if abs(delta) < 0.005:
+        return '<span class="comparison-delta delta-flat">0.0%</span>'
+    arrow = "↑" if delta > 0 else "↓"
+    class_name = "delta-down" if invert and delta < 0 else "delta-up" if delta > 0 else "delta-down"
+    if invert and delta > 0:
+        class_name = "delta-up"
+    return f'<span class="comparison-delta {class_name}">{arrow} {pct:+.1f}%</span>'
+
+
+def format_metric_value(value, unit=""):
+    suffix = f" {unit}" if unit else ""
+    return f"{value:.2f}{suffix}"
+
+
+def scenario_comparison_metrics():
+    return [
+        ("Demand", baseline_results["demand"], results["demand"], "MW", True),
+        ("Renewable Supply", baseline_results["renewable_supply"], results["renewable_supply"], "MW", False),
+        ("Final Supply", baseline_results["final_supply"], results["final_supply"], "MW", False),
+        ("Energy Gap", baseline_results["shortfall"], results["shortfall"], "MW", True),
+        ("Battery Stability", baseline_results["battery_levels"], results["battery_levels"], "MWh", False),
+        ("Renewable Share", baseline_results["renewable_ratio"], results["renewable_ratio"], "%", False),
+        ("Backup Grid Need", baseline_results["grid_dependency"], results["grid_dependency"], "%", True),
+        ("System Stability", baseline_results["system_efficiency"], results["system_efficiency"], "%", False),
+    ]
+
+
+def operational_risk_tier_for_display():
+    ratio = safe_div(results["shortfall"], results["demand"]) if results["demand"] > 0 else 0.0
+    if results["shortfall"] <= 0:
+        return "Low", "risk-low", "No modeled energy gap under the selected scenario."
+    if ratio < 0.05:
+        return "Moderate", "risk-moderate", "Small energy gap detected; monitor reserve margin."
+    if ratio < 0.15:
+        return "High", "risk-high", "Supply stress is material; prioritize critical load protection."
+    return "Critical", "risk-critical", "Large energy gap detected; immediate resilience action is recommended."
+
+
+def render_risk_tier_panel():
+    tier, class_name, note = operational_risk_tier_for_display()
+    st.markdown(
+        f"""
+        <div class="risk-strip">
+          <div>
+            <div class="risk-title">Operational Risk Tier</div>
+            <div class="risk-note">{note}</div>
+          </div>
+          <div class="risk-badge {class_name}">{tier}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_baseline_extreme_cards():
+    metrics = scenario_comparison_metrics()
+    baseline_rows = []
+    selected_rows = []
+    for label, base_value, selected_value, unit, invert in metrics:
+        baseline_rows.append(
+            f"""
+            <div class="comparison-row">
+              <div class="comparison-label">{label}</div>
+              <div class="comparison-value">{format_metric_value(base_value, unit)}</div>
+              <div class="comparison-delta delta-flat">baseline</div>
+            </div>
+            """
+        )
+        selected_rows.append(
+            f"""
+            <div class="comparison-row">
+              <div class="comparison-label">{label}</div>
+              <div class="comparison-value">{format_metric_value(selected_value, unit)}</div>
+              <div>{display_delta(selected_value, base_value, unit, invert)}</div>
+            </div>
+            """
+        )
+    st.markdown(
+        f"""
+        <div class="comparison-grid">
+          <div class="scenario-card">
+            <h4>Baseline Scenario</h4>
+            {''.join(baseline_rows)}
+          </div>
+          <div class="scenario-card">
+            <h4>Selected Scenario: {scenario_key.replace("_", " ").title()}</h4>
+            {''.join(selected_rows)}
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_resilience_storytelling():
+    renewable_delta_pct = safe_div(results["renewable_supply"] - baseline_results["renewable_supply"], abs(baseline_results["renewable_supply"])) * 100 if baseline_results["renewable_supply"] else 0.0
+    grid_delta_pct = results["grid_dependency"] - baseline_results["grid_dependency"]
+    gap_delta = results["shortfall"] - baseline_results["shortfall"]
+    st.markdown(
+        f"""
+        <div class="note">
+        Under the selected <b>{scenario_key.replace("_", " ").title()}</b> scenario,
+        renewable output changes by <b>{renewable_delta_pct:+.1f}%</b>,
+        backup grid need changes by <b>{grid_delta_pct:+.1f} percentage points</b>,
+        and the modeled energy gap changes by <b>{gap_delta:+.2f} MW</b>.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_system_explanation_panel():
+    explanations = []
+    if results["demand"] > baseline_results["demand"]:
+        explanations.append("Demand is higher than baseline, indicating stronger load pressure from the selected scenario and facility profile.")
+    else:
+        explanations.append("Demand remains at or below baseline, so load pressure is not the main source of stress.")
+    if results["renewable_supply"] < baseline_results["renewable_supply"]:
+        explanations.append("Renewable supply is lower than baseline, reducing the amount of local energy available before storage or backup support.")
+    else:
+        explanations.append("Renewable supply is holding at or above baseline, supporting system resilience.")
+    if results["battery_levels"] < baseline_results["battery_levels"]:
+        explanations.append("Battery reserve is lower than baseline, which can shorten operating time during sustained disruption.")
+    else:
+        explanations.append("Battery reserve remains available, preserving a useful buffer against short-term supply stress.")
+    if results["grid_dependency"] > baseline_results["grid_dependency"]:
+        explanations.append("Backup grid need has increased, meaning the selected scenario places more pressure on external support.")
+    else:
+        explanations.append("Backup grid need has not increased, suggesting the modeled local supply stack remains sufficient.")
+    st.subheader("System Explanation")
+    st.markdown(
+        '<div class="explain-grid">' + "".join(f'<div class="explain-card">{line}</div>' for line in explanations) + "</div>",
+        unsafe_allow_html=True,
+    )
+# UI-ONLY CHANGE END
+
+
 def render_scenario_comparison_workspace():
     page_question(tr("tabs")[1])
     delta_df = scenario_delta_df(baseline_results, results)
     scenario_df = comparison_dataframe(inputs, failure_ratios, reserve_recovery_lag_days)
     critical_load_df = critical_load_breakdown(results["demand"], facility_profile["critical_load_share"], facility_profile["critical_split"])
-    left, right = st.columns([1.02, 1.0])
-    with left:
-        st.subheader(tr("baseline_vs_selected"))
-        st.dataframe(delta_df, use_container_width=True, hide_index=True)
-        render_delta_chart(delta_df)
-    with right:
-        st.subheader(tr("all_scenarios"))
-        st.dataframe(scenario_df, use_container_width=True, hide_index=True)
-        scenario_index_col = tr("scenario") if tr("scenario") in scenario_df.columns else "Scenario"
-        shortfall_col = tr("shortfall") if tr("shortfall") in scenario_df.columns else "Shortfall"
-        grid_col = tr("grid") if tr("grid") in scenario_df.columns else "Grid Dependency"
-        st.bar_chart(scenario_df.set_index(scenario_index_col)[[shortfall_col, grid_col]])
-    st.subheader(tr("critical_breakdown"))
-    render_critical_load_chart(critical_load_df)
-    st.dataframe(critical_load_df, use_container_width=True, hide_index=True)
+    # UI-ONLY CHANGE START
+    st.subheader("Baseline vs Selected Scenario")
+    render_risk_tier_panel()
+    render_resilience_storytelling()
+    render_baseline_extreme_cards()
+    render_system_explanation_panel()
+    with st.expander("Detailed Technical Comparison", expanded=False):
+        left, right = st.columns([1.02, 1.0])
+        with left:
+            st.subheader(tr("baseline_vs_selected"))
+            st.dataframe(delta_df, use_container_width=True, hide_index=True)
+            render_delta_chart(delta_df)
+        with right:
+            st.subheader(tr("all_scenarios"))
+            st.dataframe(scenario_df, use_container_width=True, hide_index=True)
+            scenario_index_col = tr("scenario") if tr("scenario") in scenario_df.columns else "Scenario"
+            shortfall_col = tr("shortfall") if tr("shortfall") in scenario_df.columns else "Shortfall"
+            grid_col = tr("grid") if tr("grid") in scenario_df.columns else "Grid Dependency"
+            st.bar_chart(scenario_df.set_index(scenario_index_col)[[shortfall_col, grid_col]])
+        st.subheader(tr("critical_breakdown"))
+        render_critical_load_chart(critical_load_df)
+        st.dataframe(critical_load_df, use_container_width=True, hide_index=True)
+    # UI-ONLY CHANGE END
 
 
 def render_stress_test_workspace():
@@ -2702,6 +2933,9 @@ def render_context_cards():
 
 def render_product_overview():
     render_operational_summary_panel()
+    # UI-ONLY CHANGE START
+    render_risk_tier_panel()
+    # UI-ONLY CHANGE END
     render_context_cards()
     render_main_system_status()
     render_battery_storage_status()
