@@ -4055,6 +4055,24 @@ CONCEPT_BOUNDARY_NOTE = (
 )
 
 
+def concept_level_label(value, high_label="High", medium_label="Moderate", low_label="Limited"):
+    value = clamp(float(value), 0.0, 100.0)
+    if value >= 80:
+        return high_label
+    if value >= 45:
+        return medium_label
+    return low_label
+
+
+def concept_disruption_label(value):
+    value = clamp(float(value), 0.0, 100.0)
+    if value <= 10:
+        return "Low disruption state"
+    if value <= 35:
+        return "Moderate disruption state"
+    return "Elevated disruption state"
+
+
 def _render_concept_html(html: str):
     from textwrap import dedent
 
@@ -4075,6 +4093,7 @@ def render_phase_change_buffer_concept(
     demand_reduction_pct = clamp(float(demand_reduction_pct), 0.0, 100.0)
     reserve_bonus_hours = max(float(reserve_bonus_hours), 0.0)
     heat_load_mw = max(float(heat_load_mw), 0.0)
+    buffer_state_label = concept_level_label(buffer_state_pct, "High storage state", "Moderate storage state", "Limited storage state")
     flow_duration = max(4.0, 8.0 - buffer_state_pct / 20.0)
 
     _render_concept_html(f"""
@@ -4113,7 +4132,7 @@ def render_phase_change_buffer_concept(
             <div class="pcm-flow cold"></div><div class="pcm-flow warm"></div>
             <div class="pcm-node server"><h4>Server Core</h4><span>Heat load</span><br><b>{heat_load_mw:.1f} MW</b></div>
             <div class="pcm-node buffer"><h4>PCM Buffer</h4><span>Latent heat storage concept</span></div>
-            <div class="pcm-node state"><h4>Buffer State</h4><b>{buffer_state_pct:.0f}%</b></div>
+            <div class="pcm-node state"><h4>Buffer State</h4><b>{buffer_state_label}</b></div>
           </div>
           <div class="pcm-indicators">
             <div class="pcm-chip">Estimated demand relief<b>{demand_reduction_pct:.1f}%</b></div>
@@ -4126,9 +4145,9 @@ def render_phase_change_buffer_concept(
           <div class="pcm-brief">Blue loop: conceptual cold-side storage circulation.<br>Red loop: conceptual heat recovery / discharge circulation.<br>Center tank: phase-change thermal storage concept.</div>
           <div class="pcm-brief">The visual illustrates latent heat buffering for scenario thinking. It should not be read as validated engineering hardware.</div>
           <h4>Illustrative Concept Indicators</h4>
-          <div class="pcm-row"><span>Buffer State</span><b>{buffer_state_pct:.0f}%</b></div>
+          <div class="pcm-row"><span>Buffer State</span><b>{buffer_state_label}</b></div>
           <div class="pcm-row"><span>Estimated demand relief</span><b>{demand_reduction_pct:.1f}%</b></div>
-          <div class="pcm-row"><span>Estimated reserve support</span><b>{reserve_bonus_hours:.1f} h</b></div>
+          <div class="pcm-row"><span>Estimated scenario support duration</span><b>{reserve_bonus_hours:.1f} h</b></div>
           <div class="pcm-boundary">{CONCEPT_BOUNDARY_NOTE}</div>
         </div>
       </div>
@@ -4148,6 +4167,10 @@ def render_distributed_thermal_control_concept(
     rerouting_efficiency_pct = clamp(float(rerouting_efficiency_pct), 0.0, 100.0)
     damage_ratio_pct = clamp(float(damage_ratio_pct), 0.0, 100.0)
     protected_core_pct = clamp(float(protected_core_pct), 0.0, 100.0)
+    pathway_state = concept_level_label(node_availability_pct, "High pathway availability", "Moderate pathway availability", "Limited pathway availability")
+    rerouting_state = concept_level_label(rerouting_efficiency_pct, "Strong rerouting state", "Moderate rerouting state", "Limited rerouting state")
+    support_state = concept_level_label(protected_core_pct, "Nominal support state", "Partial support state", "Limited support state")
+    disruption_state = concept_disruption_label(damage_ratio_pct)
 
     _render_concept_html(f"""
     <style>
@@ -4172,9 +4195,9 @@ def render_distributed_thermal_control_concept(
           <div class="route-node n1"></div><div class="route-node n2"></div><div class="route-node n3"></div><div class="route-node n4"></div><div class="route-node n5"></div><div class="route-node n6"></div><div class="route-node n7"></div><div class="route-node n8"></div><div class="route-node n9"></div><div class="route-core">CORE</div>
         </div>
         <div class="routing-indicators">
-          <div class="routing-chip">Available pathway indicator<b>{node_availability_pct:.0f}%</b></div><div class="routing-chip">Rerouting indicator<b>{rerouting_efficiency_pct:.0f}%</b></div><div class="routing-chip">Disruption indicator<b>{damage_ratio_pct:.0f}%</b></div><div class="routing-chip">Core support indicator<b>{protected_core_pct:.0f}%</b></div>
+          <div class="routing-chip">Pathway availability<b>{pathway_state}</b></div><div class="routing-chip">Rerouting state<b>{rerouting_state}</b></div><div class="routing-chip">Disruption state<b>{disruption_state}</b></div><div class="routing-chip">Support condition<b>{support_state}</b></div>
         </div></div>
-        <div class="routing-side"><h4>How to interpret this panel</h4><div class="routing-brief">Blue links: primary support pathways.<br>Red links: scenario rerouting pathways.<br>Muted gray links: inactive or lower-priority branches.</div><div class="routing-brief">This is a conceptual routing view for resilience thinking, not autonomous control or guaranteed protection.</div><h4>Illustrative Concept Indicators</h4><div class="routing-brief">Available pathway indicator: {node_availability_pct:.0f}%<br>Rerouting indicator: {rerouting_efficiency_pct:.0f}%<br>Core support indicator: {protected_core_pct:.0f}%</div><div class="routing-boundary">{CONCEPT_BOUNDARY_NOTE}</div></div>
+        <div class="routing-side"><h4>How to interpret this panel</h4><div class="routing-brief">Blue links: primary support pathways.<br>Red links: scenario rerouting pathways.<br>Muted gray links: inactive or lower-priority branches.</div><div class="routing-brief">This is a conceptual routing view for resilience thinking, not autonomous control or guaranteed protection.</div><h4>Illustrative Concept Indicators</h4><div class="routing-brief">Pathway availability: {pathway_state}<br>Rerouting state: {rerouting_state}<br>Support condition: {support_state}<br>Disruption condition: {disruption_state}</div><div class="routing-boundary">{CONCEPT_BOUNDARY_NOTE}</div></div>
       </div>
     </div>
     """)
@@ -4192,6 +4215,8 @@ def render_distributed_harvesting_buffering_concept(
     reserve_gain_hours = max(float(reserve_gain_hours), 0.0)
     shortfall_reduction_pct = clamp(float(shortfall_reduction_pct), 0.0, 100.0)
     core_preservation_hours = max(float(core_preservation_hours), 0.0)
+    diversification_state = concept_level_label(diversification_score, "High source diversity", "Moderate source diversity", "Limited source diversity")
+    demand_relief_state = concept_level_label(shortfall_reduction_pct, "Visible demand relief", "Moderate demand relief", "Limited demand relief")
 
     _render_concept_html(f"""
     <style>
@@ -4216,8 +4241,8 @@ def render_distributed_harvesting_buffering_concept(
           <div class="source-flow fsolar"></div><div class="source-flow fwind"></div><div class="source-flow fhydro"></div><div class="source-flow fout"></div>
           <div class="buffer-node">Buffer Pool<br><span style="font-size:.82rem;color:#93C5FD;">Multi-source balancing</span></div><div class="output-node">Critical Output<br><span style="font-size:.82rem;color:#86EFAC;">Support indicator</span></div>
         </div>
-        <div class="buffering-indicators"><div class="buffering-chip">Diversification score<b>{diversification_score:.0f}</b></div><div class="buffering-chip">Estimated reserve support<b>{reserve_gain_hours:.1f} h</b></div><div class="buffering-chip">Estimated demand relief<b>{shortfall_reduction_pct:.1f}%</b></div><div class="buffering-chip">Estimated buffer support<b>{core_preservation_hours:.1f} h</b></div></div></div>
-        <div class="buffering-side"><h4>How to interpret this panel</h4><div class="buffering-brief">Source paths represent solar, wind, hydro, and reserve inputs. The buffer pool is an illustrative balancing layer, and the priority stream represents critical-output support.</div><div class="buffering-brief">This panel supports scenario thinking about distributed buffering. It does not imply guaranteed core preservation or validated physical performance.</div><h4>Illustrative Concept Indicators</h4><div class="buffering-brief">Diversification score: {diversification_score:.0f}<br>Estimated reserve support: {reserve_gain_hours:.1f} h<br>Estimated buffer support: {core_preservation_hours:.1f} h</div><div class="buffering-boundary">{CONCEPT_BOUNDARY_NOTE}</div></div>
+        <div class="buffering-indicators"><div class="buffering-chip">Source diversity state<b>{diversification_state}</b></div><div class="buffering-chip">Estimated scenario support duration<b>{reserve_gain_hours:.1f} h</b></div><div class="buffering-chip">Demand relief state<b>{demand_relief_state}</b></div><div class="buffering-chip">Estimated buffer support duration<b>{core_preservation_hours:.1f} h</b></div></div></div>
+        <div class="buffering-side"><h4>How to interpret this panel</h4><div class="buffering-brief">Source paths represent solar, wind, hydro, and reserve inputs. The buffer pool is an illustrative balancing layer, and the priority stream represents critical-output support.</div><div class="buffering-brief">This panel supports scenario thinking about distributed buffering. It does not imply guaranteed core preservation or validated physical performance.</div><h4>Illustrative Concept Indicators</h4><div class="buffering-brief">Source diversity state: {diversification_state}<br>Estimated scenario support duration: {reserve_gain_hours:.1f} h<br>Estimated buffer support duration: {core_preservation_hours:.1f} h</div><div class="buffering-boundary">{CONCEPT_BOUNDARY_NOTE}</div></div>
       </div>
     </div>
     """)
