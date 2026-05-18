@@ -3365,8 +3365,7 @@ def render_thermal_principle_simulation(
     flow_speed = round(float(airflow_speed), 2)
     flow_duration = max(4.2, 7.0 / max(flow_speed, 0.4))
 
-    st.markdown(
-        dedent(f"""
+    thermal_panel_html = dedent(f"""
         <style>
         .thermal-layer-shell {{
             border: 1px solid rgba(56,189,248,0.22);
@@ -3696,9 +3695,9 @@ def render_thermal_principle_simulation(
             </div>
           </div>
         </div>
-        """).strip(),
-        unsafe_allow_html=True,
-    )
+        """).strip()
+    thermal_panel_html = "\n".join(line.strip() for line in thermal_panel_html.splitlines() if line.strip())
+    st.markdown(thermal_panel_html, unsafe_allow_html=True)
 # UI-ONLY CHANGE END
 
 
