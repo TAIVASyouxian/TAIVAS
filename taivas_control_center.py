@@ -3765,6 +3765,464 @@ def render_thermal_principle_simulation(
 # UI-ONLY CHANGE END
 
 
+# UI-ONLY CHANGE START
+# Presentation-only override for Ground Thermal Sink wording and boundary clarity.
+# Keeps the same visual metaphor and input bindings, but frames values as concept indicators.
+def render_ground_thermal_sink_concept(
+    cooling_offset_pct=4.0,
+    sink_utilization_pct=60.0,
+    saturation_risk_pct=20.0,
+    height=720,
+):
+    from textwrap import dedent
+
+    cooling_offset_pct = clamp(float(cooling_offset_pct), 0.0, 100.0)
+    sink_utilization_pct = clamp(float(sink_utilization_pct), 0.0, 100.0)
+    saturation_risk_pct = clamp(float(saturation_risk_pct), 0.0, 100.0)
+    flow_duration = max(4.0, 9.0 - sink_utilization_pct / 14.0)
+
+    ground_panel_html = dedent(f"""
+    <style>
+    .ground-buffer-shell {{
+        border:1px solid rgba(56,189,248,0.22);
+        border-radius:14px;
+        background:linear-gradient(145deg, rgba(15,23,42,0.86), rgba(8,47,73,0.18));
+        padding:1.05rem;
+        min-height:{max(int(height) - 120, 520)}px;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 48px rgba(0,0,0,0.18);
+    }}
+    .ground-buffer-header {{
+        display:flex;
+        align-items:flex-start;
+        justify-content:space-between;
+        gap:1rem;
+        margin-bottom:1rem;
+    }}
+    .ground-kicker {{
+        color:rgba(125,211,252,0.78);
+        font-size:.76rem;
+        font-weight:850;
+        letter-spacing:.10em;
+        text-transform:uppercase;
+        margin-bottom:.35rem;
+    }}
+    .ground-title {{
+        color:#F8FAFC;
+        font-size:clamp(1.35rem, 1.9vw, 2rem);
+        line-height:1.12;
+        font-weight:900;
+        margin:0;
+    }}
+    .ground-subtitle {{
+        color:#A7B3C7;
+        margin-top:.45rem;
+        max-width:760px;
+        line-height:1.48;
+        font-size:.95rem;
+    }}
+    .ground-layout {{
+        display:grid;
+        grid-template-columns:minmax(0, 1.8fr) minmax(280px, .85fr);
+        gap:1rem;
+        align-items:stretch;
+    }}
+    .ground-visual, .ground-side {{
+        border:1px solid rgba(148,163,184,0.22);
+        border-radius:14px;
+        background:rgba(8,13,28,0.56);
+        padding:1rem;
+    }}
+    .ground-map {{
+        position:relative;
+        min-height:390px;
+        overflow:hidden;
+        border-radius:12px;
+        border:1px solid rgba(56,189,248,0.16);
+        background:
+            linear-gradient(180deg, rgba(15,23,42,0.84) 0 48%, rgba(30,41,59,0.68) 49% 62%, rgba(23,37,25,0.72) 63% 100%),
+            radial-gradient(circle at 50% 76%, rgba(34,197,94,0.14), transparent 30%);
+    }}
+    .ground-map::before {{
+        content:"";
+        position:absolute;
+        inset:0;
+        background-image:
+            linear-gradient(rgba(148,163,184,0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(148,163,184,0.05) 1px, transparent 1px);
+        background-size:46px 46px;
+    }}
+    .facility-zone {{
+        position:absolute;
+        left:8%;
+        right:8%;
+        top:9%;
+        height:30%;
+        border:1px solid rgba(96,165,250,0.58);
+        border-radius:16px;
+        background:rgba(14,165,233,0.08);
+        padding:1rem;
+    }}
+    .ground-zone {{
+        position:absolute;
+        left:8%;
+        right:8%;
+        bottom:11%;
+        height:33%;
+        border:1px solid rgba(148,163,184,0.28);
+        border-radius:16px;
+        background:linear-gradient(180deg, rgba(15,23,42,0.58), rgba(22,101,52,0.16));
+        padding:1rem;
+    }}
+    .zone-title {{font-size:1.22rem; font-weight:900; color:#F8FAFC; margin-bottom:.35rem;}}
+    .zone-note {{font-size:.9rem; font-weight:760; color:#A7B3C7;}}
+    .zone-note.warm {{color:#FCA5A5;}}
+    .zone-note.cool {{color:#93C5FD;}}
+    .down-flow {{
+        position:absolute;
+        top:30%;
+        width:20px;
+        height:42%;
+        border-radius:999px;
+        background:rgba(14,116,144,0.34);
+        overflow:hidden;
+        border:1px solid rgba(56,189,248,0.16);
+    }}
+    .down-flow.f1 {{left:42%;}}
+    .down-flow.f2 {{right:36%;}}
+    .down-flow::before {{
+        content:"";
+        position:absolute;
+        left:2px;
+        right:2px;
+        top:-42%;
+        height:42%;
+        border-radius:999px;
+        background:linear-gradient(180deg, transparent, rgba(56,189,248,0.92), transparent);
+        animation:ground-flow {flow_duration}s linear infinite;
+    }}
+    .down-flow.f2::before {{animation-delay:1.4s;}}
+    .ground-buffer-core {{
+        position:absolute;
+        left:38%;
+        bottom:20%;
+        width:24%;
+        height:58px;
+        border-radius:50%;
+        background:radial-gradient(ellipse, rgba(34,197,94,0.26), rgba(56,189,248,0.10) 48%, transparent 72%);
+        filter:blur(.5px);
+    }}
+    .ground-chip {{
+        position:absolute;
+        border:1px solid rgba(56,189,248,0.28);
+        background:rgba(15,23,42,0.72);
+        border-radius:10px;
+        padding:.38rem .58rem;
+        color:#D7DEE9;
+        font-size:.78rem;
+        font-weight:800;
+    }}
+    .ground-chip.offset {{left:10%; top:43%; color:#BBF7D0;}}
+    .ground-chip.risk {{right:10%; top:43%; color:#FCA5A5;}}
+    .ground-utilization {{
+        position:absolute;
+        left:10%;
+        right:10%;
+        bottom:5%;
+        height:22px;
+        border-radius:999px;
+        border:1px solid rgba(56,189,248,0.28);
+        background:rgba(15,23,42,0.68);
+        overflow:hidden;
+    }}
+    .ground-utilization span {{
+        display:block;
+        width:{sink_utilization_pct:.0f}%;
+        height:100%;
+        background:linear-gradient(90deg, rgba(56,189,248,0.92), rgba(34,197,94,0.76));
+    }}
+    .ground-utilization b {{
+        position:absolute;
+        inset:0;
+        display:grid;
+        place-items:center;
+        color:#F8FAFC;
+        font-size:.78rem;
+    }}
+    .ground-side h4 {{margin:.1rem 0 .65rem 0; color:#F8FAFC; font-size:1.04rem;}}
+    .ground-brief {{
+        border-left:3px solid rgba(56,189,248,0.70);
+        padding-left:.72rem;
+        color:#CBD5E1;
+        line-height:1.5;
+        font-size:.9rem;
+        margin:.75rem 0 .9rem 0;
+    }}
+    .ground-status-list {{display:grid; gap:.62rem; margin-bottom:.9rem;}}
+    .ground-status-row {{
+        display:flex;
+        justify-content:space-between;
+        gap:.75rem;
+        padding:.62rem .7rem;
+        border-radius:10px;
+        background:rgba(15,23,42,0.48);
+        border:1px solid rgba(148,163,184,0.16);
+        color:#D7DEE9;
+        font-size:.84rem;
+    }}
+    .ground-status-row b {{color:#F8FAFC;}}
+    .ground-boundary {{
+        padding:.72rem .78rem;
+        border-radius:12px;
+        background:rgba(245,158,11,0.10);
+        border:1px solid rgba(245,158,11,0.24);
+        color:#FDE68A;
+        font-size:.82rem;
+        line-height:1.45;
+    }}
+    @keyframes ground-flow {{
+        0% {{transform:translateY(-40%); opacity:.25;}}
+        50% {{opacity:.95;}}
+        100% {{transform:translateY(260%); opacity:.25;}}
+    }}
+    @media (max-width: 980px) {{
+        .ground-layout {{grid-template-columns:1fr;}}
+    }}
+    </style>
+    <div class="ground-buffer-shell">
+      <div class="ground-buffer-header">
+        <div>
+          <div class="ground-kicker">CONCEPT LAB // INFRASTRUCTURE RESILIENCE</div>
+          <h2 class="ground-title">Ground-Coupled Thermal Buffer Concept</h2>
+          <div class="ground-subtitle">
+            Conceptual ground-coupled cooling and subsurface thermal buffering visualization.
+            The values are scenario-based indicators, not validated engineering performance.
+          </div>
+        </div>
+      </div>
+      <div class="ground-layout">
+        <div class="ground-visual">
+          <div class="ground-map">
+            <div class="facility-zone">
+              <div class="zone-title">Facility Thermal Zone</div>
+              <div class="zone-note warm">Conceptual heat pressure routed downward for buffering</div>
+            </div>
+            <div class="ground-zone">
+              <div class="zone-title">Ground-Coupled Buffer Zone</div>
+              <div class="zone-note cool">Subsurface heat absorption concept</div>
+            </div>
+            <div class="down-flow f1"></div>
+            <div class="down-flow f2"></div>
+            <div class="ground-buffer-core"></div>
+            <div class="ground-chip offset">Cooling offset: {cooling_offset_pct:.1f}%</div>
+            <div class="ground-chip risk">Saturation risk: {saturation_risk_pct:.0f}%</div>
+            <div class="ground-utilization"><span></span><b>Sink utilization {sink_utilization_pct:.0f}%</b></div>
+          </div>
+        </div>
+        <div class="ground-side">
+          <h4>How to interpret this panel</h4>
+          <div class="ground-brief">
+            Upper zone: facility thermal load area.<br>
+            Lower zone: conceptual ground-coupled buffer.<br>
+            Blue vertical flow: guided transfer into a subsurface exchange zone.
+          </div>
+          <div class="ground-brief">
+            This visual emphasizes downward guided flow and buffer utilization. It should be read as a concept indicator, not a hardware blueprint.
+          </div>
+          <h4>Illustrative Concept Indicators</h4>
+          <div class="ground-status-list">
+            <div class="ground-status-row"><span>Cooling offset</span><b>{cooling_offset_pct:.1f}%</b></div>
+            <div class="ground-status-row"><span>Sink utilization</span><b>{sink_utilization_pct:.0f}%</b></div>
+            <div class="ground-status-row"><span>Saturation risk</span><b>{saturation_risk_pct:.0f}%</b></div>
+          </div>
+          <div class="ground-boundary">
+            Values shown are scenario-based concept indicators, not validated engineering performance.
+          </div>
+        </div>
+      </div>
+    </div>
+    """).strip()
+    ground_panel_html = "\n".join(line.strip() for line in ground_panel_html.splitlines() if line.strip())
+    st.markdown(ground_panel_html, unsafe_allow_html=True)
+# UI-ONLY CHANGE END
+
+
+# UI-ONLY CHANGE START
+# Presentation-only Concept Lab wording overrides.
+# These preserve input bindings and visual metaphors while making concept boundaries clearer.
+CONCEPT_BOUNDARY_NOTE = (
+    "Scenario-based concept visualization only. It does not represent validated hardware design, "
+    "real-time control capability, physical engineering performance, or guaranteed energy outcome."
+)
+
+
+def _render_concept_html(html: str):
+    from textwrap import dedent
+
+    html = dedent(html).strip()
+    html = "\n".join(line.strip() for line in html.splitlines() if line.strip())
+    st.markdown(html, unsafe_allow_html=True)
+
+
+def render_phase_change_buffer_concept(
+    heat_load_mw=18.0,
+    buffer_state_pct=75.0,
+    demand_reduction_pct=5.0,
+    reserve_bonus_hours=4.0,
+    height=720,
+):
+    # Infrastructure Resilience Layer: phase-change thermal storage concept.
+    buffer_state_pct = clamp(float(buffer_state_pct), 0.0, 100.0)
+    demand_reduction_pct = clamp(float(demand_reduction_pct), 0.0, 100.0)
+    reserve_bonus_hours = max(float(reserve_bonus_hours), 0.0)
+    heat_load_mw = max(float(heat_load_mw), 0.0)
+    flow_duration = max(4.0, 8.0 - buffer_state_pct / 20.0)
+
+    _render_concept_html(f"""
+    <style>
+    .pcm-shell {{border:1px solid rgba(56,189,248,0.22); border-radius:14px; background:linear-gradient(145deg, rgba(15,23,42,0.86), rgba(8,47,73,0.18)); padding:1.05rem; min-height:{max(int(height)-120, 520)}px;}}
+    .pcm-title {{font-size:clamp(1.35rem,1.9vw,2rem); font-weight:900; color:#F8FAFC; margin:0;}}
+    .pcm-sub {{color:#A7B3C7; margin:.45rem 0 1rem 0; line-height:1.48;}}
+    .pcm-grid {{display:grid; grid-template-columns:minmax(0,1.8fr) minmax(280px,.85fr); gap:1rem;}}
+    .pcm-visual,.pcm-side {{border:1px solid rgba(148,163,184,0.22); border-radius:14px; background:rgba(8,13,28,0.56); padding:1rem;}}
+    .pcm-map {{position:relative; min-height:365px; border:1px solid rgba(56,189,248,0.16); border-radius:12px; overflow:hidden; background:radial-gradient(circle at 50% 48%, rgba(251,191,36,0.12), transparent 28%), linear-gradient(135deg, rgba(15,23,42,.94), rgba(8,47,73,.25));}}
+    .pcm-map::before {{content:""; position:absolute; inset:0; background-image:linear-gradient(rgba(148,163,184,.055) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,.055) 1px, transparent 1px); background-size:44px 44px;}}
+    .pcm-node {{position:absolute; border:2px solid rgba(96,165,250,.70); border-radius:16px; background:rgba(15,23,42,.72); padding:1rem; color:#F8FAFC;}}
+    .pcm-node.server {{left:9%; top:25%; width:170px;}} .pcm-node.buffer {{left:38%; top:30%; width:190px; height:128px; display:grid; place-content:center; text-align:center;}} .pcm-node.state {{right:9%; top:25%; width:150px; text-align:center;}}
+    .pcm-node h4 {{margin:0 0 .35rem 0; font-size:1.25rem;}} .pcm-node b {{font-size:1.35rem; color:#FDE68A;}}
+    .pcm-flow {{position:absolute; left:10%; right:10%; height:18px; border-radius:999px; overflow:hidden; background:rgba(15,23,42,.70); border:1px solid rgba(148,163,184,.18);}}
+    .pcm-flow.cold {{top:38%;}} .pcm-flow.warm {{top:62%;}}
+    .pcm-flow::before {{content:""; position:absolute; inset:0; width:34%; border-radius:999px; animation:pcm-flow {flow_duration}s linear infinite;}}
+    .pcm-flow.cold::before {{background:linear-gradient(90deg, transparent, rgba(56,189,248,.92), transparent);}}
+    .pcm-flow.warm::before {{background:linear-gradient(90deg, transparent, rgba(248,113,113,.78), transparent); animation-delay:1.2s;}}
+    .pcm-indicators {{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.7rem; margin-top:.8rem;}}
+    .pcm-chip {{border:1px solid rgba(56,189,248,.22); border-radius:10px; background:rgba(15,23,42,.60); padding:.65rem; color:#D7DEE9; font-size:.84rem;}}
+    .pcm-chip b {{display:block; color:#F8FAFC; font-size:1rem; margin-top:.18rem;}}
+    .pcm-side h4 {{margin:.1rem 0 .65rem 0; color:#F8FAFC; font-size:1.04rem;}}
+    .pcm-brief {{border-left:3px solid rgba(56,189,248,.70); padding-left:.72rem; color:#CBD5E1; line-height:1.5; font-size:.9rem; margin:.75rem 0 .9rem 0;}}
+    .pcm-row {{display:flex; justify-content:space-between; gap:.7rem; padding:.6rem .7rem; border-radius:10px; background:rgba(15,23,42,.48); border:1px solid rgba(148,163,184,.16); color:#D7DEE9; font-size:.84rem; margin-bottom:.55rem;}}
+    .pcm-row b {{color:#F8FAFC;}} .pcm-boundary {{padding:.72rem .78rem; border-radius:12px; background:rgba(245,158,11,.10); border:1px solid rgba(245,158,11,.24); color:#FDE68A; font-size:.82rem; line-height:1.45; margin-top:.8rem;}}
+    @keyframes pcm-flow {{0%{{transform:translateX(-120%);}}100%{{transform:translateX(260%);}}}}
+    @media(max-width:980px){{.pcm-grid{{grid-template-columns:1fr;}} .pcm-indicators{{grid-template-columns:1fr;}}}}
+    </style>
+    <div class="pcm-shell">
+      <h2 class="pcm-title">Phase-Change Thermal Storage Concept</h2>
+      <div class="pcm-sub">Conceptual latent-heat storage and charge/discharge visualization. This shows scenario-based thermal storage behavior, not validated hardware performance.</div>
+      <div class="pcm-grid">
+        <div class="pcm-visual">
+          <div class="pcm-map">
+            <div class="pcm-flow cold"></div><div class="pcm-flow warm"></div>
+            <div class="pcm-node server"><h4>Server Core</h4><span>Heat load</span><br><b>{heat_load_mw:.1f} MW</b></div>
+            <div class="pcm-node buffer"><h4>PCM Buffer</h4><span>Latent heat storage concept</span></div>
+            <div class="pcm-node state"><h4>Buffer State</h4><b>{buffer_state_pct:.0f}%</b></div>
+          </div>
+          <div class="pcm-indicators">
+            <div class="pcm-chip">Estimated demand relief<b>{demand_reduction_pct:.1f}%</b></div>
+            <div class="pcm-chip">Estimated reserve support<b>{reserve_bonus_hours:.1f} h</b></div>
+            <div class="pcm-chip">Peak-load buffering active<b>Concept indicator</b></div>
+          </div>
+        </div>
+        <div class="pcm-side">
+          <h4>How to interpret this panel</h4>
+          <div class="pcm-brief">Blue loop: conceptual cold-side storage circulation.<br>Red loop: conceptual heat recovery / discharge circulation.<br>Center tank: phase-change thermal storage concept.</div>
+          <div class="pcm-brief">The visual illustrates latent heat buffering for scenario thinking. It should not be read as validated engineering hardware.</div>
+          <h4>Illustrative Concept Indicators</h4>
+          <div class="pcm-row"><span>Buffer State</span><b>{buffer_state_pct:.0f}%</b></div>
+          <div class="pcm-row"><span>Estimated demand relief</span><b>{demand_reduction_pct:.1f}%</b></div>
+          <div class="pcm-row"><span>Estimated reserve support</span><b>{reserve_bonus_hours:.1f} h</b></div>
+          <div class="pcm-boundary">{CONCEPT_BOUNDARY_NOTE}</div>
+        </div>
+      </div>
+    </div>
+    """)
+
+
+def render_distributed_thermal_control_concept(
+    node_availability_pct=100.0,
+    rerouting_efficiency_pct=100.0,
+    damage_ratio_pct=0.0,
+    protected_core_pct=100.0,
+    height=720,
+):
+    # Infrastructure Resilience Layer: distributed thermal routing concept.
+    node_availability_pct = clamp(float(node_availability_pct), 0.0, 100.0)
+    rerouting_efficiency_pct = clamp(float(rerouting_efficiency_pct), 0.0, 100.0)
+    damage_ratio_pct = clamp(float(damage_ratio_pct), 0.0, 100.0)
+    protected_core_pct = clamp(float(protected_core_pct), 0.0, 100.0)
+
+    _render_concept_html(f"""
+    <style>
+    .routing-shell {{border:1px solid rgba(56,189,248,.22); border-radius:14px; background:linear-gradient(145deg, rgba(15,23,42,.86), rgba(8,47,73,.18)); padding:1.05rem; min-height:{max(int(height)-120,520)}px;}}
+    .routing-title {{font-size:clamp(1.35rem,1.9vw,2rem); font-weight:900; color:#F8FAFC; margin:0;}} .routing-sub {{color:#A7B3C7; margin:.45rem 0 1rem 0; line-height:1.48;}}
+    .routing-grid {{display:grid; grid-template-columns:minmax(0,1.8fr) minmax(280px,.85fr); gap:1rem;}} .routing-visual,.routing-side {{border:1px solid rgba(148,163,184,.22); border-radius:14px; background:rgba(8,13,28,.56); padding:1rem;}}
+    .routing-map {{position:relative; min-height:365px; border:1px solid rgba(56,189,248,.16); border-radius:12px; background:linear-gradient(135deg, rgba(15,23,42,.94), rgba(8,47,73,.22)); overflow:hidden;}}
+    .route-link {{position:absolute; height:8px; border-radius:999px; background:#64748B; opacity:.78;}} .route-link.blue {{background:#0EA5E9;}} .route-link.red {{background:#E11D48; opacity:.82;}}
+    .rl1 {{left:13%; top:30%; width:23%;}} .rl2 {{left:32%; top:47%; width:26%; transform:rotate(-34deg);}} .rl3 {{left:49%; top:47%; width:26%;}} .rl4 {{left:15%; top:67%; width:22%;}} .rl5 {{left:33%; top:67%; width:42%;}}
+    .route-node {{position:absolute; width:42px; height:42px; border-radius:999px; background:#1E293B; border:3px solid #94A3B8;}} .route-core {{position:absolute; left:45%; top:43%; width:60px; height:60px; border-radius:999px; background:#5EEAD4; border:3px solid #E0F2FE; display:grid; place-items:center; font-weight:900; color:#06251F;}}
+    .n1{{left:11%; top:24%;}} .n2{{left:27%; top:24%;}} .n3{{left:43%; top:24%;}} .n4{{left:59%; top:24%;}} .n5{{left:75%; top:24%;}} .n6{{left:11%; top:56%;}} .n7{{left:27%; top:56%;}} .n8{{left:59%; top:56%;}} .n9{{left:75%; top:56%;}}
+    .routing-indicators {{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.7rem; margin-top:.8rem;}} .routing-chip {{border:1px solid rgba(56,189,248,.22); border-radius:10px; background:rgba(15,23,42,.60); padding:.65rem; color:#D7DEE9; font-size:.82rem;}} .routing-chip b{{display:block; color:#F8FAFC; margin-top:.18rem;}}
+    .routing-side h4{{margin:.1rem 0 .65rem 0; color:#F8FAFC; font-size:1.04rem;}} .routing-brief{{border-left:3px solid rgba(56,189,248,.70); padding-left:.72rem; color:#CBD5E1; line-height:1.5; font-size:.9rem; margin:.75rem 0 .9rem 0;}} .routing-boundary{{padding:.72rem .78rem; border-radius:12px; background:rgba(245,158,11,.10); border:1px solid rgba(245,158,11,.24); color:#FDE68A; font-size:.82rem; line-height:1.45; margin-top:.8rem;}}
+    @media(max-width:980px){{.routing-grid{{grid-template-columns:1fr;}} .routing-indicators{{grid-template-columns:1fr 1fr;}}}}
+    </style>
+    <div class="routing-shell">
+      <h2 class="routing-title">Distributed Thermal Routing Concept</h2>
+      <div class="routing-sub">Conceptual modular routing and disruption-tolerance visualization. This panel shows routing indicators, not real-time engineering control.</div>
+      <div class="routing-grid">
+        <div class="routing-visual"><div class="routing-map">
+          <div class="route-link blue rl1"></div><div class="route-link red rl2"></div><div class="route-link blue rl3"></div><div class="route-link red rl4"></div><div class="route-link rl5"></div>
+          <div class="route-node n1"></div><div class="route-node n2"></div><div class="route-node n3"></div><div class="route-node n4"></div><div class="route-node n5"></div><div class="route-node n6"></div><div class="route-node n7"></div><div class="route-node n8"></div><div class="route-node n9"></div><div class="route-core">CORE</div>
+        </div>
+        <div class="routing-indicators">
+          <div class="routing-chip">Available pathway indicator<b>{node_availability_pct:.0f}%</b></div><div class="routing-chip">Rerouting indicator<b>{rerouting_efficiency_pct:.0f}%</b></div><div class="routing-chip">Disruption indicator<b>{damage_ratio_pct:.0f}%</b></div><div class="routing-chip">Core support indicator<b>{protected_core_pct:.0f}%</b></div>
+        </div></div>
+        <div class="routing-side"><h4>How to interpret this panel</h4><div class="routing-brief">Blue links: primary support pathways.<br>Red links: scenario rerouting pathways.<br>Muted gray links: inactive or lower-priority branches.</div><div class="routing-brief">This is a conceptual routing view for resilience thinking, not autonomous control or guaranteed protection.</div><h4>Illustrative Concept Indicators</h4><div class="routing-brief">Available pathway indicator: {node_availability_pct:.0f}%<br>Rerouting indicator: {rerouting_efficiency_pct:.0f}%<br>Core support indicator: {protected_core_pct:.0f}%</div><div class="routing-boundary">{CONCEPT_BOUNDARY_NOTE}</div></div>
+      </div>
+    </div>
+    """)
+
+
+def render_distributed_harvesting_buffering_concept(
+    diversification_score=100.0,
+    reserve_gain_hours=4.0,
+    shortfall_reduction_pct=8.0,
+    core_preservation_hours=24.0,
+    height=720,
+):
+    # Infrastructure Resilience Layer: distributed energy buffering concept.
+    diversification_score = clamp(float(diversification_score), 0.0, 100.0)
+    reserve_gain_hours = max(float(reserve_gain_hours), 0.0)
+    shortfall_reduction_pct = clamp(float(shortfall_reduction_pct), 0.0, 100.0)
+    core_preservation_hours = max(float(core_preservation_hours), 0.0)
+
+    _render_concept_html(f"""
+    <style>
+    .buffering-shell {{border:1px solid rgba(56,189,248,.22); border-radius:14px; background:linear-gradient(145deg, rgba(15,23,42,.86), rgba(8,47,73,.18)); padding:1.05rem; min-height:{max(int(height)-120,520)}px;}}
+    .buffering-title {{font-size:clamp(1.35rem,1.9vw,2rem); font-weight:900; color:#F8FAFC; margin:0;}} .buffering-sub {{color:#A7B3C7; margin:.45rem 0 1rem 0; line-height:1.48;}}
+    .buffering-grid {{display:grid; grid-template-columns:minmax(0,1.8fr) minmax(280px,.85fr); gap:1rem;}} .buffering-visual,.buffering-side {{border:1px solid rgba(148,163,184,.22); border-radius:14px; background:rgba(8,13,28,.56); padding:1rem;}}
+    .buffering-map {{position:relative; min-height:365px; border:1px solid rgba(56,189,248,.16); border-radius:12px; background:linear-gradient(135deg, rgba(15,23,42,.94), rgba(8,47,73,.22)); overflow:hidden;}}
+    .source-node,.buffer-node,.output-node {{position:absolute; border-radius:18px; border:2px solid rgba(96,165,250,.70); background:rgba(15,23,42,.72); display:grid; place-items:center; text-align:center; color:#F8FAFC; font-weight:900;}}
+    .source-node {{left:10%; width:86px; height:86px; border-radius:999px;}} .source-node.solar{{top:16%; border-color:#F59E0B;}} .source-node.wind{{top:43%; border-color:#0EA5E9;}} .source-node.hydro{{top:70%; border-color:#2563EB;}}
+    .buffer-node {{left:39%; top:32%; width:190px; height:128px;}} .output-node {{right:9%; top:38%; width:140px; height:96px; border-color:#34D399;}}
+    .source-flow {{position:absolute; height:9px; border-radius:999px; transform-origin:left center; opacity:.86;}} .source-flow.fsolar{{left:20%; top:27%; width:22%; transform:rotate(22deg); background:#F59E0B;}} .source-flow.fwind{{left:20%; top:53%; width:23%; transform:rotate(-6deg); background:#0EA5E9;}} .source-flow.fhydro{{left:20%; top:78%; width:25%; transform:rotate(-28deg); background:#2563EB;}} .source-flow.fout{{left:58%; top:49%; width:24%; background:#16A34A;}}
+    .buffering-indicators {{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.7rem; margin-top:.8rem;}} .buffering-chip {{border:1px solid rgba(56,189,248,.22); border-radius:10px; background:rgba(15,23,42,.60); padding:.65rem; color:#D7DEE9; font-size:.82rem;}} .buffering-chip b{{display:block; color:#F8FAFC; margin-top:.18rem;}}
+    .buffering-side h4{{margin:.1rem 0 .65rem 0; color:#F8FAFC; font-size:1.04rem;}} .buffering-brief{{border-left:3px solid rgba(56,189,248,.70); padding-left:.72rem; color:#CBD5E1; line-height:1.5; font-size:.9rem; margin:.75rem 0 .9rem 0;}} .buffering-boundary{{padding:.72rem .78rem; border-radius:12px; background:rgba(245,158,11,.10); border:1px solid rgba(245,158,11,.24); color:#FDE68A; font-size:.82rem; line-height:1.45; margin-top:.8rem;}}
+    @media(max-width:980px){{.buffering-grid{{grid-template-columns:1fr;}} .buffering-indicators{{grid-template-columns:1fr 1fr;}}}}
+    </style>
+    <div class="buffering-shell">
+      <h2 class="buffering-title">Distributed Energy Buffering Concept</h2>
+      <div class="buffering-sub">Conceptual multi-source energy buffering and critical-output support visualization. It shows scenario-based support indicators, not guaranteed infrastructure performance.</div>
+      <div class="buffering-grid">
+        <div class="buffering-visual"><div class="buffering-map">
+          <div class="source-node solar">Solar</div><div class="source-node wind">Wind</div><div class="source-node hydro">Hydro</div>
+          <div class="source-flow fsolar"></div><div class="source-flow fwind"></div><div class="source-flow fhydro"></div><div class="source-flow fout"></div>
+          <div class="buffer-node">Buffer Pool<br><span style="font-size:.82rem;color:#93C5FD;">Multi-source balancing</span></div><div class="output-node">Critical Output<br><span style="font-size:.82rem;color:#86EFAC;">Support indicator</span></div>
+        </div>
+        <div class="buffering-indicators"><div class="buffering-chip">Diversification score<b>{diversification_score:.0f}</b></div><div class="buffering-chip">Estimated reserve support<b>{reserve_gain_hours:.1f} h</b></div><div class="buffering-chip">Estimated demand relief<b>{shortfall_reduction_pct:.1f}%</b></div><div class="buffering-chip">Estimated buffer support<b>{core_preservation_hours:.1f} h</b></div></div></div>
+        <div class="buffering-side"><h4>How to interpret this panel</h4><div class="buffering-brief">Source paths represent solar, wind, hydro, and reserve inputs. The buffer pool is an illustrative balancing layer, and the priority stream represents critical-output support.</div><div class="buffering-brief">This panel supports scenario thinking about distributed buffering. It does not imply guaranteed core preservation or validated physical performance.</div><h4>Illustrative Concept Indicators</h4><div class="buffering-brief">Diversification score: {diversification_score:.0f}<br>Estimated reserve support: {reserve_gain_hours:.1f} h<br>Estimated buffer support: {core_preservation_hours:.1f} h</div><div class="buffering-boundary">{CONCEPT_BOUNDARY_NOTE}</div></div>
+      </div>
+    </div>
+    """)
+
+
 def render_concept_lab_workspace():
     page_question(tr("tabs")[7])
     st.markdown(f'<div class="note">{tr("concept_note")}</div>', unsafe_allow_html=True)
