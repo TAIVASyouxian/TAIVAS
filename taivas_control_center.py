@@ -36,18 +36,33 @@ st.set_page_config(page_title="TAIVAS Energy Control Center", layout="wide")
 # This section is an internal design reference for future TAIVAS UI work.
 # It is documentation only: it must not drive calculations, scenario logic, or data flow.
 TAIVAS_UI_DESIGN_SYSTEM = """
-TAIVAS UI DESIGN SYSTEM
+TAIVAS FULL INTERFACE DESIGN DIRECTION
 
-Identity:
-- Calm sci-fi command center.
-- 70% professional analytical dashboard, 30% restrained futuristic control center.
-- Serious, institutional, high-value, future-oriented, crisis-aware, operational, trustworthy.
+Core Principle:
+- TAIVAS is a climate-energy resilience decision-support simulator.
+- Every section should help users understand:
+  1. What is happening?
+  2. What is changing compared with baseline?
+  3. What risk may increase?
+  4. What should be reviewed first?
+  5. What is only a scenario-based estimate?
+- The interface must be clear, calm, professional, decision-support focused,
+  understandable for non-engineers, and useful for officials, operators,
+  researchers, and facility managers.
 - Information clarity comes before visual effects.
 
 Avoid:
+- Overly technical wording, panic language, fake precision, flashy/gamer-style UI.
+- Hardware-blueprint claims or pretending the model guarantees outcomes.
 - Video game HUD, cyberpunk arcade, toy dashboard, overdecorated sci-fi cockpit.
 - Academic PDF density or plain Excel-dashboard flatness.
-- Excessive neon, flashing lights, distracting particles, rapid animation, random sci-fi decoration.
+
+Global Section Structure:
+1. Plain-language title.
+2. One-sentence explanation.
+3. Key metric or visual.
+4. Operational meaning.
+5. Model boundary / limitation when needed.
 
 Primary UI Layers:
 1. Situation Awareness Layer
@@ -60,11 +75,48 @@ Primary UI Layers:
 
 3. Infrastructure Resilience Layer
    Purpose: subsystem mechanisms that reduce risk or stabilize the system.
-   Examples: thermal resilience buffer, passive heat recovery, cold-climate stabilization.
+   Examples: cold-weather thermal buffer, passive heat recovery concept,
+   cold-climate stabilization layer.
 
 4. Decision Support Layer
    Purpose: recommendations, warnings, risk tier, model boundaries, user interpretation.
-   Examples: recommendation card, public risk summary, operational priority, model boundary notice.
+   Examples: recommendation card, public risk summary, operational priority,
+   model boundary notice.
+
+Preferred Plain-English Terms:
+- Energy Gap, Backup Grid Need, Renewable Share, Battery Reserve, System Stability.
+- Cold-Weather Buffer, Heat Stress, Storm Impact, Scenario Comparison.
+- Operational Summary, Public Risk Summary.
+
+Terms To Avoid Or Explain:
+- multipliers, coupled dynamics, thermodynamic exchange layer, resilience coefficient,
+  nonlinear impact index, autonomous prediction, guaranteed forecast,
+  validated engineering performance.
+
+Section Direction:
+- Header: TAIVAS / Climate & Energy Resilience Platform /
+  Decision-Support Simulation Environment. Premium, calm, not oversized.
+- Quick Start: choose location, select scenario, review results.
+- Public Risk Communication Summary: Public Message, Decision Brief, Technical Basis,
+  and the disclaimer "This is scenario-based decision-support information,
+  not a confirmed prediction."
+- Operational Summary: system stability, battery reserve, renewable supply,
+  backup support need.
+- Main System Status: Demand, Final Supply, Energy Gap, System Stability.
+- Scenario Comparison: core identity of TAIVAS; baseline vs extreme scenario with
+  demand, supply, energy gap, battery reserve, backup grid need, and risk tier changes.
+- Risk Tier / Resilience Status: Low, Moderate, High, Critical in a calm analytical tone.
+- Explainability Panel: what caused stress, which metric changed most,
+  what should be checked first.
+- Battery / Storage: Battery Reserve, Reserve Days, Energy Gap Hours, Storage Trend.
+- Renewable Mix: Renewable Share, Dominant Source, Renewable Supply,
+  with reminder that scenario conditions may reduce actual output when needed.
+- Thermal / Concept Lab: concept visualizations, not engineering blueprints.
+  Use clear names such as Cold-Weather Thermal Buffer Concept,
+  Heat-Stress Cooling Support Concept, Passive Resilience Support Concept.
+- Advanced Analytics: available for technical users, but not overwhelming.
+- Export / Report: scenario, location, core outputs, risk tier, plain-language summary,
+  and model boundary disclaimer.
 
 Color Semantics:
 - Blue / cyan: cooling, fresh air, water, stable flow, external environment.
@@ -77,23 +129,34 @@ Color Semantics:
 - Gold: high-value emphasis, protected core, recovery efficiency, controlled priority.
 
 Metric Display Rules:
-- Critical values use short label, large numeric value, unit, and one-line interpretation when useful.
+- Critical values use short label, large numeric value, unit, and one-line interpretation.
 - Avoid long paragraphs inside operational panels.
 - Prefer short bullets, chips, status labels, and compact cards.
 
 Panel Naming Rules:
 - Prefer system-oriented names:
-  Storage Buffer Depletion, Thermal Resilience Buffer, Scenario Impact Field,
-  Energy Stress Chain, Resilience State, Grid Dependency, Renewable Supply Stability,
-  Operational Recommendation.
+  Storage Buffer Depletion, Cold-Weather Thermal Buffer Concept,
+  Scenario Impact Field, Energy Stress Chain, Resilience State, Grid Dependency,
+  Renewable Supply Stability, Operational Recommendation.
 - Avoid weak names:
   Chart, Graph, Result, Data View, Demo, Toy, Fancy UI.
 
 Animation Rules:
-- Allowed: slow pulse for active risk zones, gentle directional flow, subtle cloud/rain bands,
-  soft glow change based on state, lightweight CSS-only animation.
-- Not allowed: flashing emergency lights, rapid movement, distracting loops,
-  heavy JavaScript animation, external animation libraries.
+- Allowed: slow pulse for active risk zones, gentle directional flow,
+  subtle moving cloud/rain bands, soft glow change based on state,
+  lightweight CSS-only animation.
+- Not allowed: flashing emergency lights, excessive particles, rapid movement,
+  distracting loops, heavy JavaScript animation, external animation libraries.
+
+Model Boundary Rule:
+- Whenever a section could be mistaken as a real-world engineering guarantee,
+  add a boundary note.
+- Use wording like:
+  "Scenario-based estimate only."
+  "Decision-support output, not a confirmed prediction."
+  "Concept visualization only, not validated hardware design."
+- Required for public communication, thermal concepts, risk tier,
+  forecast-like summaries, and operational recommendations.
 
 Streamlit Cloud Constraints:
 - Standard Streamlit + safe HTML/CSS via st.markdown(..., unsafe_allow_html=True).
@@ -103,7 +166,8 @@ Streamlit Cloud Constraints:
 Architecture Rules:
 - Keep calculation/simulation logic separate from presentation.
 - UI changes must not modify formulas, scenario engine, data structures, CSV parsing,
-  forecast flow, export workflow, or session_state unless explicitly requested.
+  forecast flow, export workflow, chart data sources, deployment structure,
+  or session_state unless explicitly requested.
 - Before editing, classify the target as:
   a) calculation logic, b) data processing, c) UI presentation, or d) mixed-risk logic.
 - Clearly mark UI-only changes and prefer modular render functions.
@@ -3621,10 +3685,10 @@ def render_thermal_principle_simulation(
           <div class="thermal-layer-header">
             <div>
               <div class="thermal-kicker">CONCEPT LAB // THERMAL RESILIENCE</div>
-              <h2 class="thermal-title">Thermal Resilience Exchange Layer</h2>
+              <h2 class="thermal-title">Cold-Weather Thermal Buffer Concept</h2>
               <div class="thermal-subtitle">
-                Cold outside air is stabilized by recovered indoor exhaust heat before delivery into the protected environment.
-                The layer acts as a passive thermal buffer that can reduce heating pressure during cold-weather disruption.
+                This concept shows how recovered indoor heat may reduce heating pressure during cold-weather disruption.
+                It illustrates a passive thermal buffer for stabilizing protected indoor environments.
               </div>
             </div>
             <div class="thermal-status-pill">Thermal Buffer Active</div>
@@ -3690,7 +3754,7 @@ def render_thermal_principle_simulation(
               <div class="thermal-boundary">
                 <b>Model boundary</b><br>
                 Scenario-based concept visualization only. It does not represent validated hardware design,
-                physical engineering performance, or a guaranteed energy outcome.
+                physical engineering performance, or guaranteed energy outcome.
               </div>
             </div>
           </div>
