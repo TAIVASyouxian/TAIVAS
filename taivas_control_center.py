@@ -23,6 +23,12 @@ from modules.charts import make_donut_chart
 from modules.recommendations import recommendation_lines
 from modules.energy_security import apply_energy_security_layer, ENERGY_SECURITY_SCENARIOS
 from modules.survival_timeline import simulate_survival_timeline
+from agent.monitoring_layer import (
+    monitor_operational_risk,
+    build_alert_state,
+    detect_operational_drift,
+    generate_monitoring_summary,
+)
 from concept_lab_components import (
     render_thermal_principle_simulation,
     render_phase_change_buffer_concept,
@@ -3473,6 +3479,74 @@ def render_agentic_advisory_layer():
         st.code(advisory["report_markdown"], language="markdown")
 
 
+def current_operational_monitoring():
+    timeline_rows = timeline_results.get("rows", []) if isinstance(timeline_results, dict) else []
+    current_state = dict(results)
+    current_state["battery_capacity"] = inputs.get("battery_capacity", 0.0)
+    monitoring = monitor_operational_risk(timeline_rows, current_state)
+    alert = build_alert_state(current_state, monitoring)
+    drift = detect_operational_drift(current_state, baseline_results)
+    context = {
+        "country": active_country,
+        "city": active_city,
+        "scenario": scenario_key,
+        "facility_type": facility_type,
+    }
+    summary = generate_monitoring_summary(context, current_state, baseline_results, monitoring, alert, drift)
+    return {
+        "monitoring": monitoring,
+        "alert": alert,
+        "drift": drift,
+        "summary": summary,
+    }
+
+
+def render_operational_monitoring_layer():
+    monitoring_state = current_operational_monitoring()
+    monitoring = monitoring_state["monitoring"]
+    alert = monitoring_state["alert"]
+    drift = monitoring_state["drift"]
+    summary = monitoring_state["summary"]
+    alert_class = {
+        "NORMAL": "risk-low",
+        "WATCH": "risk-moderate",
+        "WARNING": "risk-high",
+        "CRITICAL": "risk-critical",
+    }.get(alert["alert_state"], "risk-moderate")
+    st.subheader("TAIVAS Operational Monitoring Layer")
+    st.markdown(
+        f"""
+        <div class="risk-strip">
+          <div>
+            <div class="risk-title">Current Alert State: {alert["alert_state"]}</div>
+            <div class="risk-note">{alert["reason"]}</div>
+          </div>
+          <div class="risk-badge {alert_class}">{alert["alert_state"]}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    cols = st.columns(4)
+    cols[0].metric("Stress Stage", monitoring["stress_stage"])
+    cols[1].metric("Energy Gap Trend", f'{monitoring["shortfall_trend"]:+.2f} MW')
+    cols[2].metric("Battery Trend", f'{monitoring["battery_trend"]:+.2f} MWh')
+    cols[3].metric("Grid Need", f'{monitoring["grid_dependency_current"]:.2f}%')
+    st.markdown("##### What changed from baseline?")
+    for item in drift["drift_items"]:
+        st.write(f"- {item}")
+    st.markdown(f'<div class="note"><b>Monitoring Summary:</b> {summary["daily_monitoring_summary"]}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="governance-notice"><b>Recommended Review Priority:</b> {alert["review_priority"]}<br><br><b>Human Review Reminder:</b> Operational monitoring only. Human review is required before operational changes. TAIVAS does not provide autonomous infrastructure control or guaranteed prediction.</div>', unsafe_allow_html=True)
+    with st.expander("Scenario Stress Timeline and Monitoring Report", expanded=False):
+        st.dataframe(pd.DataFrame(monitoring["stress_timeline"]), use_container_width=True, hide_index=True)
+        st.download_button(
+            "Download Monitoring Report MD",
+            summary["report_markdown"],
+            file_name="taivas_operational_monitoring_report.md",
+            mime="text/markdown",
+        )
+        st.code(summary["report_markdown"], language="markdown")
+
+
 def build_audit_trail_record():
     from datetime import datetime
 
@@ -3505,6 +3579,7 @@ def build_audit_trail_record():
         "timeline_outputs": timeline_results,
         "ai_recommendations": conditional_recommendation_lines(),
         "agentic_advisory": current_agentic_advisory(),
+        "operational_monitoring": current_operational_monitoring(),
         "explainable_ai": explainable_ai_rows().to_dict(orient="records"),
         "confidence": confidence,
         "scenario_matrix": scenario_comparison_matrix().to_dict(orient="records"),
@@ -3632,6 +3707,7 @@ def render_why_this_matters_panel():
 
 def build_executive_summary_text():
     advisory = current_agentic_advisory()
+    monitoring_state = current_operational_monitoring()
     lines = [
         "TAIVAS Executive Summary",
         "========================",
@@ -3654,6 +3730,11 @@ def build_executive_summary_text():
         f"- Risk Tier: {advisory['risk_tier']}",
         f"- Detected Issue: {advisory['detected_issue']}",
         f"- Management Summary: {advisory['management_summary']}",
+        "",
+        "Operational Monitoring Layer",
+        f"- Alert State: {monitoring_state['alert']['alert_state']}",
+        f"- Stress Stage: {monitoring_state['monitoring']['stress_stage']}",
+        f"- Review Priority: {monitoring_state['alert']['review_priority']}",
         "",
         "Risk Notes",
         f"- Geopolitical Risk Level: {geopolitical_shock.get('risk_level', 'N/A')}",
@@ -3705,6 +3786,7 @@ def render_executive_overview_workspace():
 
 summary_txt = build_executive_summary_text()
 agentic_advisory_markdown = current_agentic_advisory()["report_markdown"]
+monitoring_report_markdown = current_operational_monitoring()["summary"]["report_markdown"]
 buf_scen = StringIO(); comparison_dataframe(inputs, failure_ratios, reserve_recovery_lag_days).to_csv(buf_scen, index=False)
 buf_reason = StringIO(); pd.DataFrame(recommendation_reason_chain(results, energy_security_scenario, timeline_results, facility_type, facility_profile)).to_csv(buf_reason, index=False)
 audit_json = json.dumps(build_audit_trail_record(), indent=2, ensure_ascii=False)
@@ -3714,7 +3796,7 @@ def render_export_center():
         render_decision_support_notice("Report and audit boundary")
         st.caption("Download scenario data, reason chain, executive summary, or audit trail when needed.")
         render_data_classification_chips()
-        download_cols = st.columns(5)
+        download_cols = st.columns(6)
         with download_cols[0]:
             st.download_button(tr("download_scenario"), buf_scen.getvalue(), file_name="taivas_scenarios.csv", mime="text/csv")
         with download_cols[1]:
@@ -3725,6 +3807,8 @@ def render_export_center():
             st.download_button(tr("download_audit"), audit_json, file_name="taivas_audit_trail.json", mime="application/json")
         with download_cols[4]:
             st.download_button("Agentic Report MD", agentic_advisory_markdown, file_name="taivas_agentic_advisory_report.md", mime="text/markdown")
+        with download_cols[5]:
+            st.download_button("Monitoring Report MD", monitoring_report_markdown, file_name="taivas_operational_monitoring_report.md", mime="text/markdown")
 
 # UI IMPROVEMENT START
 # Donut chart UI renderer only: fixed source colors and external legend prevent label overlap.
@@ -5077,6 +5161,7 @@ def render_product_overview():
     render_context_cards()
     render_main_system_status()
     render_agentic_advisory_layer()
+    render_operational_monitoring_layer()
     render_battery_storage_status()
     render_renewable_mix_summary()
     with st.expander(tr("view_detailed_analysis"), expanded=False):
