@@ -24,6 +24,10 @@ from modules.recommendations import recommendation_lines
 from modules.energy_security import apply_energy_security_layer, ENERGY_SECURITY_SCENARIOS
 from modules.survival_timeline import simulate_survival_timeline
 from core.risk_engine import calculate_risk_tier as core_calculate_risk_tier
+from core.scenario_compatibility import (
+    get_allowed_scenarios,
+    build_scenario_warning,
+)
 from data.csv_loader import read_csv_with_warnings
 from data.validation_utils import validate_uploaded_dataframe
 from export.audit_export import audit_record_to_json
@@ -2842,7 +2846,27 @@ with st.sidebar:
 
     scenario_panel = st.expander(tr("scenario_setup"), expanded=True)
     scenario_panel.caption(tr("scenario_help"))
-    scenario_key = scenario_panel.selectbox(tr("weather_scenario"), list(SCENARIOS.keys()), help="Pick the main situation to simulate, such as normal, heat wave, storm, blizzard, or typhoon.")
+    scenario_mode = scenario_panel.radio(
+        "Scenario Compatibility Mode",
+        ["General Mode", "Advanced Stress Testing"],
+        index=0,
+        horizontal=False,
+        help="General Mode only shows scenarios that are regionally plausible. Advanced Stress Testing allows rare hypothetical combinations.",
+    )
+    allowed_scenario_keys = [key for key in get_allowed_scenarios(active_country, active_city, scenario_mode) if key in SCENARIOS]
+    if not allowed_scenario_keys:
+        allowed_scenario_keys = ["normal"]
+    scenario_key = scenario_panel.selectbox(
+        tr("weather_scenario"),
+        allowed_scenario_keys,
+        format_func=lambda key: key.replace("_", " ").title(),
+        help="Pick the main situation to simulate. General Mode filters for regional plausibility.",
+    )
+    scenario_warning = build_scenario_warning(active_country, active_city, scenario_key, scenario_mode)
+    if scenario_warning["show_warning"]:
+        scenario_panel.warning(f'{scenario_warning["label"]}: {scenario_warning["message"]} {scenario_warning["mode_note"]}'.strip())
+    else:
+        scenario_panel.caption(f'{scenario_warning["label"]}: {scenario_warning["message"]}')
     scenario_panel.caption("Data label: Simulated Scenario Data")
 
     capacity_panel = st.expander(tr("energy_capacity"), expanded=True)
@@ -2964,6 +2988,10 @@ if demo_mode != "Manual":
     geopolitical_severity = preset.get("geopolitical_severity", geopolitical_severity)
     geopolitical_duration_days = preset.get("geopolitical_duration_days", geopolitical_duration_days)
     fossil_share = preset.get("fossil_share", fossil_share)
+
+# Scenario compatibility guardrail is UI/validation only. Demo presets may set
+# scenarios directly, but the selected combination is still labeled below.
+scenario_warning = build_scenario_warning(active_country, active_city, scenario_key, scenario_mode)
 
 failure_ratios = {
     "solar": solar_failure_ratio,
@@ -3690,6 +3718,10 @@ def build_audit_trail_record():
         "location": {"country": active_country, "city": active_city, "lat": active_lat, "lon": active_lon},
         "facility_type": facility_type,
         "scenario": {"weather": scenario_key, "energy_security": energy_security_scenario, "geopolitical_event": geopolitical_shock.get("event_type", "None")},
+        "scenario_compatibility": {
+            "mode": scenario_mode,
+            "warning": scenario_warning,
+        },
         "input_values": dict(inputs),
         "failure_ratios": dict(failure_ratios),
         "uploaded_data": {
@@ -3829,6 +3861,19 @@ def render_why_this_matters_panel():
     )
 # UI-ONLY CHANGE END
 
+def render_scenario_plausibility_panel():
+    if scenario_warning["show_warning"]:
+        st.markdown(
+            f"""
+            <div class="governance-notice">
+              <b>{scenario_warning["label"]}:</b> {scenario_warning["message"]}
+              <br>{scenario_warning["mode_note"]}
+              <br><br>Decision-support only. Low-plausibility scenarios are hypothetical stress tests based on simplified assumptions, not guaranteed predictions.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
 def build_executive_summary_text():
     advisory = current_agentic_advisory()
     monitoring_state = current_operational_monitoring()
@@ -3840,6 +3885,8 @@ def build_executive_summary_text():
         f"Location: {active_city}, {active_country}",
         f"Facility: {facility_type}",
         f"Weather Scenario: {scenario_key}",
+        f"Scenario Compatibility Mode: {scenario_mode}",
+        f"Scenario Plausibility: {scenario_warning['label']}",
         f"Energy Security Scenario: {energy_security_scenario}",
         "",
         "Core Metrics",
@@ -5285,6 +5332,7 @@ def render_context_cards():
 
 def render_product_overview():
     render_why_this_matters_panel()
+    render_scenario_plausibility_panel()
     render_confidence_panel()
     render_operational_summary_panel()
     # UI-ONLY CHANGE START
