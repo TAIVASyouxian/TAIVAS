@@ -23,6 +23,10 @@ from modules.charts import make_donut_chart
 from modules.recommendations import recommendation_lines
 from modules.energy_security import apply_energy_security_layer, ENERGY_SECURITY_SCENARIOS
 from modules.survival_timeline import simulate_survival_timeline
+from core.risk_engine import calculate_risk_tier as core_calculate_risk_tier
+from data.csv_loader import read_csv_with_warnings
+from data.validation_utils import validate_uploaded_dataframe
+from export.audit_export import audit_record_to_json
 
 # STABILIZATION CHANGE START
 # Agentic layers are business-logic modules and should remain reusable outside
@@ -875,14 +879,9 @@ def facility_demand_factor(facility_name: str) -> float:
 
 def calculate_risk_tier(shortfall: float, demand: float) -> str:
     """Risk tier formula based on unmet demand ratio."""
-    if shortfall <= 0:
-        return "Low"
-    shortfall_ratio = safe_div(shortfall, demand)
-    if shortfall_ratio < 0.05:
-        return "Elevated"
-    if shortfall_ratio < 0.15:
-        return "High"
-    return "Critical"
+    # Core extraction: delegate to framework-independent risk engine while
+    # preserving the original formula and return values.
+    return core_calculate_risk_tier(shortfall, demand)
 # CORE FORMULA UPDATE END
 
 def build_status_label(value: float, thresholds, reverse: bool = False) -> str:
@@ -2061,26 +2060,12 @@ def safe_str(value, default=""):
 
 
 def safe_read_csv(uploaded_file):
-    if uploaded_file is None:
-        return None
-    try:
-        df = pd.read_csv(uploaded_file)
-        if df.empty:
-            st.sidebar.warning("Uploaded CSV is empty. TAIVAS will continue with default/manual inputs.")
-            return None
-        duplicate_columns = df.columns[df.columns.duplicated()].tolist()
-        if duplicate_columns:
-            st.sidebar.warning("Uploaded CSV has duplicate column names. Some fields may require review.")
-        return df
-    except pd.errors.EmptyDataError:
-        st.sidebar.warning("Uploaded CSV appears empty or unreadable. TAIVAS will continue with default/manual inputs.")
-        return None
-    except pd.errors.ParserError:
-        st.sidebar.warning("Uploaded CSV could not be parsed cleanly. Please review the file structure.")
-        return None
-    except Exception as e:
-        st.sidebar.warning(f"CSV read failed: {e}")
-        return None
+    # Data utility layer: CSV parsing is handled outside Streamlit; this wrapper
+    # only displays operational warnings and preserves the existing return shape.
+    df, warnings = read_csv_with_warnings(uploaded_file)
+    for warning in warnings:
+        st.sidebar.warning(warning)
+    return df
 
 
 
@@ -3222,12 +3207,7 @@ def build_data_quality_findings():
         findings.append({"Severity": "Moderate", "Area": "Demand", "Finding": "Demand scale appears unusual relative to selected population."})
 
     if uploaded_df is not None and not uploaded_df.empty:
-        duplicate_count = int(uploaded_df.duplicated().sum())
-        if duplicate_count > 0:
-            findings.append({"Severity": "Moderate", "Area": "Uploaded CSV", "Finding": f"{duplicate_count} duplicate uploaded row(s) detected."})
-        ts_col = detect_timestamp_column(uploaded_df)
-        if ts_col is not None and pd.to_datetime(uploaded_df[ts_col], errors="coerce").notna().sum() == 0:
-            findings.append({"Severity": "Moderate", "Area": "Uploaded CSV", "Finding": "Timestamp column was detected but could not be parsed."})
+        findings.extend(validate_uploaded_dataframe(uploaded_df))
 
     return findings
 
@@ -3939,7 +3919,7 @@ monitoring_report_markdown = current_operational_monitoring()["summary"]["report
 workflow_briefing_markdown = current_operational_workflow()["operational_briefing_markdown"]
 buf_scen = StringIO(); comparison_dataframe(inputs, failure_ratios, reserve_recovery_lag_days).to_csv(buf_scen, index=False)
 buf_reason = StringIO(); pd.DataFrame(recommendation_reason_chain(results, energy_security_scenario, timeline_results, facility_type, facility_profile)).to_csv(buf_reason, index=False)
-audit_json = json.dumps(build_audit_trail_record(), indent=2, ensure_ascii=False)
+audit_json = audit_record_to_json(build_audit_trail_record())
 
 def render_export_center():
     with st.expander("Export Center", expanded=False):
