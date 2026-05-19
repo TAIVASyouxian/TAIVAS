@@ -27,6 +27,7 @@ from core.risk_engine import calculate_risk_tier as core_calculate_risk_tier
 from core.scenario_compatibility import (
     get_allowed_scenarios,
     build_scenario_warning,
+    get_geological_hazard_module_note,
 )
 from data.csv_loader import read_csv_with_warnings
 from data.validation_utils import validate_uploaded_dataframe
@@ -2867,6 +2868,7 @@ with st.sidebar:
         scenario_panel.warning(f'{scenario_warning["label"]}: {scenario_warning["message"]} {scenario_warning["mode_note"]}'.strip())
     else:
         scenario_panel.caption(f'{scenario_warning["label"]}: {scenario_warning["message"]}')
+    scenario_panel.caption(get_geological_hazard_module_note())
     scenario_panel.caption("Data label: Simulated Scenario Data")
 
     capacity_panel = st.expander(tr("energy_capacity"), expanded=True)
@@ -3721,6 +3723,7 @@ def build_audit_trail_record():
         "scenario_compatibility": {
             "mode": scenario_mode,
             "warning": scenario_warning,
+            "geological_hazard_scope": get_geological_hazard_module_note(),
         },
         "input_values": dict(inputs),
         "failure_ratios": dict(failure_ratios),
