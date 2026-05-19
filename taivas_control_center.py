@@ -23,13 +23,72 @@ from modules.charts import make_donut_chart
 from modules.recommendations import recommendation_lines
 from modules.energy_security import apply_energy_security_layer, ENERGY_SECURITY_SCENARIOS
 from modules.survival_timeline import simulate_survival_timeline
-from agent.monitoring_layer import (
-    monitor_operational_risk,
-    build_alert_state,
-    detect_operational_drift,
-    generate_monitoring_summary,
-)
-from agent.workflow_layer import build_operational_workflow
+
+# STABILIZATION CHANGE START
+# Agentic layers are business-logic modules and should remain reusable outside
+# Streamlit. Import fallbacks keep the prototype from hard-crashing if a cloud
+# upload misses the agent package; full functionality returns when files are present.
+try:
+    from agent.monitoring_layer import (
+        monitor_operational_risk,
+        build_alert_state,
+        detect_operational_drift,
+        generate_monitoring_summary,
+    )
+except Exception:
+    def monitor_operational_risk(history_data, current_state):
+        return {
+            "shortfall_trend": 0.0,
+            "battery_trend": 0.0,
+            "reserve_trend": 0.0,
+            "renewable_ratio_current": float(current_state.get("renewable_ratio", 0.0) or 0.0),
+            "grid_dependency_current": float(current_state.get("grid_dependency", 0.0) or 0.0),
+            "stress_stage": "Unavailable",
+            "stress_timeline": [{"Stage": "Monitoring module", "State": "Unavailable"}],
+        }
+
+    def build_alert_state(current_state, monitoring_signals=None):
+        return {
+            "alert_state": "WATCH",
+            "reason": "Monitoring module unavailable; review deployment package.",
+            "review_priority": "Verify agent/monitoring_layer.py is deployed.",
+        }
+
+    def detect_operational_drift(current_state, baseline_state):
+        return {
+            "drift_detected": False,
+            "drift_items": ["Operational drift module unavailable; review deployment package."],
+        }
+
+    def generate_monitoring_summary(context, current_state, baseline_state, monitoring_signals, alert_state, drift):
+        return {
+            "daily_monitoring_summary": "Monitoring summary unavailable because the monitoring module was not loaded.",
+            "executive_risk_snapshot": {"alert_state": alert_state.get("alert_state", "WATCH")},
+            "report_markdown": "# TAIVAS Operational Monitoring Report\n\nMonitoring module unavailable. Human review required.",
+        }
+
+try:
+    from agent.workflow_layer import build_operational_workflow
+except Exception:
+    def build_operational_workflow(context, advisory, monitoring_state, recommendation_history=None):
+        recommendation_history = recommendation_history or []
+        summary = "Workflow module unavailable; verify agent/workflow_layer.py is deployed. Human review required."
+        return {
+            "escalation": {"escalation_required": False, "escalation_reason": summary},
+            "review_queue": [{"Task": "Verify workflow module deployment", "Status": "Pending Review", "Priority": "High", "Owner": "Maintainer"}],
+            "executive_snapshot": {
+                "location": f"{context.get('city', '-')}, {context.get('country', '-')}",
+                "scenario": str(context.get("scenario", "-")).replace("_", " ").title(),
+                "alert_state": monitoring_state.get("alert", {}).get("alert_state", "WATCH"),
+                "advisory_risk_tier": advisory.get("risk_tier", "UNKNOWN"),
+                "summary": summary,
+            },
+            "workflow_timeline": [{"Step": "Workflow module", "Status": "Unavailable"}],
+            "recommendation_history": recommendation_history,
+            "operational_briefing_markdown": "# TAIVAS V3 Operational Workflow Briefing\n\nWorkflow module unavailable. Human review required.",
+        }
+# STABILIZATION CHANGE END
+
 from concept_lab_components import (
     render_thermal_principle_simulation,
     render_phase_change_buffer_concept,
@@ -3429,6 +3488,8 @@ def generate_agentic_advisory(simulation_results, context):
 
 
 def current_agentic_advisory():
+    # Advisory layer: converts existing simulation outputs into decision-support
+    # guidance. It does not control infrastructure or modify model calculations.
     context = {
         "country": active_country,
         "city": active_city,
@@ -3481,6 +3542,8 @@ def render_agentic_advisory_layer():
 
 
 def current_operational_monitoring():
+    # Monitoring layer: evaluates current and timeline outputs for operational
+    # drift and alert state. It remains trend-oriented, not predictive authority.
     timeline_rows = timeline_results.get("rows", []) if isinstance(timeline_results, dict) else []
     current_state = dict(results)
     current_state["battery_capacity"] = inputs.get("battery_capacity", 0.0)
@@ -3549,6 +3612,8 @@ def render_operational_monitoring_layer():
 
 
 def current_operational_workflow():
+    # Workflow layer: coordinates V1 advisory + V2 monitoring into a human-reviewed
+    # operational queue. It reads existing outputs only and does not alter simulation.
     context = {
         "country": active_country,
         "city": active_city,
@@ -3556,14 +3621,32 @@ def current_operational_workflow():
         "facility_type": facility_type,
     }
     history_key = "taivas_recommendation_history"
+    signature_key = "taivas_workflow_signature"
     recommendation_history = st.session_state.get(history_key, [])
+    workflow_signature = json.dumps({
+        "country": active_country,
+        "city": active_city,
+        "scenario": scenario_key,
+        "risk_tier": current_agentic_advisory().get("risk_tier"),
+        "alert_state": current_operational_monitoring().get("alert", {}).get("alert_state"),
+        "shortfall": results.get("shortfall"),
+        "battery_levels": results.get("battery_levels"),
+        "grid_dependency": results.get("grid_dependency"),
+    }, sort_keys=True)
+    base_history = recommendation_history
+    if st.session_state.get(signature_key) == workflow_signature and recommendation_history:
+        base_history = recommendation_history[:-1]
     workflow = build_operational_workflow(
         context=context,
         advisory=current_agentic_advisory(),
         monitoring_state=current_operational_monitoring(),
-        recommendation_history=recommendation_history,
+        recommendation_history=base_history,
     )
-    st.session_state[history_key] = workflow.get("recommendation_history", recommendation_history)
+    if st.session_state.get(signature_key) != workflow_signature:
+        st.session_state[history_key] = workflow.get("recommendation_history", recommendation_history)
+        st.session_state[signature_key] = workflow_signature
+    elif recommendation_history:
+        workflow["recommendation_history"] = recommendation_history
     return workflow
 
 
@@ -3606,6 +3689,8 @@ def render_operational_workflow_layer():
 
 
 def build_audit_trail_record():
+    # Export/audit layer: packages selected inputs, outputs, advisory, monitoring,
+    # workflow, and governance metadata for traceability. No persistence is forced.
     from datetime import datetime
 
     audit_id = f"taivas-{uuid.uuid4().hex[:12]}"
