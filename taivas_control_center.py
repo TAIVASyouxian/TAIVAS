@@ -29,6 +29,7 @@ from agent.monitoring_layer import (
     detect_operational_drift,
     generate_monitoring_summary,
 )
+from agent.workflow_layer import build_operational_workflow
 from concept_lab_components import (
     render_thermal_principle_simulation,
     render_phase_change_buffer_concept,
@@ -3547,6 +3548,63 @@ def render_operational_monitoring_layer():
         st.code(summary["report_markdown"], language="markdown")
 
 
+def current_operational_workflow():
+    context = {
+        "country": active_country,
+        "city": active_city,
+        "scenario": scenario_key,
+        "facility_type": facility_type,
+    }
+    history_key = "taivas_recommendation_history"
+    recommendation_history = st.session_state.get(history_key, [])
+    workflow = build_operational_workflow(
+        context=context,
+        advisory=current_agentic_advisory(),
+        monitoring_state=current_operational_monitoring(),
+        recommendation_history=recommendation_history,
+    )
+    st.session_state[history_key] = workflow.get("recommendation_history", recommendation_history)
+    return workflow
+
+
+def render_operational_workflow_layer():
+    workflow = current_operational_workflow()
+    snapshot = workflow["executive_snapshot"]
+    escalation = workflow["escalation"]
+    st.subheader("TAIVAS Workflow Coordination Layer")
+    st.markdown(
+        f"""
+        <div class="governance-notice">
+          <b>Executive Workflow Snapshot:</b> {snapshot["summary"]}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    cols = st.columns(4)
+    cols[0].metric("Alert State", snapshot["alert_state"])
+    cols[1].metric("Advisory Risk", snapshot["advisory_risk_tier"])
+    cols[2].metric("Escalation", "Required" if escalation["escalation_required"] else "Not required")
+    cols[3].metric("Human Review", "Required")
+    st.markdown("##### Operational Review Queue")
+    st.dataframe(pd.DataFrame(workflow["review_queue"]), use_container_width=True, hide_index=True)
+    with st.expander("Operational Workflow Timeline", expanded=False):
+        st.dataframe(pd.DataFrame(workflow["workflow_timeline"]), use_container_width=True, hide_index=True)
+    with st.expander("Recommendation & Monitoring History", expanded=False):
+        st.dataframe(pd.DataFrame(workflow["recommendation_history"]), use_container_width=True, hide_index=True)
+    st.markdown(
+        '<div class="governance-notice"><b>Human Governance Layer:</b> TAIVAS may recommend, organize, summarize, escalate, monitor, and prepare reports. It does not directly control infrastructure, self-authorize operational changes, or bypass human review.</div>',
+        unsafe_allow_html=True,
+    )
+    with st.expander("Operational Briefing Export", expanded=False):
+        st.download_button(
+            "Download V3 Workflow Briefing MD",
+            workflow["operational_briefing_markdown"],
+            file_name="taivas_v3_operational_workflow_briefing.md",
+            mime="text/markdown",
+        )
+        st.code(workflow["operational_briefing_markdown"], language="markdown")
+
+
 def build_audit_trail_record():
     from datetime import datetime
 
@@ -3580,6 +3638,7 @@ def build_audit_trail_record():
         "ai_recommendations": conditional_recommendation_lines(),
         "agentic_advisory": current_agentic_advisory(),
         "operational_monitoring": current_operational_monitoring(),
+        "operational_workflow": current_operational_workflow(),
         "explainable_ai": explainable_ai_rows().to_dict(orient="records"),
         "confidence": confidence,
         "scenario_matrix": scenario_comparison_matrix().to_dict(orient="records"),
@@ -3708,6 +3767,7 @@ def render_why_this_matters_panel():
 def build_executive_summary_text():
     advisory = current_agentic_advisory()
     monitoring_state = current_operational_monitoring()
+    workflow = current_operational_workflow()
     lines = [
         "TAIVAS Executive Summary",
         "========================",
@@ -3735,6 +3795,10 @@ def build_executive_summary_text():
         f"- Alert State: {monitoring_state['alert']['alert_state']}",
         f"- Stress Stage: {monitoring_state['monitoring']['stress_stage']}",
         f"- Review Priority: {monitoring_state['alert']['review_priority']}",
+        "",
+        "Workflow Coordination Layer",
+        f"- Escalation Required: {workflow['escalation']['escalation_required']}",
+        f"- Executive Snapshot: {workflow['executive_snapshot']['summary']}",
         "",
         "Risk Notes",
         f"- Geopolitical Risk Level: {geopolitical_shock.get('risk_level', 'N/A')}",
@@ -3787,6 +3851,7 @@ def render_executive_overview_workspace():
 summary_txt = build_executive_summary_text()
 agentic_advisory_markdown = current_agentic_advisory()["report_markdown"]
 monitoring_report_markdown = current_operational_monitoring()["summary"]["report_markdown"]
+workflow_briefing_markdown = current_operational_workflow()["operational_briefing_markdown"]
 buf_scen = StringIO(); comparison_dataframe(inputs, failure_ratios, reserve_recovery_lag_days).to_csv(buf_scen, index=False)
 buf_reason = StringIO(); pd.DataFrame(recommendation_reason_chain(results, energy_security_scenario, timeline_results, facility_type, facility_profile)).to_csv(buf_reason, index=False)
 audit_json = json.dumps(build_audit_trail_record(), indent=2, ensure_ascii=False)
@@ -3796,7 +3861,7 @@ def render_export_center():
         render_decision_support_notice("Report and audit boundary")
         st.caption("Download scenario data, reason chain, executive summary, or audit trail when needed.")
         render_data_classification_chips()
-        download_cols = st.columns(6)
+        download_cols = st.columns(7)
         with download_cols[0]:
             st.download_button(tr("download_scenario"), buf_scen.getvalue(), file_name="taivas_scenarios.csv", mime="text/csv")
         with download_cols[1]:
@@ -3809,6 +3874,8 @@ def render_export_center():
             st.download_button("Agentic Report MD", agentic_advisory_markdown, file_name="taivas_agentic_advisory_report.md", mime="text/markdown")
         with download_cols[5]:
             st.download_button("Monitoring Report MD", monitoring_report_markdown, file_name="taivas_operational_monitoring_report.md", mime="text/markdown")
+        with download_cols[6]:
+            st.download_button("Workflow Briefing MD", workflow_briefing_markdown, file_name="taivas_v3_operational_workflow_briefing.md", mime="text/markdown")
 
 # UI IMPROVEMENT START
 # Donut chart UI renderer only: fixed source colors and external legend prevent label overlap.
@@ -5162,6 +5229,7 @@ def render_product_overview():
     render_main_system_status()
     render_agentic_advisory_layer()
     render_operational_monitoring_layer()
+    render_operational_workflow_layer()
     render_battery_storage_status()
     render_renewable_mix_summary()
     with st.expander(tr("view_detailed_analysis"), expanded=False):
