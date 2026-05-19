@@ -1,5 +1,6 @@
 from io import StringIO
 import json
+import os
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -29,7 +30,24 @@ from concept_lab_components import (
     render_distributed_harvesting_buffering_concept,
 )
 
-st.set_page_config(page_title="TAIVAS Energy Control Center", layout="wide")
+# MIGRATION-READY CHANGE START
+# Runtime configuration is intentionally small and optional.
+# Defaults preserve the current Streamlit Cloud behavior, while environment
+# variables allow future deployment on Render, Railway, Azure, AWS, or GCP
+# without changing application code.
+TAIVAS_RUNTIME_CONFIG = {
+    "page_title": os.getenv("TAIVAS_PAGE_TITLE", "TAIVAS Energy Control Center"),
+    "layout": os.getenv("TAIVAS_LAYOUT", "wide"),
+    "environment": os.getenv("TAIVAS_ENV", "local"),
+    "audit_backend": os.getenv("TAIVAS_AUDIT_BACKEND", "export_only"),
+    "audit_log_path": os.getenv("TAIVAS_AUDIT_LOG_PATH", ""),
+}
+
+st.set_page_config(
+    page_title=TAIVAS_RUNTIME_CONFIG["page_title"],
+    layout=TAIVAS_RUNTIME_CONFIG["layout"],
+)
+# MIGRATION-READY CHANGE END
 
 # UI-ONLY CHANGE START
 # TAIVAS UI Design System / UI Rules
@@ -176,6 +194,25 @@ Architecture Rules:
 # Major render functions should be annotated with one of:
 # Situation Awareness Layer, Energy System Layer, Infrastructure Resilience Layer,
 # or Decision Support Layer.
+# UI-ONLY CHANGE END
+
+# UI-ONLY CHANGE START
+# Governance and decision-support positioning text.
+# These constants are presentation/audit metadata only and do not alter simulation logic.
+TAIVAS_DECISION_SUPPORT_NOTICE = (
+    "TAIVAS provides scenario-based energy resilience simulations for decision-support purposes only. "
+    "Outputs are model-generated estimates based on selected assumptions, public/user-provided data, "
+    "and simplified system logic. Final operational decisions must be reviewed by qualified professionals."
+)
+
+DATA_CLASSIFICATION_LABELS = {
+    "demo": "Demo Data",
+    "user": "User Input",
+    "public": "Public Data",
+    "estimated": "Estimated Data",
+    "verified": "Verified Data",
+    "simulated": "Simulated Scenario Data",
+}
 # UI-ONLY CHANGE END
 
 if "ui_lang" not in st.session_state:
@@ -1859,8 +1896,63 @@ st.markdown("""
     border-top: 1px solid rgba(148,163,184,0.14);
     padding-top: 0.62rem;
 }
+.governance-notice {
+    border: 1px solid rgba(148,163,184,0.22);
+    border-radius: 12px;
+    background: rgba(15,23,42,0.48);
+    padding: 0.82rem 0.95rem;
+    margin: 0.8rem 0;
+    color: #D7DEE9;
+    line-height: 1.55;
+}
+.data-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.42rem;
+    margin: 0.55rem 0 0.85rem 0;
+}
+.data-chip {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(148,163,184,0.22);
+    border-radius: 999px;
+    background: rgba(15,23,42,0.58);
+    color: #CBD5E1;
+    padding: 0.25rem 0.52rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+.quality-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.72rem;
+    margin: 0.75rem 0;
+}
+.quality-card {
+    border: 1px solid rgba(148,163,184,0.18);
+    border-radius: 12px;
+    background: rgba(15,23,42,0.42);
+    padding: 0.85rem 0.95rem;
+}
+.quality-label {color:#A7B3C7; font-size:0.78rem; font-weight:850; text-transform:uppercase; letter-spacing:0.02em;}
+.quality-value {font-size:1.08rem; font-weight:900; margin-top:0.25rem;}
+.governance-flow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.55rem;
+    margin: 0.75rem 0;
+}
+.flow-step {
+    border: 1px solid rgba(56,189,248,0.22);
+    border-radius: 12px;
+    background: rgba(8,47,73,0.24);
+    padding: 0.72rem 0.78rem;
+    color: #E5E7EB;
+    font-weight: 800;
+    font-size: 0.9rem;
+}
 @media (max-width: 820px) {
-    .comparison-grid, .explain-grid, .emergency-grid, .communication-grid {grid-template-columns: 1fr;}
+    .comparison-grid, .explain-grid, .emergency-grid, .communication-grid, .quality-grid {grid-template-columns: 1fr;}
     .risk-strip {align-items: flex-start; flex-direction: column;}
 }
 </style>
@@ -2681,16 +2773,19 @@ with st.sidebar:
     facility_profile = FACILITY_PROFILES[facility_type]
     population = basic_panel.slider(tr("population"), 10000, 5000000, int(clamp(active_population, 10000, 5000000)), step=10000, help="Approximate number of people affected by this energy system.")
     basic_panel.caption(f"{tr('population')}: {population:,}")
+    basic_panel.caption("Data label: Public Data / User Input")
 
     scenario_panel = st.expander(tr("scenario_setup"), expanded=True)
     scenario_panel.caption(tr("scenario_help"))
     scenario_key = scenario_panel.selectbox(tr("weather_scenario"), list(SCENARIOS.keys()), help="Pick the main situation to simulate, such as normal, heat wave, storm, blizzard, or typhoon.")
+    scenario_panel.caption("Data label: Simulated Scenario Data")
 
     capacity_panel = st.expander(tr("energy_capacity"), expanded=True)
     capacity_panel.caption(tr("capacity_help"))
     solar_capacity = capacity_panel.slider(tr("solar_capacity"), 0, 500, int(clamp((uploaded_profile["solar_capacity"] if (use_uploaded and uploaded_profile) else 120), 0, 500)), 5, help="Local solar power capacity in MW.")
     wind_capacity = capacity_panel.slider(tr("wind_capacity"), 0, 500, int(clamp((uploaded_profile["wind_capacity"] if (use_uploaded and uploaded_profile) else 80), 0, 500)), 5, help="Local wind power capacity in MW.")
     battery_capacity = capacity_panel.slider(tr("battery_capacity"), 0, 1000, int(clamp((uploaded_profile["battery_capacity"] if (use_uploaded and uploaded_profile) else 180), 0, 1000)), 10, help="Battery reserve capacity in MWh.")
+    capacity_panel.caption("Data label: User Input")
 
     advanced_panel = st.expander(tr("advanced_settings"), expanded=False)
     advanced_panel.caption(tr("advanced_help"))
@@ -2703,6 +2798,7 @@ with st.sidebar:
     solar_radiation = advanced_panel.slider(tr("solar_radiation") + " (W/m²)", 0, 1200, int(clamp((uploaded_profile["solar_radiation"] if (use_uploaded and uploaded_profile) else 640), 0, 1200)), 10, help="Affects solar power output.")
     precipitation = advanced_panel.slider(tr("precipitation") + " (mm)", 0, 300, int(clamp((uploaded_profile["precipitation"] if (use_uploaded and uploaded_profile) else 12), 0, 300)), 1, help="Affects demand and hydro behavior.")
     humidity = advanced_panel.slider(tr("humidity") + " (%)", 0, 100, int(clamp((uploaded_profile["humidity"] if (use_uploaded and uploaded_profile) else 73), 0, 100)), 1, help="Higher humidity can increase cooling pressure.")
+    advanced_panel.caption("Weather data label: User Input / Uploaded CSV when enabled")
 
     advanced_panel.markdown("**Component failures**")
     solar_failure_ratio = advanced_panel.number_input(tr("solar_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f", help="0 means no failure. 1 means fully unavailable.")
@@ -2989,6 +3085,200 @@ def render_public_risk_communication_summary():
         st.dataframe(technical_basis, use_container_width=True, hide_index=True)
 # UI-ONLY CHANGE END
 
+# UI-ONLY CHANGE START
+# Governance layer helpers only. These functions read existing inputs/results and add
+# transparency, validation, auditability, and human-review framing without changing model outputs.
+def data_classification_rows():
+    csv_label = DATA_CLASSIFICATION_LABELS["user"] if uploaded_df is not None and not uploaded_df.empty else DATA_CLASSIFICATION_LABELS["demo"]
+    return [
+        {"Area": "Location and population", "Classification": DATA_CLASSIFICATION_LABELS["public"], "Note": "Built-in city reference data or selected user override."},
+        {"Area": "Weather and scenario inputs", "Classification": DATA_CLASSIFICATION_LABELS["user"], "Note": "Selected controls and scenario assumptions."},
+        {"Area": "Energy capacities", "Classification": DATA_CLASSIFICATION_LABELS["user"], "Note": "User-selected installed capacity and storage assumptions."},
+        {"Area": "Uploaded CSV", "Classification": csv_label, "Note": "User-provided file when uploaded; otherwise demo/manual inputs."},
+        {"Area": "Demand and supply outputs", "Classification": DATA_CLASSIFICATION_LABELS["estimated"], "Note": "Calculated from selected assumptions and simplified model logic."},
+        {"Area": "Scenario comparison", "Classification": DATA_CLASSIFICATION_LABELS["simulated"], "Note": "Baseline vs selected scenario simulation output."},
+        {"Area": "AI recommendation text", "Classification": DATA_CLASSIFICATION_LABELS["estimated"], "Note": "Conditional decision-support guidance, not an operational directive."},
+    ]
+
+
+def render_data_classification_chips():
+    chips = "".join(
+        f'<span class="data-chip" title="{row["Note"]}">{row["Area"]}: {row["Classification"]}</span>'
+        for row in data_classification_rows()
+    )
+    st.markdown(f'<div class="data-chip-row">{chips}</div>', unsafe_allow_html=True)
+
+
+def build_data_quality_findings():
+    findings = []
+    checked_percentages = {
+        "Renewable Share": results.get("renewable_ratio", 0),
+        "System Stability": results.get("system_efficiency", 0),
+        "Backup Grid Need": results.get("grid_dependency", 0),
+    }
+    for label, value in checked_percentages.items():
+        if value < 0 or value > 100:
+            findings.append({"Severity": "High", "Area": label, "Finding": f"{label} is outside the expected 0-100% range."})
+
+    if inputs.get("population", 0) <= 0:
+        findings.append({"Severity": "High", "Area": "Population", "Finding": "Population must be positive for meaningful demand interpretation."})
+
+    for key in ["solar_capacity", "wind_capacity", "geothermal_capacity", "hydro_capacity", "battery_capacity"]:
+        if inputs.get(key, 0) < 0:
+            findings.append({"Severity": "High", "Area": key, "Finding": "Capacity input is negative and should be reviewed."})
+
+    if inputs.get("battery_capacity", 0) > 0 and results.get("battery_levels", 0) > inputs["battery_capacity"] * 1.05:
+        findings.append({"Severity": "Moderate", "Area": "Battery", "Finding": "Battery remaining is above installed storage scale; review battery assumptions."})
+
+    if inputs.get("battery_capacity", 0) == 0 and scenario_key in ["storm", "cold_wave", "blizzard", "typhoon", "heat_wave"]:
+        findings.append({"Severity": "Moderate", "Area": "Battery", "Finding": "Extreme scenario selected with zero storage buffer."})
+
+    installed_renewable = sum(float(inputs.get(k, 0)) for k in ["solar_capacity", "wind_capacity", "geothermal_capacity", "hydro_capacity"])
+    if installed_renewable > 0 and results.get("renewable_supply", 0) > installed_renewable * 1.25:
+        findings.append({"Severity": "Moderate", "Area": "Renewable Supply", "Finding": "Modeled renewable output is high relative to installed capacity; review resource assumptions."})
+
+    demand_per_person = safe_div(results.get("demand", 0), max(float(inputs.get("population", 0)), 1.0))
+    if demand_per_person <= 0 or demand_per_person > 0.01:
+        findings.append({"Severity": "Moderate", "Area": "Demand", "Finding": "Demand scale appears unusual relative to selected population."})
+
+    if uploaded_df is not None and not uploaded_df.empty:
+        duplicate_count = int(uploaded_df.duplicated().sum())
+        if duplicate_count > 0:
+            findings.append({"Severity": "Moderate", "Area": "Uploaded CSV", "Finding": f"{duplicate_count} duplicate uploaded row(s) detected."})
+        ts_col = detect_timestamp_column(uploaded_df)
+        if ts_col is not None and pd.to_datetime(uploaded_df[ts_col], errors="coerce").notna().sum() == 0:
+            findings.append({"Severity": "Moderate", "Area": "Uploaded CSV", "Finding": "Timestamp column was detected but could not be parsed."})
+
+    return findings
+
+
+def data_quality_status(findings):
+    if not findings:
+        return "Stable", "No validation alerts detected."
+    if any(f["Severity"] == "High" for f in findings):
+        return "Data Requires Review", "One or more high-priority validation alerts were detected."
+    if len(findings) >= 3:
+        return "High Uncertainty", "Multiple soft validation alerts may reduce confidence."
+    return "Moderate Uncertainty", "Soft validation alerts are present; review assumptions before decisions."
+
+
+def render_data_quality_panel():
+    findings = build_data_quality_findings()
+    status, note = data_quality_status(findings)
+    confidence = "High" if status == "Stable" else "Medium" if status == "Moderate Uncertainty" else "Low"
+    st.markdown(
+        f"""
+        <div class="quality-grid">
+          <div class="quality-card"><div class="quality-label">Data Quality</div><div class="quality-value">{status}</div></div>
+          <div class="quality-card"><div class="quality-label">Confidence Indicator</div><div class="quality-value">{confidence}</div></div>
+          <div class="quality-card"><div class="quality-label">Validation Note</div><div class="quality-value" style="font-size:0.95rem; line-height:1.45;">{note}</div></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if findings:
+        st.dataframe(pd.DataFrame(findings), use_container_width=True, hide_index=True)
+
+
+def render_decision_support_notice(context_label="Decision-support boundary"):
+    st.markdown(
+        f'<div class="governance-notice"><b>{context_label}:</b> {TAIVAS_DECISION_SUPPORT_NOTICE}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def conditional_recommendation_lines():
+    return [
+        f"Under this simulated scenario, {line[0].lower() + line[1:] if line else line}"
+        for line in recommendation_lines(results, energy_security_scenario)
+    ]
+
+
+def build_audit_trail_record():
+    from datetime import datetime
+
+    return {
+        "version": "TAIVAS Governance Patch",
+        "timestamp_local": datetime.now().isoformat(timespec="seconds"),
+        "runtime": {
+            "environment": TAIVAS_RUNTIME_CONFIG["environment"],
+            "audit_backend": TAIVAS_RUNTIME_CONFIG["audit_backend"],
+            "audit_log_path_configured": bool(TAIVAS_RUNTIME_CONFIG["audit_log_path"]),
+        },
+        "decision_support_notice": TAIVAS_DECISION_SUPPORT_NOTICE,
+        "human_review_status": "Not recorded in this session",
+        "demo_mode": demo_mode,
+        "location": {"country": active_country, "city": active_city, "lat": active_lat, "lon": active_lon},
+        "facility_type": facility_type,
+        "scenario": {"weather": scenario_key, "energy_security": energy_security_scenario, "geopolitical_event": geopolitical_shock.get("event_type", "None")},
+        "input_values": dict(inputs),
+        "failure_ratios": dict(failure_ratios),
+        "uploaded_data": {
+            "uploaded_csv_present": uploaded_df is not None and not uploaded_df.empty,
+            "uploaded_rows": int(len(uploaded_df)) if uploaded_df is not None else 0,
+            "timestamp_column": detect_timestamp_column(uploaded_df) if uploaded_df is not None and not uploaded_df.empty else None,
+        },
+        "simulation_outputs": results,
+        "baseline_outputs": baseline_results,
+        "timeline_outputs": timeline_results,
+        "ai_recommendations": conditional_recommendation_lines(),
+        "data_classification": data_classification_rows(),
+        "data_quality": {"status": data_quality_status(build_data_quality_findings())[0], "findings": build_data_quality_findings()},
+        "model_boundary": "Scenario-based decision-support simulation only; not a prediction, guarantee, or automatic control authority.",
+    }
+
+
+def audit_storage_status():
+    # Migration-ready interface only. The current app remains export-only unless
+    # a future deployment explicitly sets TAIVAS_AUDIT_BACKEND and storage config.
+    backend = TAIVAS_RUNTIME_CONFIG["audit_backend"].strip().lower()
+    if backend == "export_only":
+        return "Export-only audit trail", "Audit logs are generated for download and no server-side persistence is enabled."
+    if backend == "local_file":
+        if TAIVAS_RUNTIME_CONFIG["audit_log_path"]:
+            return "Local file audit backend configured", "Future deployment can append JSONL audit records to the configured path."
+        return "Local file audit backend incomplete", "Set TAIVAS_AUDIT_LOG_PATH before enabling server-side local audit logging."
+    return "External audit backend placeholder", "Backend value is reserved for future database or managed logging integration."
+
+
+def render_human_in_loop_panel():
+    steps = [
+        "Data Input",
+        "Scenario Simulation",
+        "Risk Comparison",
+        "AI Decision Support",
+        "Human Review",
+        "Final Operational Decision",
+        "Logged Outcome",
+    ]
+    st.markdown('<div class="governance-flow">' + "".join(f'<div class="flow-step">{step}</div>' for step in steps) + "</div>", unsafe_allow_html=True)
+    st.caption("TAIVAS keeps the final decision outside the model. Outputs should be reviewed with local infrastructure knowledge and qualified professional judgement.")
+
+
+def render_governance_readiness_panel():
+    st.subheader("Governance, Data Quality, and Human Review")
+    render_decision_support_notice("Core positioning")
+    storage_label, storage_note = audit_storage_status()
+    st.markdown(
+        f"""
+        <div class="quality-grid">
+          <div class="quality-card"><div class="quality-label">Runtime Environment</div><div class="quality-value">{TAIVAS_RUNTIME_CONFIG["environment"]}</div></div>
+          <div class="quality-card"><div class="quality-label">Audit Storage</div><div class="quality-value">{storage_label}</div></div>
+          <div class="quality-card"><div class="quality-label">Migration Readiness</div><div class="quality-value" style="font-size:0.95rem; line-height:1.45;">{storage_note}</div></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown("##### Data Source Classification")
+    render_data_classification_chips()
+    with st.expander("View Classification Details", expanded=False):
+        st.dataframe(pd.DataFrame(data_classification_rows()), use_container_width=True, hide_index=True)
+    st.markdown("##### Unit and Data Quality Validation")
+    render_data_quality_panel()
+    st.markdown("##### Human-in-the-Loop Decision Path")
+    render_human_in_loop_panel()
+# UI-ONLY CHANGE END
+
 # PRODUCT UI RESTRUCTURE START
 # Product positioning only. Detailed results are rendered later inside tabs to reduce page length.
 # UI REFINEMENT START
@@ -3040,6 +3330,13 @@ def build_executive_summary_text():
         f"- Estimated Hours Until Shortfall: {timeline_results.get('hours_until_shortfall')}",
         f"- Estimated Hours Until Critical Failure: {timeline_results.get('hours_until_critical_failure')}",
         "",
+        "Decision-Support Boundary",
+        TAIVAS_DECISION_SUPPORT_NOTICE,
+        "",
+        "Data Quality",
+        f"- Status: {data_quality_status(build_data_quality_findings())[0]}",
+        f"- Validation alerts: {len(build_data_quality_findings())}",
+        "",
         "Model Limitation",
         "TAIVAS is a decision-support simulator. It does not guarantee real-world outcomes and does not replace engineering, grid-operator, legal, security, or emergency-management validation.",
     ]
@@ -3047,15 +3344,7 @@ def build_executive_summary_text():
 
 
 def render_product_notice():
-    st.markdown(
-        """
-        <div class="notice-box">
-        <b>Decision-support notice:</b> TAIVAS converts scenario assumptions into operational risk signals.
-        It is not a disaster prediction engine, not a guarantee of physical system behavior, and not a substitute for professional engineering validation.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    render_decision_support_notice("Decision-support notice")
 
 
 def render_executive_overview_workspace():
@@ -3081,22 +3370,13 @@ def render_executive_overview_workspace():
 summary_txt = build_executive_summary_text()
 buf_scen = StringIO(); comparison_dataframe(inputs, failure_ratios, reserve_recovery_lag_days).to_csv(buf_scen, index=False)
 buf_reason = StringIO(); pd.DataFrame(recommendation_reason_chain(results, energy_security_scenario, timeline_results, facility_type, facility_profile)).to_csv(buf_reason, index=False)
-audit_json = json.dumps({
-    "version": "V4 Product Polish",
-    "demo_mode": demo_mode,
-    "country": active_country,
-    "city": active_city,
-    "facility_type": facility_type,
-    "scenario_key": scenario_key,
-    "results": results,
-    "timeline": timeline_results,
-    "geopolitical_shock": geopolitical_shock,
-    "model_limitation": "Decision-support simulation only; not a prediction or guarantee.",
-}, indent=2, ensure_ascii=False)
+audit_json = json.dumps(build_audit_trail_record(), indent=2, ensure_ascii=False)
 
 def render_export_center():
     with st.expander("Export Center", expanded=False):
+        render_decision_support_notice("Report and audit boundary")
         st.caption("Download scenario data, reason chain, executive summary, or audit trail when needed.")
+        render_data_classification_chips()
         download_cols = st.columns(4)
         with download_cols[0]:
             st.download_button(tr("download_scenario"), buf_scen.getvalue(), file_name="taivas_scenarios.csv", mime="text/csv")
@@ -3188,7 +3468,7 @@ def display_delta(current_value, baseline_value, unit="", invert=False):
     pct = safe_div(delta, abs(baseline_value)) * 100 if baseline_value not in (0, 0.0) else 0.0
     if abs(delta) < 0.005:
         return '<span class="comparison-delta delta-flat">0.0%</span>'
-    arrow = "↑" if delta > 0 else "↓"
+    arrow = "up" if delta > 0 else "down"
     class_name = "delta-down" if invert and delta < 0 else "delta-up" if delta > 0 else "delta-down"
     if invert and delta > 0:
         class_name = "delta-up"
@@ -3323,6 +3603,8 @@ def render_scenario_comparison_workspace():
     critical_load_df = critical_load_breakdown(results["demand"], facility_profile["critical_load_share"], facility_profile["critical_split"])
     # UI-ONLY CHANGE START
     st.subheader("Baseline vs Selected Scenario")
+    render_decision_support_notice("Scenario comparison boundary")
+    render_data_classification_chips()
     render_risk_tier_panel()
     render_resilience_storytelling()
     render_baseline_extreme_cards()
@@ -3356,9 +3638,28 @@ def render_stress_test_workspace():
 
 def render_ai_recommendation_workspace():
     page_question(tr("tabs")[3])
+    # UI-ONLY CHANGE START
+    render_decision_support_notice("AI recommendation safety boundary")
+    st.markdown(
+        '<div class="note">Recommendations below are conditional decision-support guidance. They should be reviewed alongside local infrastructure constraints, operating procedures, and qualified expert assessment.</div>',
+        unsafe_allow_html=True,
+    )
+    quality_status, quality_note = data_quality_status(build_data_quality_findings())
+    rec_cols = st.columns(3)
+    rec_cols[0].metric("Confidence Indicator", "High" if quality_status == "Stable" else "Medium" if quality_status == "Moderate Uncertainty" else "Low")
+    rec_cols[1].metric("Data Quality", quality_status)
+    rec_cols[2].metric("Review Status", "Human review needed")
+    st.caption(quality_note)
+    # UI-ONLY CHANGE END
     st.subheader(tr("quick_reco"))
-    for idx, line in enumerate(recommendation_lines(results, energy_security_scenario), 1):
+    for idx, line in enumerate(conditional_recommendation_lines(), 1):
         st.write(f"{idx}. {line}")
+    # UI-ONLY CHANGE START
+    with st.expander("Reasoning, Tradeoffs, and Uncertainty", expanded=False):
+        st.write("Reasoning summary: guidance is based on the selected scenario, modeled energy gap, storage reserve, backup grid need, and energy security layer outputs.")
+        st.write("Possible tradeoffs: increasing storage, firm capacity, or reserve support can improve modeled resilience, but may require cost, siting, maintenance, and local operational review.")
+        st.write("Uncertainty notice: outputs are model-generated estimates under selected assumptions, not confirmed predictions or automatic control instructions.")
+    # UI-ONLY CHANGE END
     reason_df = pd.DataFrame(recommendation_reason_chain(results, energy_security_scenario, timeline_results, facility_type, facility_profile))
     st.subheader(tr("reason_chain"))
     st.dataframe(reason_df, use_container_width=True, hide_index=True)
@@ -4453,7 +4754,7 @@ def render_product_scenario_analysis():
 
 def render_product_advanced_analytics():
     st.markdown('<div class="note">Advanced analytics preserve the original technical workflow for analyst review.</div>', unsafe_allow_html=True)
-    advanced_tabs = st.tabs(["Energy Mix", "Stress Test", "Energy Security", "Survival Timeline", "Concept Lab", "Export"])
+    advanced_tabs = st.tabs(["Energy Mix", "Stress Test", "Energy Security", "Survival Timeline", "Concept Lab", "Governance / Audit", "Export"])
     with advanced_tabs[0]:
         render_energy_mix_workspace()
     with advanced_tabs[1]:
@@ -4465,6 +4766,8 @@ def render_product_advanced_analytics():
     with advanced_tabs[4]:
         render_concept_lab_workspace()
     with advanced_tabs[5]:
+        render_governance_readiness_panel()
+    with advanced_tabs[6]:
         render_export_center()
 # PRODUCT UI RESTRUCTURE END
 
@@ -4481,3 +4784,7 @@ with product_tabs[1]:
     render_product_scenario_analysis()
 with product_tabs[2]:
     render_product_advanced_analytics()
+
+# UI-ONLY CHANGE START
+render_decision_support_notice("Dashboard footer")
+# UI-ONLY CHANGE END
