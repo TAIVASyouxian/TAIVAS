@@ -1,6 +1,7 @@
 from io import StringIO
 import json
 import os
+import uuid
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -1997,7 +1998,20 @@ def safe_read_csv(uploaded_file):
     if uploaded_file is None:
         return None
     try:
-        return pd.read_csv(uploaded_file)
+        df = pd.read_csv(uploaded_file)
+        if df.empty:
+            st.sidebar.warning("Uploaded CSV is empty. TAIVAS will continue with default/manual inputs.")
+            return None
+        duplicate_columns = df.columns[df.columns.duplicated()].tolist()
+        if duplicate_columns:
+            st.sidebar.warning("Uploaded CSV has duplicate column names. Some fields may require review.")
+        return df
+    except pd.errors.EmptyDataError:
+        st.sidebar.warning("Uploaded CSV appears empty or unreadable. TAIVAS will continue with default/manual inputs.")
+        return None
+    except pd.errors.ParserError:
+        st.sidebar.warning("Uploaded CSV could not be parsed cleanly. Please review the file structure.")
+        return None
     except Exception as e:
         st.sidebar.warning(f"CSV read failed: {e}")
         return None
@@ -3162,15 +3176,67 @@ def data_quality_status(findings):
     return "Moderate Uncertainty", "Soft validation alerts are present; review assumptions before decisions."
 
 
+def confidence_profile(findings=None, scenario=None):
+    findings = build_data_quality_findings() if findings is None else findings
+    status, _ = data_quality_status(findings)
+    scenario = scenario or scenario_key
+    extreme_scenarios = {"heat_wave", "storm", "cold_wave", "blizzard", "typhoon"}
+    uses_upload = uploaded_df is not None and not uploaded_df.empty
+
+    if status == "Data Requires Review":
+        return {
+            "confidence_level": "Limited Confidence",
+            "uncertainty_level": "High Uncertainty",
+            "forecast_reliability": "Requires Review",
+            "data_quality_label": "Requires Review",
+        }
+    if status in ("High Uncertainty", "Moderate Uncertainty"):
+        return {
+            "confidence_level": "Medium Confidence",
+            "uncertainty_level": status,
+            "forecast_reliability": "Scenario-sensitive",
+            "data_quality_label": "User Provided" if uses_upload else "Public + Estimated",
+        }
+    if scenario in extreme_scenarios:
+        return {
+            "confidence_level": "Medium Confidence",
+            "uncertainty_level": "Scenario Uncertainty",
+            "forecast_reliability": "Comparative only",
+            "data_quality_label": "Public + Estimated" if not uses_upload else "User Provided",
+        }
+    return {
+        "confidence_level": "High Confidence",
+        "uncertainty_level": "Low Uncertainty",
+        "forecast_reliability": "Baseline-oriented",
+        "data_quality_label": "Public + Estimated" if not uses_upload else "User Provided",
+    }
+
+
+def render_confidence_panel():
+    findings = build_data_quality_findings()
+    profile = confidence_profile(findings)
+    st.markdown(
+        f"""
+        <div class="quality-grid">
+          <div class="quality-card"><div class="quality-label">Confidence Level</div><div class="quality-value">{profile["confidence_level"]}</div></div>
+          <div class="quality-card"><div class="quality-label">Uncertainty Level</div><div class="quality-value">{profile["uncertainty_level"]}</div></div>
+          <div class="quality-card"><div class="quality-label">Forecast Reliability</div><div class="quality-value">{profile["forecast_reliability"]}</div></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.caption("Confidence labels reflect input completeness, validation alerts, and scenario severity. They are not statistical guarantees.")
+
+
 def render_data_quality_panel():
     findings = build_data_quality_findings()
     status, note = data_quality_status(findings)
-    confidence = "High" if status == "Stable" else "Medium" if status == "Moderate Uncertainty" else "Low"
+    profile = confidence_profile(findings)
     st.markdown(
         f"""
         <div class="quality-grid">
           <div class="quality-card"><div class="quality-label">Data Quality</div><div class="quality-value">{status}</div></div>
-          <div class="quality-card"><div class="quality-label">Confidence Indicator</div><div class="quality-value">{confidence}</div></div>
+          <div class="quality-card"><div class="quality-label">Confidence Indicator</div><div class="quality-value">{profile["confidence_level"]}</div></div>
           <div class="quality-card"><div class="quality-label">Validation Note</div><div class="quality-value" style="font-size:0.95rem; line-height:1.45;">{note}</div></div>
         </div>
         """,
@@ -3194,11 +3260,72 @@ def conditional_recommendation_lines():
     ]
 
 
+def explainable_ai_rows():
+    reason = "No modeled operational energy stress detected under current scenario assumptions."
+    if results.get("shortfall", 0) > 0:
+        reason = "A modeled energy gap appears because available supply does not fully meet demand under the selected assumptions."
+    elif results.get("grid_dependency", 0) >= 10:
+        reason = "Backup grid need is elevated, indicating higher dependence on outside support under the selected scenario."
+    elif results.get("battery_levels", 0) < baseline_results.get("battery_levels", 0):
+        reason = "Battery reserve is lower than baseline, reducing the modeled storage buffer."
+    elif results.get("renewable_supply", 0) < baseline_results.get("renewable_supply", 0):
+        reason = "Renewable supply is lower than baseline, which can reduce local resilience margin."
+
+    tradeoff = "Recommended actions may improve modeled resilience but require review of cost, siting, maintenance, and local operating constraints."
+    if scenario_key in {"storm", "blizzard", "typhoon"}:
+        tradeoff = "Renewable variability and infrastructure access constraints may increase during prolonged severe-weather conditions."
+    elif scenario_key in {"heat_wave", "cold_wave"}:
+        tradeoff = "Demand escalation can persist beyond the modeled window, so thermal load and reserve assumptions should be reviewed."
+
+    next_review = "Review backup grid dependency, battery reserve, uploaded data quality, and storage assumptions before operational decisions."
+    return pd.DataFrame([
+        {"Item": "Reason", "Explanation": reason},
+        {"Item": "Tradeoff", "Explanation": tradeoff},
+        {"Item": "Suggested Next Review", "Explanation": next_review},
+    ])
+
+
+def scenario_comparison_matrix():
+    rows = []
+    for key in SCENARIOS.keys():
+        scenario_result = compute_energy_supply(inputs, key, failure_ratios, reserve_recovery_lag_days)
+        scenario_result, _ = apply_energy_security_layer(
+            base_results=scenario_result,
+            scenario_key=energy_security_scenario,
+            import_dependency=import_dependency,
+            strategic_reserve_days=strategic_reserve_days,
+            critical_load_share=critical_load_share,
+            shipping_dependency=shipping_dependency,
+            infrastructure_damage_ratio=infrastructure_damage_ratio,
+            reserve_recovery_lag_days=reserve_recovery_lag_days,
+        )
+        tier = scenario_result.get("risk_tier") or calculate_risk_tier(scenario_result.get("shortfall", 0), scenario_result.get("demand", 0))
+        rows.append({
+            "Scenario": key.replace("_", " ").title(),
+            "System Stability (%)": scenario_result["system_efficiency"],
+            "Energy Gap (MW)": scenario_result["shortfall"],
+            "Backup Grid Need (%)": scenario_result["grid_dependency"],
+            "Renewable Share (%)": scenario_result["renewable_ratio"],
+            "Risk Tier": tier,
+            "Confidence Level": confidence_profile(scenario=key)["confidence_level"],
+        })
+    return pd.DataFrame(rows)
+
+
+def render_scenario_comparison_matrix():
+    st.subheader("Scenario Resilience Comparison Matrix")
+    st.caption("Comparative scenario output for resilience review. This table supports analysis and does not predict confirmed outcomes.")
+    st.dataframe(scenario_comparison_matrix(), use_container_width=True, hide_index=True)
+
+
 def build_audit_trail_record():
     from datetime import datetime
 
+    audit_id = f"taivas-{uuid.uuid4().hex[:12]}"
+    confidence = confidence_profile()
     return {
         "version": "TAIVAS Governance Patch",
+        "audit_id": audit_id,
         "timestamp_local": datetime.now().isoformat(timespec="seconds"),
         "runtime": {
             "environment": TAIVAS_RUNTIME_CONFIG["environment"],
@@ -3222,8 +3349,23 @@ def build_audit_trail_record():
         "baseline_outputs": baseline_results,
         "timeline_outputs": timeline_results,
         "ai_recommendations": conditional_recommendation_lines(),
+        "explainable_ai": explainable_ai_rows().to_dict(orient="records"),
+        "confidence": confidence,
+        "scenario_matrix": scenario_comparison_matrix().to_dict(orient="records"),
         "data_classification": data_classification_rows(),
         "data_quality": {"status": data_quality_status(build_data_quality_findings())[0], "findings": build_data_quality_findings()},
+        "future_pdf_ready_summary": {
+            "title": "TAIVAS Scenario Resilience Report",
+            "sections": [
+                "Decision-support boundary",
+                "Selected inputs",
+                "Scenario assumptions",
+                "Core outputs",
+                "Confidence and uncertainty",
+                "Explainable AI recommendation basis",
+                "Human review notes",
+            ],
+        },
         "model_boundary": "Scenario-based decision-support simulation only; not a prediction, guarantee, or automatic control authority.",
     }
 
@@ -3269,6 +3411,8 @@ def render_governance_readiness_panel():
         """,
         unsafe_allow_html=True,
     )
+    st.markdown("##### Confidence and Uncertainty")
+    render_confidence_panel()
     st.markdown("##### Data Source Classification")
     render_data_classification_chips()
     with st.expander("View Classification Details", expanded=False):
@@ -3277,6 +3421,17 @@ def render_governance_readiness_panel():
     render_data_quality_panel()
     st.markdown("##### Human-in-the-Loop Decision Path")
     render_human_in_loop_panel()
+    with st.expander("Export-Ready Governance Structure", expanded=False):
+        st.json({
+            "audit_id": "generated at export time",
+            "selected_inputs": "included",
+            "scenario_assumptions": "included",
+            "outputs": "included",
+            "ai_recommendations": "included",
+            "confidence_labels": confidence_profile(),
+            "timestamps": "included",
+            "future_pdf_ready_structure": "included in audit JSON",
+        })
 # UI-ONLY CHANGE END
 
 # PRODUCT UI RESTRUCTURE START
@@ -3305,6 +3460,20 @@ render_public_risk_communication_summary()
 # UI-ONLY CHANGE END
 # PRODUCT UI RESTRUCTURE END
 
+# UI-ONLY CHANGE START
+def render_why_this_matters_panel():
+    st.markdown(
+        """
+        <div class="governance-notice">
+          <b>Why this matters:</b> TAIVAS supports infrastructure resilience analysis under climate and energy stress scenarios.
+          The platform focuses on scenario comparison, resilience communication, operational awareness,
+          explainable decision support, and human-reviewed workflows.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+# UI-ONLY CHANGE END
+
 def build_executive_summary_text():
     lines = [
         "TAIVAS Executive Summary",
@@ -3329,6 +3498,11 @@ def build_executive_summary_text():
         f"- Oil/Gas Supply Disruption: {geopolitical_shock.get('oil_supply_disruption_percent', 0)}%",
         f"- Estimated Hours Until Shortfall: {timeline_results.get('hours_until_shortfall')}",
         f"- Estimated Hours Until Critical Failure: {timeline_results.get('hours_until_critical_failure')}",
+        "",
+        "Confidence and Uncertainty",
+        f"- Confidence Level: {confidence_profile()['confidence_level']}",
+        f"- Uncertainty Level: {confidence_profile()['uncertainty_level']}",
+        f"- Forecast Reliability: {confidence_profile()['forecast_reliability']}",
         "",
         "Decision-Support Boundary",
         TAIVAS_DECISION_SUPPORT_NOTICE,
@@ -3608,6 +3782,7 @@ def render_scenario_comparison_workspace():
     render_risk_tier_panel()
     render_resilience_storytelling()
     render_baseline_extreme_cards()
+    render_scenario_comparison_matrix()
     render_system_explanation_panel()
     with st.expander("Detailed Technical Comparison", expanded=False):
         left, right = st.columns([1.02, 1.0])
@@ -3656,8 +3831,7 @@ def render_ai_recommendation_workspace():
         st.write(f"{idx}. {line}")
     # UI-ONLY CHANGE START
     with st.expander("Reasoning, Tradeoffs, and Uncertainty", expanded=False):
-        st.write("Reasoning summary: guidance is based on the selected scenario, modeled energy gap, storage reserve, backup grid need, and energy security layer outputs.")
-        st.write("Possible tradeoffs: increasing storage, firm capacity, or reserve support can improve modeled resilience, but may require cost, siting, maintenance, and local operational review.")
+        st.dataframe(explainable_ai_rows(), use_container_width=True, hide_index=True)
         st.write("Uncertainty notice: outputs are model-generated estimates under selected assumptions, not confirmed predictions or automatic control instructions.")
     # UI-ONLY CHANGE END
     reason_df = pd.DataFrame(recommendation_reason_chain(results, energy_security_scenario, timeline_results, facility_type, facility_profile))
@@ -4729,6 +4903,8 @@ def render_context_cards():
 
 
 def render_product_overview():
+    render_why_this_matters_panel()
+    render_confidence_panel()
     render_operational_summary_panel()
     # UI-ONLY CHANGE START
     render_risk_tier_panel()
