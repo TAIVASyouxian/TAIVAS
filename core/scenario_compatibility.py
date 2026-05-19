@@ -7,6 +7,8 @@ labels hypothetical stress tests clearly.
 
 
 ALL_SCENARIOS = ["normal", "heat_wave", "storm", "cold_wave", "blizzard", "typhoon"]
+PLANNED_GEOLOGICAL_HAZARDS = ["earthquake", "volcanic_eruption"]
+GEOLOGICAL_HAZARD_MODULE_NOTE = "Geological Hazard Module: planned but not enabled in this version."
 
 COUNTRY_SCENARIO_MAP = {
     "Taiwan": ["normal", "heat_wave", "storm", "typhoon"],
@@ -45,6 +47,11 @@ def get_allowed_scenarios(country, city=None, mode="General Mode"):
     if normalized_mode == "Advanced Stress Testing":
         return list(ALL_SCENARIOS)
     return list(COUNTRY_SCENARIO_MAP.get(str(country), ALL_SCENARIOS))
+
+
+def get_geological_hazard_module_note():
+    """Return the current scope note for future geological hazards."""
+    return GEOLOGICAL_HAZARD_MODULE_NOTE
 
 
 def evaluate_scenario_plausibility(country, city, scenario):
