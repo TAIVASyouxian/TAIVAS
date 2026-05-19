@@ -3318,6 +3318,161 @@ def render_scenario_comparison_matrix():
     st.dataframe(scenario_comparison_matrix(), use_container_width=True, hide_index=True)
 
 
+def generate_agentic_advisory(simulation_results, context):
+    # Agentic Advisory Layer V1: decision-support synthesis only.
+    # Reads existing model outputs and returns structured guidance without changing calculations.
+    demand = float(simulation_results.get("demand", 0.0) or 0.0)
+    renewable_supply = float(simulation_results.get("renewable_supply", 0.0) or 0.0)
+    final_supply = float(simulation_results.get("final_supply", 0.0) or 0.0)
+    battery_levels = float(simulation_results.get("battery_levels", 0.0) or 0.0)
+    shortfall = float(simulation_results.get("shortfall", 0.0) or 0.0)
+    renewable_ratio = float(simulation_results.get("renewable_ratio", 0.0) or 0.0)
+    system_efficiency = float(simulation_results.get("system_efficiency", 0.0) or 0.0)
+    grid_dependency = float(simulation_results.get("grid_dependency", 0.0) or 0.0)
+    battery_capacity_value = max(float(context.get("battery_capacity", 0.0) or 0.0), 0.0)
+    battery_ratio = safe_div(battery_levels, battery_capacity_value) if battery_capacity_value > 0 else 1.0
+    shortfall_ratio = safe_div(shortfall, demand) if demand > 0 else 0.0
+
+    if shortfall_ratio >= 0.15 or battery_ratio < 0.15:
+        risk_tier = "CRITICAL"
+    elif shortfall_ratio >= 0.05 or battery_ratio < 0.30 or grid_dependency >= 25:
+        risk_tier = "HIGH"
+    elif shortfall > 0 or grid_dependency >= 10 or battery_ratio < 0.50:
+        risk_tier = "MODERATE"
+    else:
+        risk_tier = "LOW"
+
+    if shortfall > 0:
+        detected_issue = f"The system suggests a modeled energy gap of {shortfall:.2f} MW under the selected scenario."
+    elif battery_ratio < 0.50:
+        detected_issue = "The system suggests battery reserve should be monitored because available buffer is reduced."
+    elif grid_dependency >= 10:
+        detected_issue = "The system suggests backup grid need is elevated under the selected scenario."
+    else:
+        detected_issue = "No modeled operational energy stress detected under current scenario assumptions."
+
+    reason = (
+        f"For {context.get('city', 'the selected city')}, {context.get('country', 'the selected country')} under "
+        f"{str(context.get('scenario', 'selected')).replace('_', ' ').title()}, modeled demand is {demand:.2f} MW, "
+        f"final supply is {final_supply:.2f} MW, renewable share is {renewable_ratio:.2f}%, "
+        f"system stability is {system_efficiency:.2f}%, and backup grid need is {grid_dependency:.2f}%."
+    )
+
+    recommended_actions = []
+    if shortfall > 0:
+        recommended_actions.append("Recommended action: review critical-load prioritization and available backup supply.")
+        recommended_actions.append("Recommended action: evaluate temporary demand reduction for non-essential loads.")
+    if battery_ratio < 0.50:
+        recommended_actions.append("Recommended action: verify battery reserve assumptions and storage readiness.")
+    if renewable_supply < demand:
+        recommended_actions.append("Recommended action: review renewable variability and firm-capacity assumptions.")
+    if grid_dependency >= 10:
+        recommended_actions.append("Recommended action: review backup grid dependency and external supply constraints.")
+    if not recommended_actions:
+        recommended_actions.append("Recommended action: continue monitoring scenario assumptions and preserve reserve margin.")
+
+    checklist = [
+        "Confirm selected city, facility type, and scenario inputs.",
+        "Review energy gap, battery reserve, renewable share, and backup grid need.",
+        "Check uploaded data quality and source classification if CSV data is used.",
+        "Compare selected scenario against baseline before communicating conclusions.",
+        "Record human review before operational changes are made.",
+    ]
+
+    management_summary = (
+        f"TAIVAS Agentic Advisory Layer classifies the current scenario as {risk_tier}. "
+        f"{detected_issue} Human confirmation is required before operational changes."
+    )
+
+    report_lines = [
+        "# TAIVAS Agentic Advisory Report",
+        "",
+        f"- Location: {context.get('city', '-')}, {context.get('country', '-')}",
+        f"- Scenario: {str(context.get('scenario', '-')).replace('_', ' ').title()}",
+        f"- Risk Tier: {risk_tier}",
+        "",
+        "## What the system detected",
+        detected_issue,
+        "",
+        "## Why it matters",
+        reason,
+        "",
+        "## Recommended actions",
+        *[f"- {action}" for action in recommended_actions],
+        "",
+        "## Operational checklist",
+        *[f"- [ ] {item}" for item in checklist],
+        "",
+        "## Management summary",
+        management_summary,
+        "",
+        "## Decision-support boundary",
+        "This tool provides decision support and does not guarantee real-world outcomes. Human confirmation is required before operational changes.",
+    ]
+
+    return {
+        "risk_tier": risk_tier,
+        "detected_issue": detected_issue,
+        "reason": reason,
+        "recommended_actions": recommended_actions,
+        "checklist": checklist,
+        "management_summary": management_summary,
+        "report_markdown": "\n".join(report_lines),
+    }
+
+
+def current_agentic_advisory():
+    context = {
+        "country": active_country,
+        "city": active_city,
+        "scenario": scenario_key,
+        "facility_type": facility_type,
+        "battery_capacity": inputs.get("battery_capacity", 0.0),
+    }
+    return generate_agentic_advisory(results, context)
+
+
+def render_agentic_advisory_layer():
+    advisory = current_agentic_advisory()
+    st.subheader("TAIVAS Agentic Advisory Layer")
+    st.markdown(
+        f"""
+        <div class="risk-strip">
+          <div>
+            <div class="risk-title">Risk Tier: {advisory["risk_tier"]}</div>
+            <div class="risk-note">Human confirmation is required before operational changes.</div>
+          </div>
+          <div class="risk-badge risk-{advisory["risk_tier"].lower() if advisory["risk_tier"] != "MODERATE" else "moderate"}">{advisory["risk_tier"]}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(f'<div class="note"><b>What the system detected:</b> {advisory["detected_issue"]}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="note"><b>Why it matters:</b> {advisory["reason"]}</div>', unsafe_allow_html=True)
+    action_cols = st.columns(2)
+    with action_cols[0]:
+        st.markdown("##### Recommended Actions")
+        for action in advisory["recommended_actions"]:
+            st.write(f"- {action}")
+    with action_cols[1]:
+        st.markdown("##### Operational Checklist")
+        for item in advisory["checklist"]:
+            st.checkbox(item, value=False, key=f"agentic_check_{item}")
+    st.markdown(
+        '<div class="governance-notice"><b>Human Confirmation Required:</b> This tool provides decision support and does not guarantee real-world outcomes. It does not automatically control infrastructure or replace qualified review.</div>',
+        unsafe_allow_html=True,
+    )
+    with st.expander("Management Summary and Exportable Markdown Report", expanded=False):
+        st.write(advisory["management_summary"])
+        st.download_button(
+            "Download Agentic Advisory Markdown",
+            advisory["report_markdown"],
+            file_name="taivas_agentic_advisory_report.md",
+            mime="text/markdown",
+        )
+        st.code(advisory["report_markdown"], language="markdown")
+
+
 def build_audit_trail_record():
     from datetime import datetime
 
@@ -3349,6 +3504,7 @@ def build_audit_trail_record():
         "baseline_outputs": baseline_results,
         "timeline_outputs": timeline_results,
         "ai_recommendations": conditional_recommendation_lines(),
+        "agentic_advisory": current_agentic_advisory(),
         "explainable_ai": explainable_ai_rows().to_dict(orient="records"),
         "confidence": confidence,
         "scenario_matrix": scenario_comparison_matrix().to_dict(orient="records"),
@@ -3475,6 +3631,7 @@ def render_why_this_matters_panel():
 # UI-ONLY CHANGE END
 
 def build_executive_summary_text():
+    advisory = current_agentic_advisory()
     lines = [
         "TAIVAS Executive Summary",
         "========================",
@@ -3492,6 +3649,11 @@ def build_executive_summary_text():
         f"- Battery Remaining: {results['battery_levels']} MWh",
         f"- System Efficiency: {results['system_efficiency']}%",
         f"- Grid Dependency: {results['grid_dependency']}%",
+        "",
+        "Agentic Advisory Layer",
+        f"- Risk Tier: {advisory['risk_tier']}",
+        f"- Detected Issue: {advisory['detected_issue']}",
+        f"- Management Summary: {advisory['management_summary']}",
         "",
         "Risk Notes",
         f"- Geopolitical Risk Level: {geopolitical_shock.get('risk_level', 'N/A')}",
@@ -3542,6 +3704,7 @@ def render_executive_overview_workspace():
 
 
 summary_txt = build_executive_summary_text()
+agentic_advisory_markdown = current_agentic_advisory()["report_markdown"]
 buf_scen = StringIO(); comparison_dataframe(inputs, failure_ratios, reserve_recovery_lag_days).to_csv(buf_scen, index=False)
 buf_reason = StringIO(); pd.DataFrame(recommendation_reason_chain(results, energy_security_scenario, timeline_results, facility_type, facility_profile)).to_csv(buf_reason, index=False)
 audit_json = json.dumps(build_audit_trail_record(), indent=2, ensure_ascii=False)
@@ -3551,7 +3714,7 @@ def render_export_center():
         render_decision_support_notice("Report and audit boundary")
         st.caption("Download scenario data, reason chain, executive summary, or audit trail when needed.")
         render_data_classification_chips()
-        download_cols = st.columns(4)
+        download_cols = st.columns(5)
         with download_cols[0]:
             st.download_button(tr("download_scenario"), buf_scen.getvalue(), file_name="taivas_scenarios.csv", mime="text/csv")
         with download_cols[1]:
@@ -3560,6 +3723,8 @@ def render_export_center():
             st.download_button(tr("download_summary"), summary_txt, file_name="taivas_executive_summary.txt", mime="text/plain")
         with download_cols[3]:
             st.download_button(tr("download_audit"), audit_json, file_name="taivas_audit_trail.json", mime="application/json")
+        with download_cols[4]:
+            st.download_button("Agentic Report MD", agentic_advisory_markdown, file_name="taivas_agentic_advisory_report.md", mime="text/markdown")
 
 # UI IMPROVEMENT START
 # Donut chart UI renderer only: fixed source colors and external legend prevent label overlap.
@@ -4911,6 +5076,7 @@ def render_product_overview():
     # UI-ONLY CHANGE END
     render_context_cards()
     render_main_system_status()
+    render_agentic_advisory_layer()
     render_battery_storage_status()
     render_renewable_mix_summary()
     with st.expander(tr("view_detailed_analysis"), expanded=False):
