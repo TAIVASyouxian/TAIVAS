@@ -536,7 +536,7 @@ I18N = {
         "baseline_vs_selected": "Baseline vs Selected Scenario",
         "all_scenarios": "All Weather Scenarios",
         "critical_breakdown": "Critical Load Breakdown",
-        "quick_reco": "Quick Recommendation Layer",
+    "quick_reco": "Suggested Actions",
         "reason_chain": "Reason Chain",
         "priority_signals": "Priority Signals",
         "timeline_chart": "Timeline Chart",
@@ -1515,6 +1515,51 @@ section[data-testid="stSidebar"] .stFileUploader {
     font-size: 0.96rem;
 }
 .quick-start b {display:block; margin-bottom:0.18rem;}
+.usage-guide {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.7rem;
+    margin: 0.75rem 0 0.95rem 0;
+}
+.usage-step {
+    border: 1px solid rgba(96,165,250,0.22);
+    border-radius: 12px;
+    background: rgba(15,23,42,0.42);
+    padding: 0.82rem 0.9rem;
+}
+.usage-step b {
+    display: block;
+    color: #F8FAFC;
+    margin-bottom: 0.24rem;
+    font-size: 0.96rem;
+}
+.usage-step span {
+    color: #A7B3C7;
+    font-size: 0.9rem;
+    line-height: 1.42;
+}
+.audience-card {
+    border: 1px solid rgba(148,163,184,0.18);
+    border-radius: 12px;
+    background: rgba(15,23,42,0.34);
+    padding: 0.88rem 1rem;
+    margin: 0.7rem 0 1rem 0;
+}
+.audience-card b {display:block; margin-bottom:0.42rem;}
+.audience-list {
+    display:flex;
+    flex-wrap:wrap;
+    gap:0.42rem;
+}
+.audience-pill {
+    border:1px solid rgba(96,165,250,0.22);
+    border-radius:999px;
+    background:rgba(59,130,246,0.09);
+    padding:0.28rem 0.52rem;
+    color:#D7DEE9;
+    font-size:0.84rem;
+    font-weight:750;
+}
 .section-break {
     height: 1px;
     background: rgba(148,163,184,0.18);
@@ -1624,6 +1669,7 @@ div[data-testid="stDataFrame"] {font-size: 0.95rem;}
 @media (max-width: 560px) {
     html, body, [class*="css"] {font-size: 15px;}
     .product-strip {grid-template-columns: 1fr;}
+    .usage-guide {grid-template-columns: 1fr;}
     .hero, .note, .question, .card, .layer-box, .product-card {padding: 0.9rem;}
     .stTabs [data-baseweb="tab"] {font-size: 0.88rem; padding: 0.5rem 0.65rem;}
 }
@@ -1901,6 +1947,21 @@ st.markdown("""
 .emergency-summary h3 {
     margin: 0 0 0.65rem 0;
     font-size: 1.05rem;
+}
+.emergency-summary.primary-brief {
+    border-color: rgba(56,189,248,0.42);
+    background:
+        linear-gradient(135deg, rgba(8,47,73,0.58), rgba(15,23,42,0.84)),
+        radial-gradient(circle at 88% 10%, rgba(34,211,238,0.13), transparent 26%);
+    padding: 1.18rem 1.2rem;
+    margin: 0.3rem 0 1.05rem 0;
+}
+.emergency-summary.primary-brief h3 {
+    font-size: 1.34rem;
+    letter-spacing: 0;
+}
+.emergency-summary.primary-brief .emergency-text {
+    font-size: 1rem;
 }
 .emergency-grid {
     display: grid;
@@ -2737,29 +2798,30 @@ extend_i18n()
 # USER-FRIENDLY UI START
 # Plain-English display labels and helper copy only. Calculation keys and formulas stay unchanged.
 I18N["English"].update({
-    "shortfall": "Energy Gap",
-    "grid": "Backup Grid Need",
+    "renewable": "Available Renewable Energy",
+    "shortfall": "Possible Energy Gap",
+    "grid": "Need for External Power",
     "rr": "Renewable Share",
-    "eff": "System Stability",
+    "eff": "System Performance",
     "quick_start": "Quick Start",
-    "quick_start_body": "Choose a city, select a climate scenario, then run the simulation.",
+    "quick_start_body": "Choose a city, select an extreme weather scenario, then review risk and suggested actions.",
     "basic_setup": "Basic Setup",
     "scenario_setup": "Scenario",
     "energy_capacity": "Energy Capacity",
     "advanced_settings": "Advanced Settings",
     "export_report": "Export / Report",
     "basic_setup_help": "Start here. Pick the location, facility type, and population.",
-    "scenario_help": "Choose the climate or disruption situation you want to test.",
-    "capacity_help": "Set the available local energy resources. Higher capacity usually improves resilience.",
+    "scenario_help": "Choose the type of extreme weather you want to test.",
+    "capacity_help": "Set how much energy can be generated locally and how much backup power is available.",
     "advanced_help": "Optional expert controls for weather details, component failures, security risk, timeline, and thermal concepts.",
     "export_help": "After the simulation loads, use the Export Center in the dashboard to download CSV, TXT, or JSON reports.",
-    "metric_help": "Energy Gap shows unmet demand. Renewable Share shows how much supply comes from renewables. System Stability is the simplified health score. Backup Grid Need shows how much outside grid support may be needed.",
-    "product_positioning": "TAIVAS is an energy resilience decision-support simulator for evaluating infrastructure stability under extreme climate scenarios.",
+    "metric_help": "Possible Energy Gap shows unmet demand. Available Renewable Energy shows local renewable supply. System Performance is the simplified health score. Need for External Power shows how much outside support may be needed.",
+    "product_positioning": "TAIVAS is a decision-support simulation tool. It does not predict the future with certainty. It helps users explore possible risks and response options.",
     "main_system_status": "Main System Status",
     "battery_storage_status": "Battery / Storage Status",
     "renewable_mix": "Renewable Mix",
-    "advanced_analytics": "Advanced Analytics",
-    "scenario_analysis": "Scenario Analysis",
+    "advanced_analytics": "Advanced Analysis",
+    "scenario_analysis": "What Changes Under This Scenario?",
     "overview": "Overview",
     "view_detailed_analysis": "View Detailed Technical Analysis",
     "low_shortfall_risk": "Low shortfall risk",
@@ -2825,12 +2887,14 @@ with st.sidebar:
     default_country = uploaded_profile["country"] if (use_uploaded and uploaded_profile) else list(merged_city_data.keys())[0]
     country_options = list(merged_city_data.keys())
     country_index = country_options.index(default_country) if default_country in country_options else 0
-    country = basic_panel.selectbox(tr("country"), country_options, index=country_index, disabled=(use_uploaded and uploaded_profile is not None), help="Choose the country or uploaded location profile.")
+    country = basic_panel.selectbox(tr("country"), country_options, index=country_index, disabled=(use_uploaded and uploaded_profile is not None), help="Step 1: Choose the country you want to test.")
+    basic_panel.caption("Choose the country for this energy-risk simulation.")
 
     city_options = list(merged_city_data[country].keys())
     default_city = uploaded_profile["city"] if (use_uploaded and uploaded_profile and uploaded_profile["country"] == country) else city_options[0]
     city_index = city_options.index(default_city) if default_city in city_options else 0
-    city = basic_panel.selectbox(tr("city"), city_options, index=city_index, disabled=(use_uploaded and uploaded_profile is not None), help="Choose the city to simulate.")
+    city = basic_panel.selectbox(tr("city"), city_options, index=city_index, disabled=(use_uploaded and uploaded_profile is not None), help="Step 1: Choose the city or area you want to review.")
+    basic_panel.caption("Choose the city or area where energy risk should be reviewed.")
     city_profile = merged_city_data[country][city]
 
     active_country = uploaded_profile["country"] if (use_uploaded and uploaded_profile) else country
@@ -2861,8 +2925,9 @@ with st.sidebar:
         tr("weather_scenario"),
         allowed_scenario_keys,
         format_func=lambda key: key.replace("_", " ").title(),
-        help="Pick the main situation to simulate. General Mode filters for regional plausibility.",
+        help="Step 2: Choose the type of extreme weather you want to test.",
     )
+    scenario_panel.caption("Choose the type of extreme weather you want TAIVAS to simulate.")
     scenario_warning = build_scenario_warning(active_country, active_city, scenario_key, scenario_mode)
     if scenario_warning["show_warning"]:
         scenario_panel.warning(f'{scenario_warning["label"]}: {scenario_warning["message"]} {scenario_warning["mode_note"]}'.strip())
@@ -2873,9 +2938,11 @@ with st.sidebar:
 
     capacity_panel = st.expander(tr("energy_capacity"), expanded=True)
     capacity_panel.caption(tr("capacity_help"))
-    solar_capacity = capacity_panel.slider(tr("solar_capacity"), 0, 500, int(clamp((uploaded_profile["solar_capacity"] if (use_uploaded and uploaded_profile) else 120), 0, 500)), 5, help="Local solar power capacity in MW.")
-    wind_capacity = capacity_panel.slider(tr("wind_capacity"), 0, 500, int(clamp((uploaded_profile["wind_capacity"] if (use_uploaded and uploaded_profile) else 80), 0, 500)), 5, help="Local wind power capacity in MW.")
-    battery_capacity = capacity_panel.slider(tr("battery_capacity"), 0, 1000, int(clamp((uploaded_profile["battery_capacity"] if (use_uploaded and uploaded_profile) else 180), 0, 1000)), 10, help="Battery reserve capacity in MWh.")
+    solar_capacity = capacity_panel.slider(tr("solar_capacity"), 0, 500, int(clamp((uploaded_profile["solar_capacity"] if (use_uploaded and uploaded_profile) else 120), 0, 500)), 5, help="Renewable Capacity: how much solar energy can be generated locally.")
+    wind_capacity = capacity_panel.slider(tr("wind_capacity"), 0, 500, int(clamp((uploaded_profile["wind_capacity"] if (use_uploaded and uploaded_profile) else 80), 0, 500)), 5, help="Renewable Capacity: how much wind energy can be generated locally.")
+    capacity_panel.caption("Renewable Capacity: how much energy can be generated locally.")
+    battery_capacity = capacity_panel.slider(tr("battery_capacity"), 0, 1000, int(clamp((uploaded_profile["battery_capacity"] if (use_uploaded and uploaded_profile) else 180), 0, 1000)), 10, help="Battery Capacity: how much backup power is available.")
+    capacity_panel.caption("Battery Capacity: how much backup power is available.")
     capacity_panel.caption("Data label: User Input")
 
     advanced_panel = st.expander(tr("advanced_settings"), expanded=False)
@@ -3100,7 +3167,7 @@ def render_plain_language_emergency_summary():
     scenario_label = scenario_key.replace("_", " ").title()
     st.markdown(
         f"""
-        <div class="emergency-summary">
+        <div class="emergency-summary primary-brief">
           <h3>Plain-Language Emergency Summary</h3>
           <div class="emergency-grid">
             <div class="emergency-item">
@@ -3119,6 +3186,79 @@ def render_plain_language_emergency_summary():
               <div class="emergency-label">First check</div>
               <div class="emergency-text">Review battery reserve, energy gap, and backup grid need first.</div>
             </div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def friendly_risk_level():
+    tier = str(results.get("risk_tier", "")).lower()
+    gap_ratio = safe_div(results.get("shortfall", 0.0), results.get("demand", 0.0)) if results.get("demand", 0.0) else 0.0
+    battery_ratio = safe_div(results.get("battery_levels", 0.0), inputs.get("battery_capacity", 0.0)) if inputs.get("battery_capacity", 0.0) else 1.0
+    if tier == "critical" or gap_ratio >= 0.15 or battery_ratio < 0.15:
+        return "High"
+    if tier in ("high", "elevated") or gap_ratio > 0 or results.get("grid_dependency", 0.0) >= 10 or battery_ratio < 0.5:
+        return "Medium"
+    return "Low"
+
+
+def emergency_brief_main_problem():
+    battery_ratio = safe_div(results.get("battery_levels", 0.0), inputs.get("battery_capacity", 0.0)) if inputs.get("battery_capacity", 0.0) else 1.0
+    if results.get("shortfall", 0.0) > 0:
+        return "Available energy may not fully meet demand."
+    if battery_ratio < 0.5:
+        return "Battery backup may not be enough if stress continues."
+    if results.get("grid_dependency", 0.0) >= 10:
+        return "The system may need more external power support."
+    if results.get("renewable_supply", 0.0) < baseline_results.get("renewable_supply", 0.0):
+        return "Available renewable energy is lower than baseline."
+    return "No major energy gap is detected in this simulation."
+
+
+def emergency_brief_suggested_action():
+    try:
+        advisory = current_agentic_advisory()
+        actions = advisory.get("recommended_actions", [])
+        if actions:
+            return actions[0].replace("Recommended action: ", "")
+    except Exception:
+        pass
+    if results.get("shortfall", 0.0) > 0:
+        return "Reduce non-critical load and review backup storage."
+    return "Continue monitoring the scenario and keep reserve capacity available."
+
+
+def render_emergency_brief():
+    # Decision Support Layer: first-screen summary for non-expert users.
+    gap_pct = safe_div(results.get("shortfall", 0.0), results.get("demand", 0.0)) * 100 if results.get("demand", 0.0) else 0.0
+    risk_level = friendly_risk_level()
+    risk_class = "risk-low" if risk_level == "Low" else "risk-moderate" if risk_level == "Medium" else "risk-high"
+    st.markdown(
+        f"""
+        <div class="emergency-summary">
+          <h3>Emergency Brief</h3>
+          <div class="emergency-grid">
+            <div class="emergency-item">
+              <div class="emergency-label">Risk Level</div>
+              <div class="emergency-text"><span class="risk-badge {risk_class}">{risk_level}</span></div>
+            </div>
+            <div class="emergency-item">
+              <div class="emergency-label">Possible Energy Gap</div>
+              <div class="emergency-text">{gap_pct:.1f}% of demand ({results.get("shortfall", 0.0):.2f} MW)</div>
+            </div>
+            <div class="emergency-item">
+              <div class="emergency-label">Main Problem</div>
+              <div class="emergency-text">{emergency_brief_main_problem()}</div>
+            </div>
+            <div class="emergency-item">
+              <div class="emergency-label">Suggested Action</div>
+              <div class="emergency-text">{emergency_brief_suggested_action()}</div>
+            </div>
+          </div>
+          <div class="communication-disclaimer">
+            TAIVAS is a decision-support simulation tool. It does not predict the future with certainty. It helps users explore possible risks and response options.
           </div>
         </div>
         """,
@@ -3830,9 +3970,9 @@ def render_governance_readiness_panel():
 st.markdown(
     """
     <div class="taivas-brand">
-      <div class="taivas-brand-title">TAIVAS</div>
-      <div class="taivas-brand-subtitle">Climate &amp; Energy Resilience Platform</div>
-      <div class="taivas-brand-kicker">Decision-Support Simulation Environment</div>
+      <div class="taivas-brand-title">TAIVAS Extreme Weather Energy Decision Support</div>
+      <div class="taivas-brand-subtitle">TAIVAS helps users quickly understand where energy risk may appear during extreme weather, and what actions to consider first.</div>
+      <div class="taivas-brand-kicker">Decision-support simulation for city, facility, and energy resilience review.</div>
       <div class="command-meta">
         <span class="command-chip">Scenario-based</span>
         <span class="command-chip">Decision support</span>
@@ -3844,10 +3984,27 @@ st.markdown(
 )
 # UI REFINEMENT END
 st.markdown(f'<div class="quick-start"><b>{tr("quick_start")}</b>{tr("quick_start_body")}</div>', unsafe_allow_html=True)
-# UI-ONLY CHANGE START
-render_plain_language_emergency_summary()
-render_public_risk_communication_summary()
-# UI-ONLY CHANGE END
+st.caption("Results update after you choose the location and scenario.")
+st.markdown(
+    """
+    <div class="usage-guide">
+      <div class="usage-step"><b>Step 1</b><span>Choose country and city.</span></div>
+      <div class="usage-step"><b>Step 2</b><span>Select an extreme weather scenario.</span></div>
+      <div class="usage-step"><b>Step 3</b><span>Run simulation and review risk + recommended actions.</span></div>
+    </div>
+    <div class="audience-card">
+      <b>Who is this for?</b>
+      <div class="audience-list">
+        <span class="audience-pill">City planners</span>
+        <span class="audience-pill">Energy teams</span>
+        <span class="audience-pill">Emergency managers</span>
+        <span class="audience-pill">Infrastructure operators</span>
+        <span class="audience-pill">Non-expert decision makers</span>
+      </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 # PRODUCT UI RESTRUCTURE END
 
 # UI-ONLY CHANGE START
@@ -5334,27 +5491,31 @@ def render_context_cards():
 
 
 def render_product_overview():
-    render_why_this_matters_panel()
+    render_emergency_brief()
     render_scenario_plausibility_panel()
-    render_confidence_panel()
-    render_operational_summary_panel()
-    # UI-ONLY CHANGE START
-    render_risk_tier_panel()
-    # UI-ONLY CHANGE END
     render_context_cards()
     render_main_system_status()
-    render_agentic_advisory_layer()
-    render_operational_monitoring_layer()
-    render_operational_workflow_layer()
-    render_battery_storage_status()
-    render_renewable_mix_summary()
-    with st.expander(tr("view_detailed_analysis"), expanded=False):
+    with st.expander("Advanced Analysis", expanded=False):
+        st.caption("Technical charts, assumptions, monitoring layers, and detailed metrics are kept here for analyst review.")
+        render_why_this_matters_panel()
+        render_plain_language_emergency_summary()
+        render_public_risk_communication_summary()
+        render_confidence_panel()
+        render_operational_summary_panel()
+        # UI-ONLY CHANGE START
+        render_risk_tier_panel()
+        # UI-ONLY CHANGE END
+        render_agentic_advisory_layer()
+        render_operational_monitoring_layer()
+        render_operational_workflow_layer()
+        render_battery_storage_status()
+        render_renewable_mix_summary()
         render_ai_recommendation_workspace()
         render_energy_security_workspace()
 
 
 def render_product_scenario_analysis():
-    scenario_tabs = st.tabs(["Comparison", "Visual Simulator", "Recommendations"])
+    scenario_tabs = st.tabs(["What Changes Under This Scenario?", "Visual Simulator", "Suggested Actions"])
     with scenario_tabs[0]:
         render_scenario_comparison_workspace()
     with scenario_tabs[1]:
