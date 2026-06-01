@@ -3972,7 +3972,7 @@ st.markdown(
     <div class="taivas-brand">
       <div class="taivas-brand-title">TAIVAS Extreme Weather Energy Decision Support</div>
       <div class="taivas-brand-subtitle">TAIVAS helps users quickly understand where energy risk may appear during extreme weather, and what actions to consider first.</div>
-      <div class="taivas-brand-kicker">Decision-support simulation for city, facility, and energy resilience review.</div>
+      <div class="taivas-brand-kicker">A quick simulation tool for understanding energy risk before extreme weather.</div>
       <div class="command-meta">
         <span class="command-chip">Scenario-based</span>
         <span class="command-chip">Decision support</span>
