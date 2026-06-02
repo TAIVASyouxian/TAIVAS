@@ -6,7 +6,6 @@ import uuid
 import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 
 # Dark-mode friendly chart defaults for Streamlit dashboards.
 plt.rcParams.update({
@@ -118,7 +117,6 @@ TAIVAS_RUNTIME_CONFIG = {
     "environment": os.getenv("TAIVAS_ENV", "local"),
     "audit_backend": os.getenv("TAIVAS_AUDIT_BACKEND", "export_only"),
     "audit_log_path": os.getenv("TAIVAS_AUDIT_LOG_PATH", ""),
-    "google_maps_api_key": os.getenv("GOOGLE_MAPS_API_KEY", ""),
 }
 
 st.set_page_config(
@@ -5596,144 +5594,6 @@ def render_main_system_status():
     # UI REFINEMENT END
 
 
-# MAP LAYER CHANGE START
-# Geospatial Visualization is a presentation-only layer. It reads the selected
-# city coordinates and existing simulation outputs, but it does not modify the
-# TAIVAS core simulation engine, formulas, or scenario logic.
-def get_google_maps_api_key():
-    try:
-        secret_value = st.secrets.get("GOOGLE_MAPS_API_KEY", "")
-        if secret_value:
-            return str(secret_value)
-    except Exception:
-        pass
-    return str(TAIVAS_RUNTIME_CONFIG.get("google_maps_api_key", "") or "")
-
-
-def scenario_overlay_style(scenario):
-    styles = {
-        "normal": {"color": "#22C55E", "label": "Normal"},
-        "heat_wave": {"color": "#F97316", "label": "Heat Wave"},
-        "storm": {"color": "#FACC15", "label": "Storm"},
-        "cold_wave": {"color": "#38BDF8", "label": "Cold Wave"},
-        "blizzard": {"color": "#1D4ED8", "label": "Blizzard"},
-        "typhoon": {"color": "#EF4444", "label": "Typhoon"},
-    }
-    return styles.get(scenario, {"color": "#94A3B8", "label": str(scenario).replace("_", " ").title()})
-
-
-def render_google_map_panel():
-    st.subheader("Geospatial Visualization")
-    st.caption("Map layer only. It visualizes the selected city and scenario risk area without changing simulation calculations.")
-
-    lat = safe_float(active_lat, 0.0)
-    lon = safe_float(active_lon, 0.0)
-    map_key = get_google_maps_api_key()
-    overlay = scenario_overlay_style(scenario_key)
-    risk_tier = str(results.get("risk_tier", calculate_risk_tier(results.get("shortfall", 0), results.get("demand", 0))))
-
-    if not map_key:
-        st.info(
-            "Google Maps API key is not configured. Add GOOGLE_MAPS_API_KEY in Streamlit Secrets or as an environment variable to enable the interactive map."
-        )
-        st.markdown(
-            f"""
-            <div class="quality-grid">
-              <div class="quality-card"><div class="quality-label">Selected City</div><div class="quality-value">{active_city}</div></div>
-              <div class="quality-card"><div class="quality-label">Latitude</div><div class="quality-value">{lat:.4f}</div></div>
-              <div class="quality-card"><div class="quality-label">Longitude</div><div class="quality-value">{lon:.4f}</div></div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        st.caption("Configuration: Streamlit Cloud > App settings > Secrets > add GOOGLE_MAPS_API_KEY = \"your-api-key\".")
-        return
-
-    payload = {
-        "lat": lat,
-        "lon": lon,
-        "city": active_city,
-        "country": active_country,
-        "scenario": scenario_key.replace("_", " ").title(),
-        "demand": results.get("demand", 0),
-        "renewable_supply": results.get("renewable_supply", 0),
-        "shortfall": results.get("shortfall", 0),
-        "renewable_ratio": results.get("renewable_ratio", 0),
-        "risk_tier": risk_tier,
-        "circle_color": overlay["color"],
-        "circle_label": overlay["label"],
-    }
-    js_payload = json.dumps(payload, ensure_ascii=False)
-    js_key = json.dumps(map_key)
-    map_html = f"""
-    <div id="taivas-map" style="height:430px; width:100%; border-radius:14px; overflow:hidden; border:1px solid rgba(96,165,250,0.28); background:#0B1220;"></div>
-    <div style="font-family:Inter,Arial,sans-serif; margin-top:8px; color:#A7B3C7; font-size:12px;">
-      Scenario risk overlay: <b style="color:{overlay["color"]};">{overlay["label"]}</b>. Visualization only; simulation values come from TAIVAS outputs.
-    </div>
-    <script>
-      const taivasMapData = {js_payload};
-      function initTaivasMap() {{
-        const center = {{ lat: taivasMapData.lat, lng: taivasMapData.lon }};
-        const map = new google.maps.Map(document.getElementById("taivas-map"), {{
-          center,
-          zoom: 10,
-          mapTypeId: "roadmap",
-          disableDefaultUI: false,
-          streetViewControl: false,
-          fullscreenControl: true,
-          mapTypeControl: false,
-          styles: [
-            {{ elementType: "geometry", stylers: [{{ color: "#111827" }}] }},
-            {{ elementType: "labels.text.stroke", stylers: [{{ color: "#111827" }}] }},
-            {{ elementType: "labels.text.fill", stylers: [{{ color: "#CBD5E1" }}] }},
-            {{ featureType: "water", elementType: "geometry", stylers: [{{ color: "#0F3A5B" }}] }},
-            {{ featureType: "road", elementType: "geometry", stylers: [{{ color: "#233044" }}] }},
-            {{ featureType: "poi", stylers: [{{ visibility: "off" }}] }}
-          ]
-        }});
-        const marker = new google.maps.Marker({{
-          position: center,
-          map,
-          title: `${{taivasMapData.city}}, ${{taivasMapData.country}}`
-        }});
-        const riskCircle = new google.maps.Circle({{
-          strokeColor: taivasMapData.circle_color,
-          strokeOpacity: 0.85,
-          strokeWeight: 2,
-          fillColor: taivasMapData.circle_color,
-          fillOpacity: 0.18,
-          map,
-          center,
-          radius: 42000
-        }});
-        const popupHtml = `
-          <div style="font-family:Inter,Arial,sans-serif; min-width:230px; color:#111827;">
-            <div style="font-weight:800; font-size:15px; margin-bottom:6px;">${{taivasMapData.city}}, ${{taivasMapData.country}}</div>
-            <div><b>Scenario:</b> ${{taivasMapData.scenario}}</div>
-            <div><b>Demand:</b> ${{taivasMapData.demand}} MW</div>
-            <div><b>Renewable Supply:</b> ${{taivasMapData.renewable_supply}} MW</div>
-            <div><b>Shortfall:</b> ${{taivasMapData.shortfall}} MW</div>
-            <div><b>Renewable Ratio:</b> ${{taivasMapData.renewable_ratio}}%</div>
-            <div><b>Risk Tier:</b> ${{taivasMapData.risk_tier}}</div>
-          </div>`;
-        const infoWindow = new google.maps.InfoWindow({{ content: popupHtml }});
-        marker.addListener("click", () => infoWindow.open(map, marker));
-        infoWindow.open(map, marker);
-      }}
-      if (!window.google || !window.google.maps) {{
-        const script = document.createElement("script");
-        script.src = "https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent({js_key}) + "&callback=initTaivasMap";
-        script.async = true;
-        script.defer = true;
-        document.head.appendChild(script);
-      }} else {{
-        initTaivasMap();
-      }}
-    </script>
-    """
-    components.html(map_html, height=485, scrolling=False)
-
-
 def render_battery_storage_status():
     # Energy System Layer: storage buffer and reserve behavior.
     st.subheader(tr("battery_storage_status"))
@@ -5781,7 +5641,6 @@ def render_product_overview():
     render_scenario_plausibility_panel()
     render_context_cards()
     render_main_system_status()
-    render_google_map_panel()
     with st.expander("Advanced Analysis", expanded=False):
         st.caption("Technical charts, assumptions, monitoring layers, and detailed metrics are kept here for analyst review.")
         render_why_this_matters_panel()
