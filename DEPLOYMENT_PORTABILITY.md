@@ -24,6 +24,32 @@ These variables are optional. If they are not set, the app uses Streamlit Cloud-
 | `TAIVAS_LAYOUT` | `wide` | Streamlit page layout. |
 | `TAIVAS_AUDIT_BACKEND` | `export_only` | Future audit backend selector. Current stable mode is export-only. |
 | `TAIVAS_AUDIT_LOG_PATH` | empty | Reserved for future local JSONL logging when explicitly enabled. |
+| `GOOGLE_MAPS_API_KEY` | empty | Optional Google Maps JavaScript API key for the Phase 1 geospatial visualization panel. |
+
+## Google Maps Phase 1 Configuration
+
+The geospatial visualization layer is optional and does not change TAIVAS calculations.
+
+For Streamlit Cloud:
+
+1. Open the app dashboard.
+2. Go to **App settings > Secrets**.
+3. Add:
+
+```toml
+GOOGLE_MAPS_API_KEY = "your-google-maps-api-key"
+```
+
+4. Reboot the app.
+
+For local development, set the environment variable before running Streamlit:
+
+```bash
+set GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+streamlit run taivas_control_center.py
+```
+
+Enable the **Maps JavaScript API** in Google Cloud for the key. Future APIs such as Google Weather, Solar, Elevation, Air Quality, 3D Maps, and multi-city comparison are reserved for later phases and are not required for Phase 1.
 
 ## Platform Migration Readiness
 
