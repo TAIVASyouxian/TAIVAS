@@ -30,6 +30,20 @@ except Exception:  # pragma: no cover - optional dependency fallback
     Table = None
     TableStyle = None
 
+try:
+    from pptx import Presentation
+    from pptx.dml.color import RGBColor
+    from pptx.enum.shapes import MSO_SHAPE
+    from pptx.enum.text import PP_ALIGN
+    from pptx.util import Inches, Pt
+except Exception:  # pragma: no cover - optional dependency fallback
+    Presentation = None
+    RGBColor = None
+    MSO_SHAPE = None
+    PP_ALIGN = None
+    Inches = None
+    Pt = None
+
 
 TAIVAS_TARGET_FIELDS = [
     "timestamp",
@@ -309,6 +323,231 @@ def build_pdf_report(context: dict, results: dict, inputs: dict, notes: str = ""
     return buffer.getvalue()
 
 
+def format_metric(value: object, unit: str = "") -> str:
+    if value is None or value == "":
+        return "-"
+    if isinstance(value, float):
+        text = f"{value:.2f}"
+    else:
+        text = str(value)
+    return f"{text} {unit}".strip()
+
+
+def recommendation_from_results(results: dict) -> str:
+    shortfall = float(results.get("shortfall", 0) or 0)
+    battery = float(results.get("battery_levels", 0) or 0)
+    grid_dependency = float(results.get("grid_dependency", 0) or 0)
+    if shortfall > 0:
+        return "Review critical-load prioritization, reduce non-essential demand, and verify backup supply readiness."
+    if battery <= 0:
+        return "Review storage assumptions and confirm available backup capacity before operational use."
+    if grid_dependency >= 10:
+        return "Review external power dependency and confirm backup grid support assumptions."
+    return "Continue monitoring scenario assumptions and preserve reserve margin."
+
+
+def add_textbox(slide, left, top, width, height, text, font_size=20, bold=False, color=(17, 24, 39), align=None):
+    box = slide.shapes.add_textbox(left, top, width, height)
+    frame = box.text_frame
+    frame.clear()
+    paragraph = frame.paragraphs[0]
+    if align is not None:
+        paragraph.alignment = align
+    run = paragraph.add_run()
+    run.text = str(text)
+    run.font.size = Pt(font_size)
+    run.font.bold = bold
+    run.font.color.rgb = RGBColor(*color)
+    return box
+
+
+def add_slide_title(slide, title, subtitle=None):
+    add_textbox(slide, Inches(0.55), Inches(0.35), Inches(12.2), Inches(0.48), title, font_size=25, bold=True, color=(15, 23, 42))
+    if subtitle:
+        add_textbox(slide, Inches(0.58), Inches(0.86), Inches(12.0), Inches(0.34), subtitle, font_size=11, color=(71, 85, 105))
+
+
+def add_key_value_table(slide, rows, left=0.7, top=1.35, width=12.0, height=4.6):
+    usable_rows = [[str(a), str(b)] for a, b in rows if b is not None]
+    if not usable_rows:
+        usable_rows = [["Status", "No data available"]]
+    table_shape = slide.shapes.add_table(len(usable_rows), 2, Inches(left), Inches(top), Inches(width), Inches(height))
+    table = table_shape.table
+    table.columns[0].width = Inches(width * 0.38)
+    table.columns[1].width = Inches(width * 0.62)
+    for row_idx, row in enumerate(usable_rows):
+        for col_idx, value in enumerate(row):
+            cell = table.cell(row_idx, col_idx)
+            cell.text = value
+            fill = cell.fill
+            fill.solid()
+            fill.fore_color.rgb = RGBColor(232, 238, 247) if col_idx == 0 else RGBColor(248, 250, 252)
+            for paragraph in cell.text_frame.paragraphs:
+                for run in paragraph.runs:
+                    run.font.size = Pt(12)
+                    run.font.bold = col_idx == 0
+                    run.font.color.rgb = RGBColor(17, 24, 39)
+    return table_shape
+
+
+def add_metric_cards(slide, metrics):
+    for index, (label, value) in enumerate(metrics[:4]):
+        left = Inches(0.65 + index * 3.1)
+        top = Inches(1.45)
+        shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, left, top, Inches(2.82), Inches(1.35))
+        shape.fill.solid()
+        shape.fill.fore_color.rgb = RGBColor(241, 245, 249)
+        shape.line.color.rgb = RGBColor(203, 213, 225)
+        add_textbox(slide, left + Inches(0.16), top + Inches(0.18), Inches(2.45), Inches(0.3), label, font_size=10, color=(71, 85, 105))
+        add_textbox(slide, left + Inches(0.16), top + Inches(0.58), Inches(2.45), Inches(0.5), value, font_size=18, bold=True, color=(15, 23, 42))
+
+
+def add_bar_comparison(slide, rows):
+    max_value = max([float(value or 0) for _, value, _ in rows] + [1.0])
+    top = Inches(1.45)
+    for index, (label, value, color) in enumerate(rows):
+        value = float(value or 0)
+        y = top + Inches(index * 0.72)
+        add_textbox(slide, Inches(0.75), y, Inches(2.2), Inches(0.32), label, font_size=11, bold=True)
+        background = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(3.05), y, Inches(7.6), Inches(0.28))
+        background.fill.solid()
+        background.fill.fore_color.rgb = RGBColor(226, 232, 240)
+        background.line.color.rgb = RGBColor(226, 232, 240)
+        bar_width = max(0.05, 7.6 * value / max_value)
+        bar = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(3.05), y, Inches(bar_width), Inches(0.28))
+        bar.fill.solid()
+        bar.fill.fore_color.rgb = RGBColor(*color)
+        bar.line.color.rgb = RGBColor(*color)
+        add_textbox(slide, Inches(10.85), y - Inches(0.02), Inches(1.5), Inches(0.32), f"{value:.2f} MW", font_size=10)
+
+
+def build_ppt_report(context: dict, results: dict, inputs: dict, notes: str = "") -> bytes:
+    # Rapid briefing deck generator: stable structure and correct data mapping
+    # are prioritized over advanced visual design.
+    if Presentation is None:
+        raise RuntimeError("PPT support requires python-pptx. Install python-pptx or update requirements.txt.")
+
+    prs = Presentation()
+    prs.slide_width = Inches(13.333)
+    prs.slide_height = Inches(7.5)
+    blank_layout = prs.slide_layouts[6]
+    generated = datetime.now().strftime("%Y-%m-%d %H:%M")
+    country = context.get("country", "-")
+    city = context.get("city", "-")
+    scenario = str(context.get("scenario", "-")).replace("_", " ").title()
+    risk_level = context.get("risk_level", results.get("risk_tier", "-"))
+
+    slide = prs.slides.add_slide(blank_layout)
+    add_textbox(slide, Inches(0.75), Inches(1.1), Inches(11.8), Inches(0.7), "TAIVAS Rapid Briefing Deck", font_size=32, bold=True, color=(15, 23, 42))
+    add_textbox(slide, Inches(0.78), Inches(1.92), Inches(11.5), Inches(0.42), f"{city}, {country} | {scenario}", font_size=18, color=(51, 65, 85))
+    add_textbox(slide, Inches(0.78), Inches(2.52), Inches(11.3), Inches(0.34), f"Generated: {generated}", font_size=12, color=(100, 116, 139))
+    add_textbox(slide, Inches(0.78), Inches(5.85), Inches(11.7), Inches(0.5), "Decision-support simulation only. Not a guaranteed forecast or command system.", font_size=13, bold=True, color=(71, 85, 105))
+
+    slide = prs.slides.add_slide(blank_layout)
+    add_slide_title(slide, "Test Summary", "High-level context for the completed TAIVAS simulation.")
+    add_key_value_table(slide, [
+        ["Country", country],
+        ["City", city],
+        ["Scenario", scenario],
+        ["Risk Level", risk_level],
+        ["Generated", generated],
+    ])
+
+    slide = prs.slides.add_slide(blank_layout)
+    add_slide_title(slide, "Scenario Input Summary", "Installed capacity and scenario inputs used by the current TAIVAS run.")
+    add_key_value_table(slide, [
+        ["Solar Capacity", format_metric(inputs.get("solar_capacity"), "MW")],
+        ["Wind Capacity", format_metric(inputs.get("wind_capacity"), "MW")],
+        ["Geothermal Capacity", format_metric(inputs.get("geothermal_capacity"), "MW")],
+        ["Hydro Capacity", format_metric(inputs.get("hydro_capacity"), "MW")],
+        ["Battery Capacity", format_metric(inputs.get("battery_capacity"), "MWh")],
+    ])
+
+    slide = prs.slides.add_slide(blank_layout)
+    add_slide_title(slide, "Key Output Metrics", "Primary outputs from the completed simulation.")
+    add_metric_cards(slide, [
+        ["Demand", format_metric(results.get("demand"), "MW")],
+        ["Renewable Supply", format_metric(results.get("renewable_supply"), "MW")],
+        ["Final Supply", format_metric(results.get("final_supply"), "MW")],
+        ["Energy Gap", format_metric(results.get("shortfall"), "MW")],
+    ])
+    add_key_value_table(slide, [
+        ["Renewable Ratio", format_metric(results.get("renewable_ratio"), "%")],
+        ["System Efficiency", format_metric(results.get("system_efficiency"), "%")],
+        ["Grid Dependency", format_metric(results.get("grid_dependency"), "%")],
+        ["Battery Level", format_metric(results.get("battery_levels"), "MWh")],
+    ], top=3.25, height=2.5)
+
+    slide = prs.slides.add_slide(blank_layout)
+    add_slide_title(slide, "Renewable Supply vs Demand", "Visual comparison of current demand and available supply.")
+    add_bar_comparison(slide, [
+        ["Demand", results.get("demand", 0), (56, 189, 248)],
+        ["Renewable Supply", results.get("renewable_supply", 0), (34, 197, 94)],
+        ["Final Supply", results.get("final_supply", 0), (96, 165, 250)],
+    ])
+
+    slide = prs.slides.add_slide(blank_layout)
+    add_slide_title(slide, "Possible Energy Gap Summary", "Shortfall is shown as a scenario output, not a confirmed prediction.")
+    gap = float(results.get("shortfall", 0) or 0)
+    demand = float(results.get("demand", 0) or 0)
+    gap_pct = (gap / demand * 100) if demand else 0
+    add_key_value_table(slide, [
+        ["Possible Energy Gap", f"{gap:.2f} MW"],
+        ["Gap Share of Demand", f"{gap_pct:.2f}%"],
+        ["Interpretation", "Review non-critical load and backup supply if an energy gap appears." if gap > 0 else "No modeled energy gap under current scenario assumptions."],
+    ])
+
+    slide = prs.slides.add_slide(blank_layout)
+    add_slide_title(slide, "Battery Level Summary", "Storage is treated as a resilience buffer in the current simulation output.")
+    add_key_value_table(slide, [
+        ["Battery Level", format_metric(results.get("battery_levels"), "MWh")],
+        ["Battery Capacity", format_metric(inputs.get("battery_capacity"), "MWh")],
+        ["Review Note", "Verify storage assumptions and operational availability before decisions."],
+    ])
+
+    slide = prs.slides.add_slide(blank_layout)
+    add_slide_title(slide, "Risk Level and Recommendation", "Decision-support guidance generated from current simulation outputs.")
+    add_key_value_table(slide, [
+        ["Risk Level", risk_level],
+        ["Recommendation", recommendation_from_results(results)],
+        ["Human Review", "Human confirmation is required before operational changes."],
+    ])
+
+    scenario_rows = context.get("scenario_comparison_rows")
+    if scenario_rows:
+        slide = prs.slides.add_slide(blank_layout)
+        add_slide_title(slide, "Scenario Comparison", "Comparison table from available TAIVAS scenario results.")
+        rows = [["Scenario", "Energy Gap", "System Efficiency"]]
+        for item in scenario_rows[:8]:
+            rows.append([
+                item.get("Scenario", "-"),
+                str(item.get("Energy Gap (MW)", item.get("Energy Gap", "-"))),
+                str(item.get("System Stability (%)", item.get("System Efficiency", "-"))),
+            ])
+        table_shape = slide.shapes.add_table(len(rows), 3, Inches(0.7), Inches(1.35), Inches(12.0), Inches(4.8))
+        table = table_shape.table
+        for row_idx, row in enumerate(rows):
+            for col_idx, value in enumerate(row):
+                cell = table.cell(row_idx, col_idx)
+                cell.text = value
+                cell.fill.solid()
+                cell.fill.fore_color.rgb = RGBColor(226, 232, 240) if row_idx == 0 else RGBColor(248, 250, 252)
+                for paragraph in cell.text_frame.paragraphs:
+                    for run in paragraph.runs:
+                        run.font.size = Pt(11)
+                        run.font.bold = row_idx == 0
+
+    slide = prs.slides.add_slide(blank_layout)
+    add_slide_title(slide, "Decision-Support Disclaimer", "Scope boundary for institutional review.")
+    add_textbox(slide, Inches(0.8), Inches(1.45), Inches(11.7), Inches(1.4), PDF_DISCLAIMER, font_size=17, color=(30, 41, 59))
+    if notes.strip():
+        add_textbox(slide, Inches(0.8), Inches(3.35), Inches(11.7), Inches(1.2), f"Notes: {notes.strip()}", font_size=13, color=(71, 85, 105))
+
+    output = BytesIO()
+    prs.save(output)
+    return output.getvalue()
+
+
 def safe_filename(value: object) -> str:
     text = str(value or "TAIVAS").strip()
     text = re.sub(r"[^A-Za-z0-9_-]+", "_", text).strip("_")
@@ -405,21 +644,42 @@ def render_csv_validator_tool():
 
 
 def render_pdf_report_tool(current_context: dict, current_results: dict, current_inputs: dict):
-    st.markdown("Generate a simple decision-support PDF report from the current TAIVAS simulation result.")
-    notes = st.text_area("Optional notes", "", key="toolkit_pdf_notes")
-    if st.button("Generate PDF Report", key="toolkit_pdf_generate"):
-        try:
-            pdf_bytes = build_pdf_report(current_context, current_results, current_inputs, notes)
-        except Exception as exc:
-            st.error(f"Unable to generate PDF report: {exc}")
-            return
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-        filename = (
-            f"TAIVAS_Report_{safe_filename(current_context.get('country'))}_"
-            f"{safe_filename(current_context.get('city'))}_{safe_filename(current_context.get('scenario'))}_{timestamp}.pdf"
-        )
-        st.download_button("Download PDF Report", pdf_bytes, file_name=filename, mime="application/pdf")
-        st.success("PDF report generated.")
+    st.markdown("Generate a simple decision-support PDF or rapid PowerPoint briefing deck from the current TAIVAS simulation result.")
+    st.caption("The PPT is a structured draft for review. It is not a highly designed investor deck.")
+    notes = st.text_area("Optional notes", "", key="toolkit_report_notes")
+    pdf_col, ppt_col = st.columns(2)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+    base_filename = (
+        f"TAIVAS_Report_{safe_filename(current_context.get('country'))}_"
+        f"{safe_filename(current_context.get('city'))}_{safe_filename(current_context.get('scenario'))}_{timestamp}"
+    )
+    with pdf_col:
+        if st.button("Generate PDF Report", key="toolkit_pdf_generate"):
+            try:
+                pdf_bytes = build_pdf_report(current_context, current_results, current_inputs, notes)
+            except Exception as exc:
+                st.error(f"Unable to generate PDF report: {exc}")
+            else:
+                st.download_button("Download PDF Report", pdf_bytes, file_name=f"{base_filename}.pdf", mime="application/pdf")
+                st.success("PDF report generated.")
+    with ppt_col:
+        if st.button("Generate PPT Briefing Deck", key="toolkit_ppt_generate"):
+            try:
+                ppt_bytes = build_ppt_report(current_context, current_results, current_inputs, notes)
+            except Exception as exc:
+                st.error(f"Unable to generate PPT report: {exc}")
+            else:
+                ppt_filename = (
+                    f"TAIVAS_Presentation_{safe_filename(current_context.get('country'))}_"
+                    f"{safe_filename(current_context.get('city'))}_{safe_filename(current_context.get('scenario'))}_{timestamp}.pptx"
+                )
+                st.download_button(
+                    "Download PPT Briefing Deck",
+                    ppt_bytes,
+                    file_name=ppt_filename,
+                    mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                )
+                st.success("PPT report generated.")
     st.caption(PDF_DISCLAIMER)
 
 
@@ -477,7 +737,7 @@ def render_taivas_utility_toolkit(current_context: dict, current_results: dict, 
     tabs = st.tabs([
         "Excel to TAIVAS CSV",
         "CSV Validator",
-        "PDF Report Exporter",
+        "PDF / PPT Report Generator",
         "Image Converter",
         "Batch Renamer",
     ])
