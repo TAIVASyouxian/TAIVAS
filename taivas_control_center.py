@@ -33,6 +33,12 @@ from data.csv_loader import read_csv_with_warnings
 from data.validation_utils import validate_uploaded_dataframe
 from export.audit_export import audit_record_to_json
 
+try:
+    from taivas_utility_toolkit import render_taivas_utility_toolkit
+except Exception:
+    def render_taivas_utility_toolkit(current_context, current_results, current_inputs):
+        st.warning("TAIVAS Utility Toolkit is unavailable. Verify taivas_utility_toolkit.py and optional dependencies are deployed.")
+
 # STABILIZATION CHANGE START
 # Agentic layers are business-logic modules and should remain reusable outside
 # Streamlit. Import fallbacks keep the prototype from hard-crashing if a cloud
@@ -5687,6 +5693,16 @@ def render_product_advanced_analytics():
         render_governance_readiness_panel()
     with advanced_tabs[6]:
         render_export_center()
+
+
+def render_product_utility_toolkit():
+    toolkit_context = {
+        "country": active_country,
+        "city": active_city,
+        "scenario": scenario_key,
+        "risk_level": friendly_risk_level(),
+    }
+    render_taivas_utility_toolkit(toolkit_context, results, inputs)
 # PRODUCT UI RESTRUCTURE END
 
 
@@ -5695,13 +5711,15 @@ def render_product_advanced_analytics():
 # Major results are organized into three tabs to reduce vertical overload.
 # -----------------------------------------------------------------------------
 st.markdown('<div class="section-break"></div>', unsafe_allow_html=True)
-product_tabs = st.tabs([tr("overview"), tr("scenario_analysis"), tr("advanced_analytics")])
+product_tabs = st.tabs([tr("overview"), tr("scenario_analysis"), tr("advanced_analytics"), "TAIVAS Utility Toolkit"])
 with product_tabs[0]:
     render_product_overview()
 with product_tabs[1]:
     render_product_scenario_analysis()
 with product_tabs[2]:
     render_product_advanced_analytics()
+with product_tabs[3]:
+    render_product_utility_toolkit()
 
 # UI-ONLY CHANGE START
 render_decision_support_notice("Dashboard footer")
