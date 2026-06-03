@@ -5600,6 +5600,197 @@ def render_main_system_status():
     # UI REFINEMENT END
 
 
+def pct_change(current, baseline):
+    if baseline in (0, 0.0, None):
+        return 0.0
+    return (float(current or 0.0) - float(baseline or 0.0)) / abs(float(baseline)) * 100.0
+
+
+def impact_label(score):
+    if score >= 15:
+        return "High impact"
+    if score >= 5:
+        return "Medium impact"
+    if score > 0:
+        return "Low impact"
+    return "No material impact"
+
+
+def compare_baseline_vs_scenario():
+    rows = [
+        ("Demand", "MW", results.get("demand", 0), baseline_results.get("demand", 0), False),
+        ("Renewable supply", "MW", results.get("renewable_supply", 0), baseline_results.get("renewable_supply", 0), False),
+        ("Final supply", "MW", results.get("final_supply", 0), baseline_results.get("final_supply", 0), False),
+        ("Possible energy gap", "MW", results.get("shortfall", 0), baseline_results.get("shortfall", 0), True),
+        ("Battery level", "MWh", results.get("battery_levels", 0), baseline_results.get("battery_levels", 0), False),
+        ("Renewable ratio", "%", results.get("renewable_ratio", 0), baseline_results.get("renewable_ratio", 0), False),
+        ("Grid dependency", "%", results.get("grid_dependency", 0), baseline_results.get("grid_dependency", 0), True),
+        ("System efficiency", "%", results.get("system_efficiency", 0), baseline_results.get("system_efficiency", 0), False),
+    ]
+    return pd.DataFrame([
+        {
+            "Metric": label,
+            "Baseline": round(float(baseline or 0), 2),
+            "Scenario": round(float(current or 0), 2),
+            "Delta": round(float(current or 0) - float(baseline or 0), 2),
+            "Unit": unit,
+        }
+        for label, unit, current, baseline, _ in rows
+    ])
+
+
+def rank_shortfall_drivers():
+    demand_delta_pct = pct_change(results.get("demand", 0), baseline_results.get("demand", 0))
+    renewable_delta_pct = pct_change(results.get("renewable_supply", 0), baseline_results.get("renewable_supply", 0))
+    final_supply_delta_pct = pct_change(results.get("final_supply", 0), baseline_results.get("final_supply", 0))
+    renewable_ratio_delta = float(results.get("renewable_ratio", 0) or 0) - float(baseline_results.get("renewable_ratio", 0) or 0)
+    grid_delta = float(results.get("grid_dependency", 0) or 0) - float(baseline_results.get("grid_dependency", 0) or 0)
+    efficiency_delta = float(results.get("system_efficiency", 0) or 0) - float(baseline_results.get("system_efficiency", 0) or 0)
+    battery_ratio = safe_div(results.get("battery_levels", 0), inputs.get("battery_capacity", 0)) if inputs.get("battery_capacity", 0) else 1.0
+
+    drivers = []
+    if demand_delta_pct > 0:
+        drivers.append({
+            "Driver": "Demand surge",
+            "Impact": max(demand_delta_pct, 0),
+            "Evidence": f"Demand is {demand_delta_pct:+.1f}% vs baseline.",
+        })
+    if renewable_delta_pct < 0:
+        drivers.append({
+            "Driver": "Renewable supply drop",
+            "Impact": abs(renewable_delta_pct),
+            "Evidence": f"Renewable supply is {renewable_delta_pct:+.1f}% vs baseline.",
+        })
+    if final_supply_delta_pct < 0:
+        drivers.append({
+            "Driver": "Final supply reduction",
+            "Impact": abs(final_supply_delta_pct),
+            "Evidence": f"Final supply is {final_supply_delta_pct:+.1f}% vs baseline.",
+        })
+    if results.get("shortfall", 0) > 0 or battery_ratio < 0.5:
+        battery_impact = max(0.0, (1.0 - battery_ratio) * 30.0)
+        drivers.append({
+            "Driver": "Battery capacity limitation",
+            "Impact": battery_impact,
+            "Evidence": f"Battery reserve is {battery_ratio * 100:.1f}% of configured capacity.",
+        })
+    if renewable_ratio_delta < 0:
+        drivers.append({
+            "Driver": "Renewable share decline",
+            "Impact": abs(renewable_ratio_delta),
+            "Evidence": f"Renewable ratio changed by {renewable_ratio_delta:+.1f} percentage points.",
+        })
+    if grid_delta > 0:
+        drivers.append({
+            "Driver": "External power dependency increase",
+            "Impact": grid_delta,
+            "Evidence": f"Grid dependency changed by {grid_delta:+.1f} percentage points.",
+        })
+    if efficiency_delta < 0:
+        drivers.append({
+            "Driver": "System efficiency drop",
+            "Impact": abs(efficiency_delta),
+            "Evidence": f"System efficiency changed by {efficiency_delta:+.1f} percentage points.",
+        })
+
+    try:
+        findings = build_data_quality_findings()
+    except Exception:
+        findings = []
+    if findings:
+        drivers.append({
+            "Driver": "Data quality uncertainty",
+            "Impact": min(20.0, len(findings) * 4.0),
+            "Evidence": f"{len(findings)} data quality warning(s) detected.",
+        })
+
+    if not drivers:
+        drivers.append({
+            "Driver": "No major failure driver detected",
+            "Impact": 0.0,
+            "Evidence": "Current scenario remains close to baseline for core output metrics.",
+        })
+
+    ranked = sorted(drivers, key=lambda item: item["Impact"], reverse=True)
+    return [
+        {
+            "Rank": idx,
+            "Driver": item["Driver"],
+            "Impact Level": impact_label(item["Impact"]),
+            "Evidence": item["Evidence"],
+        }
+        for idx, item in enumerate(ranked, 1)
+    ]
+
+
+def generate_diagnostic_summary():
+    scenario_label = scenario_key.replace("_", " ").title()
+    top_driver = rank_shortfall_drivers()[0]
+    if results.get("shortfall", 0) > 0:
+        event = f"Possible energy shortfall detected under the {scenario_label} scenario."
+    elif results.get("grid_dependency", 0) >= 10:
+        event = f"External power dependency increased under the {scenario_label} scenario."
+    elif results.get("renewable_ratio", 0) < 35:
+        event = f"Renewable contribution is limited under the {scenario_label} scenario."
+    elif results.get("system_efficiency", 100) < 85:
+        event = f"System efficiency is below the preferred operating range under the {scenario_label} scenario."
+    else:
+        event = f"No major failure state is detected under the {scenario_label} scenario."
+    return f"{event} The leading diagnostic driver is: {top_driver['Driver']}."
+
+
+def generate_diagnostic_recommendations():
+    driver_names = [row["Driver"] for row in rank_shortfall_drivers()]
+    recommendations = []
+    if "Demand surge" in driver_names:
+        recommendations.append("Reduce peak demand or test a lower critical-load operating mode.")
+    if "Battery capacity limitation" in driver_names:
+        recommendations.append("Increase battery capacity by 20-30% and rerun the scenario for comparison.")
+    if "Renewable supply drop" in driver_names or "Renewable share decline" in driver_names:
+        recommendations.append("Adjust renewable mix or add firm backup capacity for the selected scenario.")
+    if "External power dependency increase" in driver_names:
+        recommendations.append("Review external power support assumptions and backup supply availability.")
+    if "Data quality uncertainty" in driver_names:
+        recommendations.append("Review uploaded data fields, abnormal values, and timestamp consistency.")
+    if not recommendations:
+        recommendations.append("Use baseline comparison to test whether additional storage or demand reduction improves resilience margin.")
+    return recommendations
+
+
+def render_failure_diagnostics_panel():
+    st.subheader("Why did this happen?")
+    st.markdown(
+        f"""
+        <div class="note">
+          <b>Diagnostic Summary:</b> {generate_diagnostic_summary()}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    left, right = st.columns([1.05, 1.15])
+    with left:
+        st.markdown("##### Root Cause Ranking")
+        st.dataframe(pd.DataFrame(rank_shortfall_drivers()), use_container_width=True, hide_index=True)
+    with right:
+        st.markdown("##### Recommended Adjustment")
+        for recommendation in generate_diagnostic_recommendations():
+            st.write(f"- {recommendation}")
+        st.caption("Rerun the scenario after each adjustment to compare whether the possible energy gap improves.")
+
+    st.markdown("##### Baseline vs Scenario")
+    st.dataframe(compare_baseline_vs_scenario(), use_container_width=True, hide_index=True)
+
+    try:
+        findings = build_data_quality_findings()
+    except Exception:
+        findings = []
+    if findings:
+        st.warning("Data quality may affect this diagnostic. Review uploaded or manually entered values before operational interpretation.")
+
+    st.caption("This diagnostic is intended for decision support and scenario analysis. It explains model behavior based on current inputs; it is not a guaranteed prediction.")
+
+
 def render_battery_storage_status():
     # Energy System Layer: storage buffer and reserve behavior.
     st.subheader(tr("battery_storage_status"))
@@ -5647,6 +5838,7 @@ def render_product_overview():
     render_scenario_plausibility_panel()
     render_context_cards()
     render_main_system_status()
+    render_failure_diagnostics_panel()
     with st.expander("Advanced Analysis", expanded=False):
         st.caption("Technical charts, assumptions, monitoring layers, and detailed metrics are kept here for analyst review.")
         render_why_this_matters_panel()
