@@ -5791,6 +5791,336 @@ def render_failure_diagnostics_panel():
     st.caption("This diagnostic is intended for decision support and scenario analysis. It explains model behavior based on current inputs; it is not a guaranteed prediction.")
 
 
+def current_simulation_signature():
+    return json.dumps({
+        "country": active_country,
+        "city": active_city,
+        "scenario": scenario_key,
+        "facility_type": facility_type,
+        "demand": results.get("demand"),
+        "renewable_supply": results.get("renewable_supply"),
+        "final_supply": results.get("final_supply"),
+        "shortfall": results.get("shortfall"),
+        "battery_levels": results.get("battery_levels"),
+        "grid_dependency": results.get("grid_dependency"),
+    }, sort_keys=True)
+
+
+def generate_risk_event():
+    from datetime import datetime
+
+    shortfall_delta = float(results.get("shortfall", 0) or 0) - float(baseline_results.get("shortfall", 0) or 0)
+    renewable_delta = float(results.get("renewable_supply", 0) or 0) - float(baseline_results.get("renewable_supply", 0) or 0)
+    scenario_label = scenario_key.replace("_", " ").title()
+    if shortfall_delta > 0:
+        explanation = f"Possible energy gap increased by {shortfall_delta:.2f} MW compared with baseline."
+        main_risk = "Possible energy gap increased"
+    elif renewable_delta < 0:
+        explanation = f"Available renewable energy decreased by {abs(renewable_delta):.2f} MW compared with baseline."
+        main_risk = "Renewable supply decreased"
+    elif results.get("grid_dependency", 0) >= 10:
+        explanation = "Need for external power is elevated under the selected scenario."
+        main_risk = "External power dependency elevated"
+    else:
+        explanation = f"{active_city} {scenario_label} comparison completed with no major modeled energy gap."
+        main_risk = "Scenario comparison completed"
+    return {
+        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "City / Country": f"{active_city}, {active_country}",
+        "Scenario": scenario_label,
+        "Main Risk Result": main_risk,
+        "Baseline Change": f"Energy gap delta {shortfall_delta:+.2f} MW",
+        "Explanation": explanation,
+    }
+
+
+def update_risk_event_feed():
+    signature = current_simulation_signature()
+    if "risk_events" not in st.session_state:
+        st.session_state["risk_events"] = []
+    if st.session_state.get("risk_event_signature") != signature:
+        st.session_state["risk_events"].insert(0, generate_risk_event())
+        st.session_state["risk_events"] = st.session_state["risk_events"][:10]
+        st.session_state["risk_event_signature"] = signature
+
+
+def generate_risk_alerts():
+    alerts = []
+    shortfall = float(results.get("shortfall", 0) or 0)
+    demand = float(results.get("demand", 0) or 0)
+    shortfall_ratio = safe_div(shortfall, demand) if demand else 0.0
+    battery_ratio = safe_div(results.get("battery_levels", 0), inputs.get("battery_capacity", 0)) if inputs.get("battery_capacity", 0) else 1.0
+    renewable_drop_pct = pct_change(results.get("renewable_supply", 0), baseline_results.get("renewable_supply", 0))
+    efficiency_delta = float(results.get("system_efficiency", 0) or 0) - float(baseline_results.get("system_efficiency", 0) or 0)
+
+    if shortfall > 0:
+        level = "Critical" if shortfall_ratio >= 0.15 else "High" if shortfall_ratio >= 0.05 else "Medium"
+        alerts.append({
+            "Alert Level": level,
+            "What Happened": "Possible energy gap detected.",
+            "Why It Matters": "The selected scenario creates a modeled supply-demand gap.",
+            "Recommended Next Step": "Test added battery reserve, backup supply, or peak-demand reduction.",
+        })
+    if battery_ratio < 0.25:
+        alerts.append({
+            "Alert Level": "High",
+            "What Happened": "Battery reserve is below recommended resilience threshold.",
+            "Why It Matters": "Low storage reduces buffer capacity during scenario stress.",
+            "Recommended Next Step": "Review battery capacity assumptions and backup readiness.",
+        })
+    elif battery_ratio < 0.5:
+        alerts.append({
+            "Alert Level": "Medium",
+            "What Happened": "Battery reserve is reduced.",
+            "Why It Matters": "Storage may become a limiting factor if stress persists.",
+            "Recommended Next Step": "Compare results after increasing storage capacity.",
+        })
+    if renewable_drop_pct <= -10:
+        alerts.append({
+            "Alert Level": "Medium",
+            "What Happened": "Available renewable energy dropped sharply vs baseline.",
+            "Why It Matters": "Lower local generation can increase reliance on storage or external power.",
+            "Recommended Next Step": "Review renewable mix and firm backup assumptions.",
+        })
+    if efficiency_delta <= -10:
+        alerts.append({
+            "Alert Level": "Medium",
+            "What Happened": "System performance decreased significantly.",
+            "Why It Matters": "Lower performance indicates reduced modeled resilience margin.",
+            "Recommended Next Step": "Review demand, storage, and supply assumptions.",
+        })
+    if scenario_key in {"heat_wave", "storm", "cold_wave", "blizzard", "typhoon"} and not alerts:
+        alerts.append({
+            "Alert Level": "Low",
+            "What Happened": "Extreme weather scenario selected.",
+            "Why It Matters": "Scenario outputs should be interpreted as stress-test results.",
+            "Recommended Next Step": "Compare against baseline and review reserve margin.",
+        })
+    try:
+        quality_findings = build_data_quality_findings()
+    except Exception:
+        quality_findings = []
+    if quality_findings:
+        alerts.append({
+            "Alert Level": "Medium",
+            "What Happened": "Input data may need review.",
+            "Why It Matters": f"{len(quality_findings)} validation warning(s) may affect interpretation.",
+            "Recommended Next Step": "Review uploaded or manually entered values before operational use.",
+        })
+    if not alerts:
+        alerts.append({
+            "Alert Level": "Low",
+            "What Happened": "No major modeled risk alert detected.",
+            "Why It Matters": "Current scenario remains within modeled operating margin.",
+            "Recommended Next Step": "Continue monitoring and compare other scenarios if needed.",
+        })
+    return alerts
+
+
+def update_risk_alert_state():
+    st.session_state["risk_alerts"] = generate_risk_alerts()
+
+
+def render_risk_event_feed():
+    update_risk_event_feed()
+    st.subheader("Risk Event Feed")
+    st.caption("Recent simulation events in this session. Temporary session-state storage only.")
+    events = st.session_state.get("risk_events", [])
+    if not events:
+        st.info("No simulation events recorded in this session yet.")
+        return
+    st.dataframe(pd.DataFrame(events), use_container_width=True, hide_index=True)
+
+
+def render_risk_alert_panel():
+    update_risk_alert_state()
+    st.subheader("Risk Alert Panel")
+    alerts = st.session_state.get("risk_alerts", [])
+    for idx, alert in enumerate(alerts, 1):
+        level = alert.get("Alert Level", "Low")
+        st.markdown(
+            f"""
+            <div class="risk-strip">
+              <div>
+                <div class="risk-title">{level} Risk: {alert.get("What Happened", "-")}</div>
+                <div class="risk-note"><b>Why it matters:</b> {alert.get("Why It Matters", "-")}<br>
+                <b>Recommended next step:</b> {alert.get("Recommended Next Step", "-")}</div>
+              </div>
+              <div class="risk-badge risk-{level.lower() if level.lower() in ["low", "high", "critical"] else "moderate"}">{level}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+def render_city_facility_profile():
+    from datetime import datetime
+
+    st.subheader("City / Facility Profile")
+    main_sources = sorted(results.get("actual_mix_mw", {}).items(), key=lambda item: item[1], reverse=True)
+    source_summary = ", ".join([f"{name}: {value} MW" for name, value in main_sources if value > 0]) or "No renewable source output modeled"
+    profile_rows = [
+        {"Field": "Country", "Value": active_country},
+        {"Field": "City", "Value": active_city},
+        {"Field": "Latitude / Longitude", "Value": f"{active_lat}, {active_lon}"},
+        {"Field": "Population", "Value": f"{population:,}"},
+        {"Field": "Selected Scenario", "Value": scenario_key.replace("_", " ").title()},
+        {"Field": "Main Energy Sources", "Value": source_summary},
+        {"Field": "Installed Capacity Assumptions", "Value": f"Solar {solar_capacity} MW, Wind {wind_capacity} MW, Geothermal {geothermal_capacity} MW, Hydro {hydro_capacity} MW"},
+        {"Field": "Battery Capacity", "Value": f"{battery_capacity} MWh"},
+        {"Field": "Key Climate Stress Factors", "Value": f"Temperature {temperature} C, Wind {wind_speed} m/s, Solar {solar_radiation} W/m2, Precipitation {precipitation} mm, Humidity {humidity}%"},
+        {"Field": "Current Resilience Status", "Value": friendly_risk_level()},
+        {"Field": "Last Simulation Timestamp", "Value": datetime.now().strftime("%Y-%m-%d %H:%M:%S")},
+        {"Field": "Future Enterprise Facility Mode", "Value": "Hospital / Data Center / School / Emergency Shelter / Industrial Site fields are planned, not enabled in this version."},
+    ]
+    st.dataframe(pd.DataFrame(profile_rows), use_container_width=True, hide_index=True)
+
+
+def recommendation_reason_text():
+    try:
+        rows = explainable_ai_rows()
+        if not rows.empty:
+            reason_rows = rows[rows["Item"] == "Reason"]
+            if not reason_rows.empty:
+                return str(reason_rows.iloc[0]["Explanation"])
+    except Exception:
+        pass
+    return generate_diagnostic_summary()
+
+
+def render_recommendation_log():
+    from datetime import datetime
+
+    st.subheader("Recommendation Decision Log")
+    st.caption("Record human decisions for governance. Session-state storage only; no database is required.")
+    if "recommendation_logs" not in st.session_state:
+        st.session_state["recommendation_logs"] = []
+
+    recommendations = current_agentic_advisory().get("recommended_actions", [])
+    selected_recommendation = st.selectbox(
+        "Recommendation",
+        recommendations or ["No recommendation generated for current scenario."],
+        key="decision_log_recommendation",
+    )
+    decision = st.radio(
+        "User decision",
+        ["Accepted", "Rejected", "Marked for expert review", "Export with report"],
+        horizontal=True,
+        key="decision_log_choice",
+    )
+    note = st.text_area("Optional note", "", key="decision_log_note")
+    if st.button("Record Decision", key="record_recommendation_decision"):
+        entry = {
+            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "City": active_city,
+            "Scenario": scenario_key.replace("_", " ").title(),
+            "Recommendation": selected_recommendation,
+            "Reason": recommendation_reason_text(),
+            "User Decision": decision,
+            "Note": note,
+        }
+        st.session_state["recommendation_logs"].insert(0, entry)
+        st.success("Recommendation decision recorded for this session.")
+
+    logs = st.session_state.get("recommendation_logs", [])
+    if logs:
+        st.dataframe(pd.DataFrame(logs), use_container_width=True, hide_index=True)
+    else:
+        st.info("No recommendation decisions recorded yet.")
+
+
+def generate_simulation_report_text():
+    from datetime import datetime
+
+    alerts = st.session_state.get("risk_alerts", generate_risk_alerts())
+    logs = st.session_state.get("recommendation_logs", [])
+    comparison = compare_baseline_vs_scenario()
+    lines = [
+        "TAIVAS Simulation Report",
+        "========================",
+        f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        "",
+        "Decision-Support Disclaimer",
+        "TAIVAS is a decision-support simulation tool. Results are based on selected assumptions, available data, and simplified modeling logic. Outputs should not be interpreted as guaranteed predictions or emergency instructions. Final operational decisions should be reviewed by qualified professionals.",
+        "",
+        "Scenario Context",
+        f"- Country / City: {active_country} / {active_city}",
+        f"- Scenario: {scenario_key.replace('_', ' ').title()}",
+        f"- Facility Type: {facility_type}",
+        "",
+        "Main Input Assumptions",
+        f"- Solar Capacity: {solar_capacity} MW",
+        f"- Wind Capacity: {wind_capacity} MW",
+        f"- Geothermal Capacity: {geothermal_capacity} MW",
+        f"- Hydro Capacity: {hydro_capacity} MW",
+        f"- Battery Capacity: {battery_capacity} MWh",
+        "",
+        "Main Output Results",
+        f"- Demand: {results.get('demand')} MW",
+        f"- Renewable Supply: {results.get('renewable_supply')} MW",
+        f"- Final Supply: {results.get('final_supply')} MW",
+        f"- Possible Energy Gap: {results.get('shortfall')} MW",
+        f"- Renewable Ratio: {results.get('renewable_ratio')}%",
+        f"- System Efficiency: {results.get('system_efficiency')}%",
+        f"- Grid Dependency: {results.get('grid_dependency')}%",
+        "",
+        "Baseline vs Selected Scenario",
+    ]
+    for row in comparison.to_dict(orient="records"):
+        lines.append(f"- {row['Metric']}: baseline {row['Baseline']} {row['Unit']} | scenario {row['Scenario']} {row['Unit']} | delta {row['Delta']} {row['Unit']}")
+    lines.extend(["", "Risk Alert Summary"])
+    for alert in alerts:
+        lines.append(f"- {alert.get('Alert Level')}: {alert.get('What Happened')} Recommended next step: {alert.get('Recommended Next Step')}")
+    lines.extend(["", "Recommendation Summary"])
+    for recommendation in current_agentic_advisory().get("recommended_actions", []):
+        lines.append(f"- {recommendation}")
+    lines.extend(["", "User Decision Log Summary"])
+    if logs:
+        for log in logs:
+            lines.append(f"- {log.get('Timestamp')}: {log.get('User Decision')} | {log.get('Recommendation')}")
+    else:
+        lines.append("- No user recommendation decisions recorded in this session.")
+    lines.extend(["", "Model Limitation Note", "This report explains scenario-based model behavior only. It does not replace real-time data, qualified engineering review, or institutional operating procedures."])
+    return "\n".join(lines)
+
+
+def generate_report_csv_bytes():
+    rows = compare_baseline_vs_scenario().to_dict(orient="records")
+    return pd.DataFrame(rows).to_csv(index=False).encode("utf-8-sig")
+
+
+def render_simulation_report_export():
+    st.subheader("Simulation Report Export")
+    report_text = generate_simulation_report_text()
+    st.download_button("Download TXT Summary", report_text, file_name="taivas_simulation_report.txt", mime="text/plain")
+    st.download_button("Download Baseline Comparison CSV", generate_report_csv_bytes(), file_name="taivas_baseline_comparison.csv", mime="text/csv")
+    with st.expander("Preview Report Text", expanded=False):
+        st.code(report_text, language="text")
+
+
+def render_pilot_decision_support_modules():
+    update_risk_event_feed()
+    update_risk_alert_state()
+    st.subheader("Pilot Decision-Support Modules")
+    module_tabs = st.tabs([
+        "Risk Alert Panel",
+        "Risk Event Feed",
+        "City / Facility Profile",
+        "Recommendation Decision Log",
+        "Simulation Report Export",
+    ])
+    with module_tabs[0]:
+        render_risk_alert_panel()
+    with module_tabs[1]:
+        render_risk_event_feed()
+    with module_tabs[2]:
+        render_city_facility_profile()
+    with module_tabs[3]:
+        render_recommendation_log()
+    with module_tabs[4]:
+        render_simulation_report_export()
+
+
 def render_battery_storage_status():
     # Energy System Layer: storage buffer and reserve behavior.
     st.subheader(tr("battery_storage_status"))
@@ -5839,6 +6169,7 @@ def render_product_overview():
     render_context_cards()
     render_main_system_status()
     render_failure_diagnostics_panel()
+    render_pilot_decision_support_modules()
     with st.expander("Advanced Analysis", expanded=False):
         st.caption("Technical charts, assumptions, monitoring layers, and detailed metrics are kept here for analyst review.")
         render_why_this_matters_panel()
