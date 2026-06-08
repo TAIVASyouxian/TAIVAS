@@ -32,6 +32,7 @@ from core.scenario_compatibility import (
 from data.csv_loader import read_csv_with_warnings
 from data.validation_utils import validate_uploaded_dataframe
 from export.audit_export import audit_record_to_json
+from analytics import init_analytics_db, log_event, log_once
 
 try:
     from taivas_utility_toolkit import render_taivas_utility_toolkit
@@ -129,6 +130,8 @@ st.set_page_config(
     page_title=TAIVAS_RUNTIME_CONFIG["page_title"],
     layout=TAIVAS_RUNTIME_CONFIG["layout"],
 )
+init_analytics_db()
+log_once("visit_app", "main_page")
 # MIGRATION-READY CHANGE END
 
 # UI-ONLY CHANGE START
@@ -3087,6 +3090,13 @@ with st.sidebar:
         scenario_panel.caption(f'{scenario_warning["label"]}: {scenario_warning["message"]}')
     scenario_panel.caption(get_geological_hazard_module_note())
     scenario_panel.caption("Data label: Simulated Scenario Data")
+    run_simulation_clicked = scenario_panel.button(
+        "Run Simulation / Refresh Results",
+        help="Record a test run and refresh the current simulation results.",
+        use_container_width=True,
+    )
+    if run_simulation_clicked:
+        log_event("click_run", country=active_country, city=active_city, scenario=scenario_key)
 
     capacity_panel = st.expander(tr("energy_capacity"), expanded=True)
     capacity_panel.caption(tr("capacity_help"))
@@ -3283,6 +3293,36 @@ baseline_results, _ = apply_energy_security_layer(
 reference_avg = compute_reference_average(inputs, uploaded_df, active_country, active_city)
 energy_contribution_df = build_energy_contribution_df(results, baseline_results, reference_avg)
 trend_estimate_df, multistep_forecast_df, trend_meta = compute_trend_estimates(inputs, uploaded_df, active_country, active_city, baseline_results, scenario_key=scenario_key, rolling_window_rows=rolling_window_rows, forecast_steps=forecast_steps, confidence_level=confidence_level)
+
+result_tracking_signature = json.dumps(
+    {
+        "country": active_country,
+        "city": active_city,
+        "scenario": scenario_key,
+        "demand": results.get("demand"),
+        "renewable_supply": results.get("renewable_supply"),
+        "shortfall": results.get("shortfall"),
+    },
+    sort_keys=True,
+    default=str,
+)
+if st.session_state.get("taivas_last_view_result_signature") != result_tracking_signature:
+    log_event(
+        "view_result",
+        country=active_country,
+        city=active_city,
+        scenario=scenario_key,
+        details={
+            "demand": results.get("demand"),
+            "renewable_supply": results.get("renewable_supply"),
+            "final_supply": results.get("final_supply"),
+            "shortfall": results.get("shortfall"),
+            "renewable_ratio": results.get("renewable_ratio"),
+            "system_efficiency": results.get("system_efficiency"),
+            "grid_dependency": results.get("grid_dependency"),
+        },
+    )
+    st.session_state["taivas_last_view_result_signature"] = result_tracking_signature
 
 # UI-ONLY CHANGE START
 # Plain-language emergency summary only. Uses existing calculated outputs without changing formulas or data flow.
@@ -6170,6 +6210,7 @@ def render_product_overview():
     render_main_system_status()
     render_failure_diagnostics_panel()
     render_pilot_decision_support_modules()
+    render_quick_feedback_form()
     with st.expander("Advanced Analysis", expanded=False):
         st.caption("Technical charts, assumptions, monitoring layers, and detailed metrics are kept here for analyst review.")
         render_why_this_matters_panel()
@@ -6216,6 +6257,40 @@ def render_product_advanced_analytics():
         render_governance_readiness_panel()
     with advanced_tabs[6]:
         render_export_center()
+
+
+def render_quick_feedback_form():
+    st.subheader("Quick Feedback")
+    st.caption("Anonymous feedback only. TAIVAS does not ask for name, email, IP address, or cookies.")
+    with st.form("taivas_quick_feedback_form", clear_on_submit=True):
+        understandable = st.radio(
+            "Is the simulation result understandable?",
+            ["Yes", "Partly", "No"],
+            horizontal=True,
+        )
+        weakest_part = st.text_area(
+            "Which part looks weakest or least convincing?",
+            placeholder="Example: scenario assumptions, chart clarity, recommendation wording...",
+        )
+        improvement = st.text_area(
+            "What should be improved before showing this to institutions?",
+            placeholder="Example: clearer report, more data source notes, stronger baseline comparison...",
+        )
+        submitted = st.form_submit_button("Submit Anonymous Feedback")
+
+    if submitted:
+        log_event(
+            "submit_feedback",
+            country=active_country,
+            city=active_city,
+            scenario=scenario_key,
+            details={
+                "understandable": understandable,
+                "weakest_part": weakest_part,
+                "improvement": improvement,
+            },
+        )
+        st.success("Feedback submitted anonymously. Thank you.")
 
 
 def render_product_utility_toolkit():
