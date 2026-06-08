@@ -3097,6 +3097,7 @@ with st.sidebar:
     )
     if run_simulation_clicked:
         log_event("click_run", country=active_country, city=active_city, scenario=scenario_key)
+        st.session_state["taivas_run_simulation_requested"] = True
 
     capacity_panel = st.expander(tr("energy_capacity"), expanded=True)
     capacity_panel.caption(tr("capacity_help"))
@@ -3323,6 +3324,9 @@ if st.session_state.get("taivas_last_view_result_signature") != result_tracking_
         },
     )
     st.session_state["taivas_last_view_result_signature"] = result_tracking_signature
+if st.session_state.get("taivas_run_simulation_requested"):
+    st.session_state["taivas_feedback_eligible"] = True
+    st.session_state["taivas_run_simulation_requested"] = False
 
 # UI-ONLY CHANGE START
 # Plain-language emergency summary only. Uses existing calculated outputs without changing formulas or data flow.
@@ -6260,23 +6264,76 @@ def render_product_advanced_analytics():
 
 
 def render_quick_feedback_form():
+    if not st.session_state.get("taivas_feedback_eligible"):
+        return
+    if st.session_state.get("taivas_feedback_submitted"):
+        st.success("Thank you. Your feedback has been recorded.")
+        return
+    if st.session_state.get("taivas_feedback_dismissed"):
+        st.info("No problem. Thank you for testing TAIVAS.")
+        return
+
+    log_once(
+        "feedback_prompt_shown",
+        "feedback_prompt_shown_v1",
+        country=active_country,
+        city=active_city,
+        scenario=scenario_key,
+        details={"prompt_version": "v1", "optional": True},
+    )
+
+    st.info(
+        "Would you be willing to leave a quick 1–2 minute feedback?\n\n"
+        "Your feedback is optional and will only be used to improve this early-stage prototype.\n"
+        "This is not a request for formal validation, endorsement, or collaboration."
+    )
+    prompt_cols = st.columns([1, 1, 4])
+    with prompt_cols[0]:
+        accept_feedback = st.button("Yes, I can help", key="feedback_prompt_accept_button")
+    with prompt_cols[1]:
+        dismiss_feedback = st.button("Maybe later", key="feedback_prompt_dismiss_button")
+
+    if accept_feedback:
+        st.session_state["taivas_feedback_prompt_accepted"] = True
+        log_event(
+            "feedback_prompt_accept",
+            country=active_country,
+            city=active_city,
+            scenario=scenario_key,
+            details={"prompt_version": "v1", "optional": True},
+        )
+    if dismiss_feedback:
+        st.session_state["taivas_feedback_dismissed"] = True
+        log_event(
+            "feedback_prompt_dismissed",
+            country=active_country,
+            city=active_city,
+            scenario=scenario_key,
+            details={"prompt_version": "v1", "optional": True, "reason": "maybe_later"},
+        )
+        st.info("No problem. Thank you for testing TAIVAS.")
+        return
+
+    if not st.session_state.get("taivas_feedback_prompt_accepted"):
+        return
+
     st.subheader("Quick Feedback")
     st.caption("Anonymous feedback only. TAIVAS does not ask for name, email, IP address, or cookies.")
     with st.form("taivas_quick_feedback_form", clear_on_submit=True):
-        understandable = st.radio(
-            "Is the simulation result understandable?",
-            ["Yes", "Partly", "No"],
-            horizontal=True,
+        clarity = st.radio(
+            "Q1. Is the simulation result understandable?",
+            ["Yes, mostly understandable", "Partly understandable", "No, it is confusing"],
+            horizontal=False,
         )
         weakest_part = st.text_area(
-            "Which part looks weakest or least convincing?",
+            "Q2. Which part looks weakest or least convincing?",
             placeholder="Example: scenario assumptions, chart clarity, recommendation wording...",
         )
         improvement = st.text_area(
-            "What should be improved before showing this to institutions?",
+            "Q3. What should be improved before showing this to institutions?",
             placeholder="Example: clearer report, more data source notes, stronger baseline comparison...",
         )
-        submitted = st.form_submit_button("Submit Anonymous Feedback")
+        submitted = st.form_submit_button("Submit feedback")
 
     if submitted:
         log_event(
@@ -6285,12 +6342,16 @@ def render_quick_feedback_form():
             city=active_city,
             scenario=scenario_key,
             details={
-                "understandable": understandable,
+                "prompt_version": "v1",
+                "optional": True,
+                "clarity": clarity,
                 "weakest_part": weakest_part,
                 "improvement": improvement,
             },
         )
-        st.success("Feedback submitted anonymously. Thank you.")
+        st.session_state["taivas_feedback_submitted"] = True
+        st.session_state["taivas_feedback_prompt_accepted"] = False
+        st.success("Thank you. Your feedback has been recorded.")
 
 
 def render_product_utility_toolkit():
