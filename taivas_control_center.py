@@ -3104,12 +3104,12 @@ with st.sidebar:
     else:
         scenario_panel.caption(f'{scenario_warning["label"]}: {scenario_warning["message"]}')
     scenario_explanations = {
-        "normal": "Normal: baseline planning condition for comparison.",
-        "heat_wave": "Heatwave expected effects: cooling demand increases, peak load rises, grid stress may increase, and energy consumption can grow.",
-        "storm": "Storm expected effects: solar availability may decline, wind output may become unstable, and infrastructure stress may rise.",
-        "cold_wave": "Cold wave expected effects: heating demand increases, solar availability may fall, and battery reserve can be consumed faster.",
-        "blizzard": "Blizzard expected effects: solar generation decreases, access and infrastructure stress increase, and reserve duration may shorten.",
-        "typhoon": "Typhoon expected effects: solar generation decreases, wind reliability may become unstable, infrastructure damage risk rises, and supply reliability may weaken.",
+        "normal": "Normal: baseline condition. Demand, renewable generation, and battery behavior follow normal assumptions. Watch first: baseline comparison.",
+        "heat_wave": "Heat Wave: high-temperature stress. Demand usually increases due to cooling loads; battery reserve may be consumed faster. Watch first: Demand, Energy Gap, and System Performance.",
+        "storm": "Storm: renewable generation and infrastructure stability may be affected. Solar may decrease and wind may become unstable. Watch first: Renewable Supply, Final Supply, and Grid Dependency.",
+        "cold_wave": "Cold Wave: low-temperature stress. Heating demand usually rises and battery reserve may decline faster. Watch first: Demand, Battery Reserve, and System Performance.",
+        "blizzard": "Blizzard: severe winter disruption. Solar and wind contribution may decline and battery support becomes critical. Watch first: Energy Gap, Battery Reserve, and Critical Failure Timeline.",
+        "typhoon": "Typhoon: high-impact tropical storm. Renewable assumptions may be reduced by disruption and battery may cover short-term shortage. Watch first: Energy Gap, Risk Tier, and Recommended Adjustment.",
     }
     scenario_panel.info(scenario_explanations.get(scenario_key, "This scenario changes demand and supply assumptions for decision-support comparison."))
     scenario_panel.caption(get_geological_hazard_module_note())
@@ -3285,6 +3285,62 @@ inputs = {
     "battery_capacity": battery_capacity,
 }
 critical_load_share = facility_profile["critical_load_share"]
+
+SCENARIO_LOGIC_GUIDE = {
+    "normal": {
+        "Meaning": "Baseline operating condition without major extreme-weather stress.",
+        "Demand effect": "Normal demand pressure.",
+        "Renewable effect": "Renewable generation follows normal assumptions.",
+        "Battery effect": "Battery performance remains stable.",
+        "Watch first": "Use this as the comparison baseline.",
+    },
+    "heat_wave": {
+        "Meaning": "High-temperature event that increases cooling demand and grid stress.",
+        "Demand effect": "Demand usually increases due to cooling loads.",
+        "Renewable effect": "Solar may remain available, while grid stress may rise.",
+        "Battery effect": "Battery reserve may be consumed faster during peak load.",
+        "Watch first": "Demand, Energy Gap, and System Performance.",
+    },
+    "storm": {
+        "Meaning": "Severe storm condition affecting renewable generation and infrastructure stability.",
+        "Demand effect": "Demand may increase due to emergency operation needs.",
+        "Renewable effect": "Solar may decrease, while wind behavior may become unstable.",
+        "Battery effect": "Storage may become more important as backup support.",
+        "Watch first": "Renewable Supply, Final Supply, and Grid Dependency.",
+    },
+    "cold_wave": {
+        "Meaning": "Low-temperature event that increases heating and resilience pressure.",
+        "Demand effect": "Demand usually increases due to heating needs.",
+        "Renewable effect": "Solar availability may decrease under winter conditions.",
+        "Battery effect": "Battery reserve may decline faster in cold conditions.",
+        "Watch first": "Demand, Battery Reserve, and System Performance.",
+    },
+    "blizzard": {
+        "Meaning": "Severe winter disruption with low solar availability and infrastructure stress.",
+        "Demand effect": "Demand increases due to heating and emergency continuity needs.",
+        "Renewable effect": "Solar and wind contribution may decline.",
+        "Battery effect": "Battery support becomes critical for short-term continuity.",
+        "Watch first": "Energy Gap, Battery Reserve, and Critical Failure Timeline.",
+    },
+    "typhoon": {
+        "Meaning": "High-impact tropical storm that can reduce renewable output and damage infrastructure.",
+        "Demand effect": "Demand may rise due to emergency response and backup needs.",
+        "Renewable effect": "Solar, wind, and hydro assumptions may be reduced by disruption.",
+        "Battery effect": "Battery may be used to cover short-term shortage.",
+        "Watch first": "Energy Gap, Risk Tier, and Recommended Adjustment.",
+    },
+}
+
+
+def scenario_logic_profile(scenario):
+    return SCENARIO_LOGIC_GUIDE.get(scenario, {
+        "Meaning": "Scenario-based planning condition.",
+        "Demand effect": "Demand changes according to selected assumptions.",
+        "Renewable effect": "Renewable output changes according to selected assumptions.",
+        "Battery effect": "Battery behavior changes according to selected assumptions.",
+        "Watch first": "Energy Gap, Risk Tier, and Recommended Adjustment.",
+    })
+
 
 results = compute_energy_supply(inputs, scenario_key, failure_ratios, reserve_recovery_lag_days)
 results, _ = apply_energy_security_layer(
@@ -4235,6 +4291,21 @@ st.markdown(f'<div class="quick-start"><b>{tr("quick_start")}</b>{tr("quick_star
 st.caption("Results update after you choose the location and scenario.")
 if beginner_mode:
     st.info("Beginner Mode is on: follow the workflow below, then use the sidebar to select location, facility, scenario, and energy inputs.")
+    st.markdown(
+        """
+        <div class="note">
+          <b>First time using TAIVAS?</b><br>
+          Start with a demo scenario or follow the six-step workflow. You do not need exact engineering data for a first review.
+          TAIVAS is designed to help you understand possible energy gaps, risk drivers, and first actions under extreme-weather scenarios.
+          <br><br>
+          <b>Tips:</b><br>
+          1. Use Normal as a baseline.<br>
+          2. Select one extreme-weather scenario to compare.<br>
+          3. Focus first on Energy Gap, Risk Tier, and Recommended Adjustment.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 if "taivas_guided_step" not in st.session_state:
     st.session_state["taivas_guided_step"] = 1
 guided_step = int(st.session_state.get("taivas_guided_step", 1))
@@ -4244,12 +4315,12 @@ st.markdown(
     """
     <div class="note"><b>How TAIVAS Works</b></div>
     <div class="usage-guide">
-      <div class="usage-step"><b>Step 1 · Select Location</b><span>Choose the country and city to review.</span></div>
-      <div class="usage-step"><b>Step 2 · Select Facility</b><span>Choose the facility type or protected site.</span></div>
-      <div class="usage-step"><b>Step 3 · Choose Scenario</b><span>Select an extreme weather scenario to test.</span></div>
-      <div class="usage-step"><b>Step 4 · Configure Energy</b><span>Set local energy and battery assumptions.</span></div>
-      <div class="usage-step"><b>Step 5 · Run Simulation</b><span>Refresh results after inputs are ready.</span></div>
-      <div class="usage-step"><b>Step 6 · Review Results</b><span>Check risk, energy gap, and recommendations.</span></div>
+      <div class="usage-step"><b>Step 1 - Select Location</b><span>Choose the country and city to define the regional context.</span></div>
+      <div class="usage-step"><b>Step 2 - Select Facility</b><span>Choose the protected site or facility type.</span></div>
+      <div class="usage-step"><b>Step 3 - Choose Scenario</b><span>Select the extreme-weather condition to test.</span></div>
+      <div class="usage-step"><b>Step 4 - Configure Energy</b><span>Set local energy, storage, weather, and failure assumptions.</span></div>
+      <div class="usage-step"><b>Step 5 - Run Simulation</b><span>Review the modeled supply-demand balance.</span></div>
+      <div class="usage-step"><b>Step 6 - Review Results</b><span>Check Energy Gap, Risk Tier, Scenario Logic, and Recommended Adjustment.</span></div>
     </div>
     <div class="audience-card">
       <b>Who is this for?</b>
@@ -4326,6 +4397,32 @@ def render_scenario_plausibility_panel():
             """,
             unsafe_allow_html=True,
         )
+
+
+def render_scenario_logic_panel():
+    profile = scenario_logic_profile(scenario_key)
+    scenario_name = scenario_key.replace("_", " ").title()
+    rows = "".join(
+        f"""
+        <div class="emergency-item">
+          <div class="emergency-label">{label}</div>
+          <div class="emergency-text">{value}</div>
+        </div>
+        """
+        for label, value in profile.items()
+    )
+    st.markdown(
+        f"""
+        <div class="emergency-summary">
+          <h3>Scenario Logic: {scenario_name}</h3>
+          <div class="emergency-grid">{rows}</div>
+          <div class="communication-disclaimer">
+            Scenario logic explains why the model changes outputs. It is decision-support guidance, not a guaranteed prediction.
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 def build_executive_summary_text():
     advisory = current_agentic_advisory()
@@ -4561,6 +4658,7 @@ def operational_risk_tier_for_display():
 
 def render_risk_tier_panel():
     tier, class_name, note = operational_risk_tier_for_display()
+    st.caption("Risk Tier: plain-language risk classification based on the modeled energy shortfall ratio.")
     st.markdown(
         f"""
         <div class="risk-strip">
@@ -4708,6 +4806,7 @@ def render_ai_recommendation_workspace():
     st.caption(quality_note)
     # UI-ONLY CHANGE END
     st.subheader(tr("quick_reco"))
+    st.caption("Recommended Adjustment: suggested first actions to reduce the modeled resilience risk. This is decision-support guidance, not an operational command.")
     for idx, line in enumerate(conditional_recommendation_lines(), 1):
         st.write(f"{idx}. {line}")
     # UI-ONLY CHANGE START
@@ -5734,29 +5833,31 @@ def render_main_system_status():
             tr("demand"),
             f"{results['demand']} MW",
             delta=f"{round(results['demand'] - baseline_results['demand'], 2)} vs baseline",
-            help="Projected energy demand under the selected scenario.",
+            help="Projected energy demand under the selected location, facility type, weather scenario, and temperature conditions.",
         )
         metric_cols[1].metric(
             tr("final"),
             f"{results['final_supply']} MW",
             delta=f"{round(results['final_supply'] - baseline_results['final_supply'], 2)}",
-            help="Total available energy after renewable generation, storage, and backup resources.",
+            help="Total modeled available supply after renewable generation, battery dispatch, and grid support.",
         )
         metric_cols = st.columns(2)
         metric_cols[0].metric(
             tr("shortfall"),
             f"{results['shortfall']} MW",
             delta=f"{round(results['shortfall'] - baseline_results['shortfall'], 2)}",
-            help="Difference between projected energy demand and available supply.",
+            help="Unmet demand after available supply is applied. A larger gap means higher resilience risk.",
         )
         metric_cols[1].metric(
             tr("eff"),
             f"{results['system_efficiency']}%",
-            help="Estimated ability of the system to meet demand under the selected assumptions.",
+            help="Simplified score showing how well available supply meets projected demand in the selected scenario.",
         )
     with status_right:
         render_demand_supply_chart()
     st.caption(tr("metric_help"))
+    st.caption("Grid Dependency: estimated share of unmet demand or backup need that may depend on external grid support.")
+    st.caption("Scenario-based estimate only. TAIVAS supports planning and preparedness; it does not replace professional engineering review or real-time emergency dispatch.")
     # UI REFINEMENT END
 
 
@@ -5934,6 +6035,7 @@ def render_failure_diagnostics_panel():
         st.dataframe(pd.DataFrame(rank_shortfall_drivers()), use_container_width=True, hide_index=True)
     with right:
         st.markdown("##### Recommended Adjustment")
+        st.caption("Suggested first actions to reduce the modeled resilience risk. This is decision-support guidance, not an operational command.")
         for recommendation in generate_diagnostic_recommendations():
             st.write(f"- {recommendation}")
         st.caption("Rerun the scenario after each adjustment to compare whether the possible energy gap improves.")
@@ -6285,9 +6387,21 @@ def render_battery_storage_status():
     # Energy System Layer: storage buffer and reserve behavior.
     st.subheader(tr("battery_storage_status"))
     cols = st.columns(3)
-    cols[0].metric(tr("battery"), f"{results['battery_levels']} MWh")
-    cols[1].metric(tr("reserve_days"), f"{results.get('reserve_days_remaining', 0)} days")
-    cols[2].metric(tr("shortfall_hour"), timeline_results["hours_until_shortfall"])
+    cols[0].metric(
+        tr("battery"),
+        f"{results['battery_levels']} MWh",
+        help="Estimated remaining battery capacity after modeled charging, discharge, and losses.",
+    )
+    cols[1].metric(
+        tr("reserve_days"),
+        f"{results.get('reserve_days_remaining', 0)} days",
+        help="Estimated reserve duration under current scenario assumptions.",
+    )
+    cols[2].metric(
+        tr("shortfall_hour"),
+        timeline_results["hours_until_shortfall"],
+        help="Estimated hour when a modeled energy gap first appears, if any.",
+    )
     timeline_df = pd.DataFrame(timeline_results["rows"])
     if not timeline_df.empty:
         reserve_cols = [c for c in ["battery_level", "reserve_energy", "shortfall"] if c in timeline_df.columns]
@@ -6306,9 +6420,21 @@ def render_renewable_mix_summary():
     with mix_cols[0]:
         render_stable_donut_chart(results["actual_mix_pct"], results["renewable_ratio"], tr("actual_mix"))
     with mix_cols[1]:
-        st.metric(tr("rr"), f"{results['renewable_ratio']}%")
-        st.metric(tr("renewable"), f"{results['renewable_supply']} MW")
-        st.metric(tr("dominant"), results["dominant_source"])
+        st.metric(
+            tr("rr"),
+            f"{results['renewable_ratio']}%",
+            help="Estimated renewable share of supply under the selected scenario.",
+        )
+        st.metric(
+            tr("renewable"),
+            f"{results['renewable_supply']} MW",
+            help="Estimated renewable generation after applying weather scenario effects and failure assumptions.",
+        )
+        st.metric(
+            tr("dominant"),
+            results["dominant_source"],
+            help="Largest modeled renewable source under the selected assumptions.",
+        )
 
 
 def render_context_cards():
@@ -6326,6 +6452,7 @@ def render_context_cards():
 def render_product_overview():
     render_emergency_brief()
     render_scenario_plausibility_panel()
+    render_scenario_logic_panel()
     render_context_cards()
     render_main_system_status()
     render_failure_diagnostics_panel()
