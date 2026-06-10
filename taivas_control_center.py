@@ -2997,12 +2997,27 @@ with st.sidebar:
     basic_panel = st.expander(tr("basic_setup"), expanded=True)
     basic_panel.caption(tr("basic_setup_help"))
 
+    beginner_mode = basic_panel.toggle(
+        "Beginner Mode",
+        value=True,
+        help="Show plain-language guidance and reduce first-screen technical density.",
+    )
+    demo_options = ["Manual", "Hospital Typhoon", "School Heatwave", "Taiwan Typhoon", "Finland Blizzard", "Germany Energy Security", "Middle East Shock"]
+    default_demo_mode = st.session_state.pop("taivas_demo_shortcut", "Manual")
     demo_mode = basic_panel.selectbox(
         "Demo Mode",
-        ["Manual", "Taiwan Typhoon", "Finland Blizzard", "Germany Energy Security", "Middle East Shock"],
-        index=0,
+        demo_options,
+        index=demo_options.index(default_demo_mode) if default_demo_mode in demo_options else 0,
         help="Use a prepared scenario for fast demos. Manual keeps all sidebar values unchanged.",
     )
+    demo_cols = basic_panel.columns(2)
+    if demo_cols[0].button("Demo: Hospital + Typhoon", use_container_width=True):
+        st.session_state["taivas_demo_shortcut"] = "Hospital Typhoon"
+        st.rerun()
+    if demo_cols[1].button("Demo: School + Heatwave", use_container_width=True):
+        st.session_state["taivas_demo_shortcut"] = "School Heatwave"
+        st.rerun()
+    basic_panel.caption("Factory + Grid Failure and Community + Flood demos are planned, not enabled in this climate-scenario version.")
     if demo_mode != "Manual":
         basic_panel.caption(f"Demo preset active: {demo_mode}")
 
@@ -3088,6 +3103,15 @@ with st.sidebar:
         scenario_panel.warning(f'{scenario_warning["label"]}: {scenario_warning["message"]} {scenario_warning["mode_note"]}'.strip())
     else:
         scenario_panel.caption(f'{scenario_warning["label"]}: {scenario_warning["message"]}')
+    scenario_explanations = {
+        "normal": "Normal: baseline planning condition for comparison.",
+        "heat_wave": "Heatwave expected effects: cooling demand increases, peak load rises, grid stress may increase, and energy consumption can grow.",
+        "storm": "Storm expected effects: solar availability may decline, wind output may become unstable, and infrastructure stress may rise.",
+        "cold_wave": "Cold wave expected effects: heating demand increases, solar availability may fall, and battery reserve can be consumed faster.",
+        "blizzard": "Blizzard expected effects: solar generation decreases, access and infrastructure stress increase, and reserve duration may shorten.",
+        "typhoon": "Typhoon expected effects: solar generation decreases, wind reliability may become unstable, infrastructure damage risk rises, and supply reliability may weaken.",
+    }
+    scenario_panel.info(scenario_explanations.get(scenario_key, "This scenario changes demand and supply assumptions for decision-support comparison."))
     scenario_panel.caption(get_geological_hazard_module_note())
     scenario_panel.caption("Data label: Simulated Scenario Data")
     run_simulation_clicked = scenario_panel.button(
@@ -3098,6 +3122,7 @@ with st.sidebar:
     if run_simulation_clicked:
         log_event("click_run", country=active_country, city=active_city, scenario=scenario_key)
         st.session_state["taivas_run_simulation_requested"] = True
+        st.session_state["taivas_guided_step"] = 6
 
     capacity_panel = st.expander(tr("energy_capacity"), expanded=True)
     capacity_panel.caption(tr("capacity_help"))
@@ -3167,6 +3192,22 @@ with st.sidebar:
 # so manual controls remain available while demos can be activated instantly.
 if demo_mode != "Manual":
     demo_presets = {
+        "Hospital Typhoon": {
+            "country": "Taiwan", "city": "Taipei", "population": 2500000,
+            "facility_type": "Hospital",
+            "scenario_key": "typhoon", "temperature": 29, "wind_speed": 18.0,
+            "solar_radiation": 180, "precipitation": 160, "humidity": 92,
+            "solar_failure_ratio": 0.25, "wind_failure_ratio": 0.18, "hydro_failure_ratio": 0.12, "battery_failure_ratio": 0.08,
+            "enable_geopolitical_shock": False,
+        },
+        "School Heatwave": {
+            "country": "Taiwan", "city": "Taipei", "population": 2500000,
+            "facility_type": "School / Campus",
+            "scenario_key": "heat_wave", "temperature": 37, "wind_speed": 3.2,
+            "solar_radiation": 860, "precipitation": 4, "humidity": 78,
+            "solar_failure_ratio": 0.05, "wind_failure_ratio": 0.08, "hydro_failure_ratio": 0.06, "battery_failure_ratio": 0.04,
+            "enable_geopolitical_shock": False,
+        },
         "Taiwan Typhoon": {
             "country": "Taiwan", "city": "Taipei", "population": 2500000,
             "scenario_key": "typhoon", "temperature": 29, "wind_speed": 18.0,
@@ -3201,6 +3242,8 @@ if demo_mode != "Manual":
     active_country = preset.get("country", active_country)
     active_city = preset.get("city", active_city)
     population = int(preset.get("population", population))
+    facility_type = preset.get("facility_type", facility_type)
+    facility_profile = FACILITY_PROFILES[facility_type]
     scenario_key = preset.get("scenario_key", scenario_key)
     temperature = preset.get("temperature", temperature)
     wind_speed = preset.get("wind_speed", wind_speed)
@@ -4166,9 +4209,10 @@ def render_governance_readiness_panel():
 st.markdown(
     """
     <div class="taivas-brand">
-      <div class="taivas-brand-title">TAIVAS Extreme Weather Energy Decision Support</div>
-      <div class="taivas-brand-subtitle">TAIVAS helps users quickly understand where energy risk may appear during extreme weather, and what actions to consider first.</div>
-      <div class="taivas-brand-kicker">A quick simulation tool for understanding energy risk before extreme weather.</div>
+      <div class="taivas-brand-title">TAIVAS Energy Resilience Simulator</div>
+      <div class="taivas-brand-subtitle">Evaluate potential energy shortages and resilience risks under extreme weather scenarios before disasters occur.</div>
+      <div class="taivas-brand-kicker">TAIVAS helps users explore possible energy gaps, backup needs, and first actions before extreme weather affects critical facilities.</div>
+      <div class="taivas-brand-kicker">TAIVAS 協助使用者在災害發生前，快速檢視極端天氣下可能出現的能源缺口與韌性風險。</div>
       <div class="command-meta">
         <span class="command-chip">Scenario-based</span>
         <span class="command-chip">Decision support</span>
@@ -4181,26 +4225,71 @@ st.markdown(
 # UI REFINEMENT END
 st.markdown(f'<div class="quick-start"><b>{tr("quick_start")}</b>{tr("quick_start_body")}</div>', unsafe_allow_html=True)
 st.caption("Results update after you choose the location and scenario.")
+if beginner_mode:
+    st.info("Beginner Mode is on: follow the workflow below, then use the sidebar to select location, facility, scenario, and energy inputs.")
+if "taivas_guided_step" not in st.session_state:
+    st.session_state["taivas_guided_step"] = 4
+guided_step = int(st.session_state.get("taivas_guided_step", 4))
+st.progress(min(max(guided_step, 1), 6) / 6)
+st.caption(f"Guided workflow progress: Step {min(max(guided_step, 1), 6)} of 6")
 st.markdown(
     """
+    <div class="note"><b>How TAIVAS Works</b></div>
     <div class="usage-guide">
-      <div class="usage-step"><b>Step 1</b><span>Choose country and city.</span></div>
-      <div class="usage-step"><b>Step 2</b><span>Select an extreme weather scenario.</span></div>
-      <div class="usage-step"><b>Step 3</b><span>Run simulation and review risk + recommended actions.</span></div>
+      <div class="usage-step"><b>Step 1 · Select Location</b><span>Choose the country and city to review.</span></div>
+      <div class="usage-step"><b>Step 2 · Select Facility</b><span>Choose the facility type or protected site.</span></div>
+      <div class="usage-step"><b>Step 3 · Choose Scenario</b><span>Select an extreme weather scenario to test.</span></div>
+      <div class="usage-step"><b>Step 4 · Configure Energy</b><span>Set local energy and battery assumptions.</span></div>
+      <div class="usage-step"><b>Step 5 · Run Simulation</b><span>Refresh results after inputs are ready.</span></div>
+      <div class="usage-step"><b>Step 6 · Review Results</b><span>Check risk, energy gap, and recommendations.</span></div>
     </div>
     <div class="audience-card">
       <b>Who is this for?</b>
       <div class="audience-list">
-        <span class="audience-pill">City planners</span>
-        <span class="audience-pill">Energy teams</span>
-        <span class="audience-pill">Emergency managers</span>
-        <span class="audience-pill">Infrastructure operators</span>
-        <span class="audience-pill">Non-expert decision makers</span>
+        <span class="audience-pill">Local Governments</span>
+        <span class="audience-pill">Hospitals</span>
+        <span class="audience-pill">Schools</span>
+        <span class="audience-pill">Industrial Facilities</span>
+        <span class="audience-pill">Energy Managers</span>
+        <span class="audience-pill">Researchers</span>
+        <span class="audience-pill">Community Planners</span>
       </div>
     </div>
     """,
     unsafe_allow_html=True,
 )
+with st.expander("New to TAIVAS?", expanded=bool(beginner_mode)):
+    st.markdown(
+        """
+        TAIVAS helps users explore how extreme weather may affect energy resilience.
+
+        To begin:
+        1. Select a location.
+        2. Select a facility.
+        3. Choose an extreme weather scenario.
+        4. Configure energy resources.
+        5. Run the simulation.
+        6. Review energy gaps and risk indicators.
+        """
+    )
+with st.expander("Model Assumptions and Limitations", expanded=False):
+    st.markdown(
+        """
+        **Model Assumptions**
+        - Scenario-based simulation.
+        - Educational and decision-support prototype.
+        - Not a real-time forecasting system.
+        - Results depend on user-defined assumptions.
+        - Intended for planning and preparedness activities.
+        - Results should not be interpreted as guaranteed future outcomes.
+
+        **Limitations**
+        - Simplified weather impact assumptions.
+        - No live utility grid integration.
+        - Not designed for emergency dispatch operations.
+        - Requires expert validation for operational decisions.
+        """
+    )
 # PRODUCT UI RESTRUCTURE END
 
 # UI-ONLY CHANGE START
@@ -5633,11 +5722,30 @@ def render_main_system_status():
     status_left, status_right = st.columns([0.9, 1.35])
     with status_left:
         metric_cols = st.columns(2)
-        metric_cols[0].metric(tr("demand"), f"{results['demand']} MW", delta=f"{round(results['demand'] - baseline_results['demand'], 2)} vs baseline")
-        metric_cols[1].metric(tr("final"), f"{results['final_supply']} MW", delta=f"{round(results['final_supply'] - baseline_results['final_supply'], 2)}")
+        metric_cols[0].metric(
+            tr("demand"),
+            f"{results['demand']} MW",
+            delta=f"{round(results['demand'] - baseline_results['demand'], 2)} vs baseline",
+            help="Projected energy demand under the selected scenario.",
+        )
+        metric_cols[1].metric(
+            tr("final"),
+            f"{results['final_supply']} MW",
+            delta=f"{round(results['final_supply'] - baseline_results['final_supply'], 2)}",
+            help="Total available energy after renewable generation, storage, and backup resources.",
+        )
         metric_cols = st.columns(2)
-        metric_cols[0].metric(tr("shortfall"), f"{results['shortfall']} MW", delta=f"{round(results['shortfall'] - baseline_results['shortfall'], 2)}")
-        metric_cols[1].metric(tr("eff"), f"{results['system_efficiency']}%")
+        metric_cols[0].metric(
+            tr("shortfall"),
+            f"{results['shortfall']} MW",
+            delta=f"{round(results['shortfall'] - baseline_results['shortfall'], 2)}",
+            help="Difference between projected energy demand and available supply.",
+        )
+        metric_cols[1].metric(
+            tr("eff"),
+            f"{results['system_efficiency']}%",
+            help="Estimated ability of the system to meet demand under the selected assumptions.",
+        )
     with status_right:
         render_demand_supply_chart()
     st.caption(tr("metric_help"))
