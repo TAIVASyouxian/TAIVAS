@@ -4206,13 +4206,21 @@ def render_governance_readiness_panel():
 # PRODUCT UI RESTRUCTURE START
 # Product positioning only. Detailed results are rendered later inside tabs to reduce page length.
 # UI REFINEMENT START
+if st.session_state.get("ui_lang", "English") == "繁體中文":
+    hero_title = "TAIVAS 能源韌性模擬器"
+    hero_subtitle = "在災害發生前，評估極端天氣下可能出現的能源缺口與韌性風險。"
+    hero_kicker = "TAIVAS 協助使用者快速檢視能源缺口、備援需求與初步應對行動。"
+else:
+    hero_title = "TAIVAS Energy Resilience Simulator"
+    hero_subtitle = "Evaluate potential energy shortages and resilience risks under extreme weather scenarios before disasters occur."
+    hero_kicker = "TAIVAS helps users explore possible energy gaps, backup needs, and first actions before extreme weather affects critical facilities."
+
 st.markdown(
-    """
+    f"""
     <div class="taivas-brand">
-      <div class="taivas-brand-title">TAIVAS Energy Resilience Simulator</div>
-      <div class="taivas-brand-subtitle">Evaluate potential energy shortages and resilience risks under extreme weather scenarios before disasters occur.</div>
-      <div class="taivas-brand-kicker">TAIVAS helps users explore possible energy gaps, backup needs, and first actions before extreme weather affects critical facilities.</div>
-      <div class="taivas-brand-kicker">TAIVAS 協助使用者在災害發生前，快速檢視極端天氣下可能出現的能源缺口與韌性風險。</div>
+      <div class="taivas-brand-title">{hero_title}</div>
+      <div class="taivas-brand-subtitle">{hero_subtitle}</div>
+      <div class="taivas-brand-kicker">{hero_kicker}</div>
       <div class="command-meta">
         <span class="command-chip">Scenario-based</span>
         <span class="command-chip">Decision support</span>
@@ -4228,8 +4236,8 @@ st.caption("Results update after you choose the location and scenario.")
 if beginner_mode:
     st.info("Beginner Mode is on: follow the workflow below, then use the sidebar to select location, facility, scenario, and energy inputs.")
 if "taivas_guided_step" not in st.session_state:
-    st.session_state["taivas_guided_step"] = 4
-guided_step = int(st.session_state.get("taivas_guided_step", 4))
+    st.session_state["taivas_guided_step"] = 1
+guided_step = int(st.session_state.get("taivas_guided_step", 1))
 st.progress(min(max(guided_step, 1), 6) / 6)
 st.caption(f"Guided workflow progress: Step {min(max(guided_step, 1), 6)} of 6")
 st.markdown(
