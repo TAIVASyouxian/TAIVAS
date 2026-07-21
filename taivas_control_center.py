@@ -41,7 +41,7 @@ except Exception:
         st.warning("TAIVAS Utility Toolkit is unavailable. Verify taivas_utility_toolkit.py and optional dependencies are deployed.")
 
 # STABILIZATION CHANGE START
-# Agentic layers are business-logic modules and should remain reusable outside
+# Advisory layers are business-logic modules and should remain reusable outside
 # Streamlit. Import fallbacks keep the prototype from hard-crashing if a cloud
 # upload misses the agent package; full functionality returns when files are present.
 try:
@@ -80,7 +80,7 @@ except Exception:
         return {
             "daily_monitoring_summary": "Monitoring summary unavailable because the monitoring module was not loaded.",
             "executive_risk_snapshot": {"alert_state": alert_state.get("alert_state", "WATCH")},
-            "report_markdown": "# TAIVAS Operational Monitoring Report\n\nMonitoring module unavailable. Human review required.",
+            "report_markdown": "# TAIVAS Scenario Stress Monitoring Report\n\nScenario stress module unavailable. Human review required.",
         }
 
 try:
@@ -101,7 +101,7 @@ except Exception:
             },
             "workflow_timeline": [{"Step": "Workflow module", "Status": "Unavailable"}],
             "recommendation_history": recommendation_history,
-            "operational_briefing_markdown": "# TAIVAS V3 Operational Workflow Briefing\n\nWorkflow module unavailable. Human review required.",
+            "operational_briefing_markdown": "# TAIVAS Human Review Workflow Briefing\n\nWorkflow module unavailable. Human review required.",
         }
 # STABILIZATION CHANGE END
 
@@ -189,7 +189,7 @@ Primary UI Layers:
 Preferred Plain-English Terms:
 - Energy Gap, Backup Grid Need, Renewable Share, Battery Reserve, System Stability.
 - Cold-Weather Buffer, Heat Stress, Storm Impact, Scenario Comparison.
-- Operational Summary, Public Risk Summary.
+- Scenario Resilience Summary, Public Risk Summary.
 
 Terms To Avoid Or Explain:
 - multipliers, coupled dynamics, thermodynamic exchange layer, resilience coefficient,
@@ -200,10 +200,10 @@ Section Direction:
 - Header: TAIVAS / Climate & Energy Resilience Platform /
   Decision-Support Simulation Environment. Premium, calm, not oversized.
 - Quick Start: choose location, select scenario, review results.
-- Public Risk Communication Summary: Public Message, Decision Brief, Technical Basis,
+- Public Risk Communication Summary: Illustrative Communication Draft, Decision Brief, Technical Basis,
   and the disclaimer "This is scenario-based decision-support information,
   not a confirmed prediction."
-- Operational Summary: system stability, battery reserve, renewable supply,
+- Scenario Resilience Summary: system stability, battery reserve, renewable supply,
   backup support need.
 - Main System Status: Demand, Final Supply, Energy Gap, System Stability.
 - Scenario Comparison: core identity of TAIVAS; baseline vs extreme scenario with
@@ -534,7 +534,7 @@ I18N = {
         "download_reason": "Reason Chain CSV",
         "download_summary": "Executive Summary TXT",
         "download_audit": "Audit Trail JSON",
-        "tabs": ["Energy Mix", "Scenario Comparison", "Stress Test", "AI Recommendation", "Energy Security", "Survival Timeline", "Visual Simulator", "Concept Lab"],
+        "tabs": ["Energy Mix", "Scenario Comparison", "Stress Test", "Suggested Review", "Energy Security", "Survival Timeline", "Visual Simulator", "Concept Lab"],
         "page_answers": "This page answers:",
         "mix_note": "This tab separates installed capacity from actual modeled supply. Weather, failure ratios, and scenario assumptions change the real contribution of each energy source.",
         "installed_mix": "Installed Capacity Mix",
@@ -545,7 +545,7 @@ I18N = {
         "baseline_vs_selected": "Baseline vs Selected Scenario",
         "all_scenarios": "All Weather Scenarios",
         "critical_breakdown": "Critical Load Breakdown",
-    "quick_reco": "Suggested Actions",
+    "quick_reco": "Suggested Review",
         "reason_chain": "Reason Chain",
         "priority_signals": "Priority Signals",
         "timeline_chart": "Timeline Chart",
@@ -629,18 +629,18 @@ I18N = {
         "falling": "Falling",
         "flat": "Flat",
         "time_window_control": "Time Window Control",
-        "forecast_horizon": "Forecast Horizon",
+        "forecast_horizon": "Scenario Projection Horizon",
         "confidence_band": "Confidence Band",
         "time_window_rows": "Rolling Window (rows)",
-        "forecast_steps": "Forecast Horizon (steps)",
+        "forecast_steps": "Scenario Projection Horizon (steps)",
         "confidence_level": "Confidence Band Strength",
         "upper_band_pct": "Upper Band (%)",
         "lower_band_pct": "Lower Band (%)",
         "history_sorting": "History Sorting",
         "history_sorting_note": "Uploaded history rows are sorted by timestamp when a recognizable time column is available; otherwise the original row order is used.",
-        "multi_step_forecast": "Multi-Step Forecast Table",
-        "multi_step_forecast_note": "This table projects each source across the selected forecast horizon using the recent trend, rolling average, and confidence widening for the current scenario.",
-        "forecast_step": "Forecast Step",
+        "multi_step_forecast": "Multi-Step Scenario Projection Table",
+        "multi_step_forecast_note": "This table illustrates each source across the selected projection horizon using recent trend, rolling average, and confidence widening for the current scenario. It is not a confirmed forecast.",
+        "forecast_step": "Projection Step",
         "timestamp_col": "Timestamp Column",
         "history_rows_used": "History Rows Used",
         "scenario_confidence_factor": "Scenario Confidence Factor",
@@ -695,7 +695,7 @@ I18N = {
         "download_reason": "下載理由鏈 CSV",
         "download_summary": "下載摘要 TXT",
         "download_audit": "下載稽核 JSON",
-        "tabs": ["能源組成", "情境比較", "壓力測試", "AI 建議", "能源安全", "生存時間軸", "視覺模擬", "概念模組"],
+        "tabs": ["能源組成", "情境比較", "壓力測試", "建議檢視項目", "能源安全", "生存時間軸", "視覺模擬", "概念模組"],
         "page_answers": "本頁回答：",
         "mix_note": "本頁將裝機容量與實際模擬供應拆開呈現。天氣、失效比例與情境假設，都會改變各能源的真實貢獻。",
         "installed_mix": "裝機容量組成",
@@ -706,7 +706,7 @@ I18N = {
         "baseline_vs_selected": "基準與選定情境比較",
         "all_scenarios": "所有天氣情境",
         "critical_breakdown": "關鍵負載拆解",
-        "quick_reco": "快速建議層",
+        "quick_reco": "建議檢視項目",
         "reason_chain": "理由鏈",
         "priority_signals": "優先訊號",
         "timeline_chart": "時間軸圖表",
@@ -790,18 +790,18 @@ I18N = {
         "falling": "下降中",
         "flat": "持平",
         "time_window_control": "時間視窗控制",
-        "forecast_horizon": "預測範圍",
+        "forecast_horizon": "情境推估範圍",
         "confidence_band": "信賴帶",
         "time_window_rows": "滾動視窗（列）",
-        "forecast_steps": "預測步數",
+        "forecast_steps": "情境推估步數",
         "confidence_level": "信賴帶強度",
         "upper_band_pct": "上緣 (%)",
         "lower_band_pct": "下緣 (%)",
         "history_sorting": "歷史排序",
         "history_sorting_note": "若上傳資料中有可辨識的時間欄位，系統會先依 timestamp 排序；否則沿用原始列順序。",
-        "multi_step_forecast": "多步預測表",
-        "multi_step_forecast_note": "這張表會依照你選的 forecast horizon，結合近期趨勢、rolling average 與情境擴大的信賴帶，推估各能源接下來的變化。",
-        "forecast_step": "預測步數",
+        "multi_step_forecast": "多步情境推估表",
+        "multi_step_forecast_note": "這張表依照所選推估範圍，結合近期趨勢、滾動平均與情境信賴帶，呈現各能源的情境推估；這不是已確認的預測。",
+        "forecast_step": "推估步數",
         "timestamp_col": "時間欄位",
         "history_rows_used": "使用歷史列數",
         "scenario_confidence_factor": "情境信賴因子",
@@ -816,7 +816,7 @@ PAGE_QUESTIONS = {
         "Energy Mix": "What is the system actually running on, and how different is actual supply from installed capacity?",
         "Scenario Comparison": "How much better or worse is the selected scenario versus baseline and other scenarios?",
         "Stress Test": "Which subsystems fail first, and how badly does component degradation reduce resilience?",
-        "AI Recommendation": "Why is the model concerned, which signal matters most, and what action should be prioritized first?",
+        "Suggested Review": "Why is the model concerned, which signal matters most, and what should be reviewed first?",
         "Energy Security": "How much do import exposure, logistics, refill uncertainty, repair delay, and single-point risk increase disruption?",
         "Survival Timeline": "If supply is disrupted, how long can the system operate before shortfall and critical failure?",
         "Visual Simulator": "What does this disruption look like, and which part of the energy system is being stressed first?",
@@ -826,7 +826,7 @@ PAGE_QUESTIONS = {
         "能源組成": "系統實際靠什麼在運作？實際供應和裝機容量差多少？",
         "情境比較": "選定情境和基準情境相比，到底更好還是更差？",
         "壓力測試": "哪些子系統會先出問題？失效比例會把韌性拉低多少？",
-        "AI 建議": "模型在擔心什麼？最重要的訊號是什麼？應該先做哪個動作？",
+        "建議檢視項目": "模型顯示哪些風險？最重要的訊號是什麼？應該先檢視哪個項目？",
         "能源安全": "進口暴露、物流、補給不確定性、修復延遲與單點風險會把中斷拉高多少？",
         "生存時間軸": "如果供應中斷，系統在出現缺口與關鍵失效前還能撐多久？",
         "視覺模擬": "這個中斷看起來會怎麼發生？能源系統哪一段會最先被壓迫？",
@@ -1043,12 +1043,12 @@ def recommendation_reason_chain(results, energy_security_scenario, timeline_resu
     if st.session_state.get("ui_lang", "English") == "繁體中文":
         rows = [{"Signal": f"缺口仍有 {results['shortfall']:.2f} MW" if results["shortfall"] > 0 else "目前情境下沒有模擬缺口",
                  "Impact": "需求高於目前可用供應。" if results["shortfall"] > 0 else "即時供需平衡暫時穩定。",
-                 "Recommendation": "提高穩定供應、降低非關鍵負載，或加深儲能支援。" if results["shortfall"] > 0 else "保留備援餘裕並持續監看中斷訊號。",
+                 "Recommendation": "測試較高穩定供應、較低非關鍵負載或較高儲能支援的假設，並比較模擬結果。" if results["shortfall"] > 0 else "在其他情境測試中檢視備援餘裕與中斷訊號假設。",
                  "Expected effect": "降低未滿足負載並延長穩定運作時間。" if results["shortfall"] > 0 else "保住惡化時的緩衝空間。"}]
     else:
         rows = [{"Signal": f"Shortfall remains at {results['shortfall']:.2f} MW" if results["shortfall"] > 0 else "No modeled shortfall in the selected scenario",
                  "Impact": "Demand is above available modeled supply." if results["shortfall"] > 0 else "Immediate supply-demand balance is currently stable.",
-                 "Recommendation": "Raise firm capacity, reduce non-critical load, or deepen storage support." if results["shortfall"] > 0 else "Protect reserve margin and watch disruption signals.",
+                 "Recommendation": "Test higher firm-capacity, lower non-critical-load, or deeper storage-support assumptions and compare the simulated results." if results["shortfall"] > 0 else "Review reserve-margin and disruption-signal assumptions in additional scenario tests.",
                  "Expected effect": "Reduce unmet load and extend stable operation." if results["shortfall"] > 0 else "Preserve endurance against degradation."}]
     return rows
 
@@ -1796,7 +1796,7 @@ body {
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 48px rgba(0,0,0,0.22);
 }
 .taivas-brand::after {
-    content: "RESILIENCE COMMAND INTERFACE";
+    content: "RESILIENCE SCENARIO INTERFACE";
     position: absolute;
     top: 0.9rem;
     right: 1rem;
@@ -2741,11 +2741,11 @@ def extend_i18n():
             "uploaded_preview": "Uploaded History Preview",
             "selected_timestamp": "Selected Timestamp",
             "parsed_timestamp": "Parsed Timestamp",
-            "forecast_chart": "Forecast Chart",
-            "forecast_chart_note": "This chart visualizes each source across the forecast horizon, including lower and upper confidence bands.",
-            "source_logic": "Source Forecast Logic",
+            "forecast_chart": "Scenario Projection Chart",
+            "forecast_chart_note": "This chart illustrates each source across the scenario projection horizon, including lower and upper confidence bands. It is not a confirmed forecast.",
+            "source_logic": "Source Projection Logic",
             "source_logic_note": "Different sources do not accelerate at the same rate. Solar and wind react more strongly to weather shifts, geothermal is more damped, and hydro sits in the middle unless the scenario widens uncertainty.",
-            "source_forecast_factor": "Source Forecast Factor",
+            "source_forecast_factor": "Source Projection Factor",
             "geopolitical_inputs": "Geopolitical Risk Inputs",
             "enable_geopolitical_shock": "Enable Geopolitical Shock",
             "geopolitical_event_type": "Geopolitical Event Type",
@@ -2775,11 +2775,11 @@ def extend_i18n():
             "uploaded_preview": "上傳歷史預覽",
             "selected_timestamp": "選定時間",
             "parsed_timestamp": "解析後時間",
-            "forecast_chart": "預測圖表",
-            "forecast_chart_note": "這張圖會把各能源在 forecast horizon 中的預測值，以及上下信賴帶一起畫出來。",
+            "forecast_chart": "情境推估圖表",
+            "forecast_chart_note": "這張圖呈現各能源在情境推估範圍內的推估值與上下信賴帶；這不是已確認的預測。",
             "source_logic": "來源預測邏輯",
             "source_logic_note": "不同能源的加速/阻尼不一樣。太陽能與風能對天氣變化更敏感，地熱較平穩，水力通常介於中間，極端情境下不確定性會再放大。",
-            "source_forecast_factor": "來源預測因子",
+            "source_forecast_factor": "來源推估因子",
             "geopolitical_inputs": "地緣政治風險輸入",
             "enable_geopolitical_shock": "啟用地緣政治衝擊",
             "geopolitical_event_type": "地緣政治事件類型",
@@ -2813,7 +2813,7 @@ I18N["English"].update({
     "rr": "Renewable Share",
     "eff": "System Performance",
     "quick_start": "Quick Start",
-    "quick_start_body": "Choose a city, select an extreme weather scenario, then review risk and suggested actions.",
+    "quick_start_body": "Choose a city, select an extreme weather scenario, then review risk and suggested review items.",
     "basic_setup": "Basic Setup",
     "scenario_setup": "Scenario",
     "energy_capacity": "Energy Capacity",
@@ -2844,7 +2844,7 @@ I18N["English"].update({
 
 I18N["繁體中文"].update({
     "title": "TAIVAS 極端天氣能源決策輔助",
-    "caption": "選擇地點與極端天氣情境，TAIVAS 會顯示可能的能源風險與建議優先動作。",
+    "caption": "選擇地點與極端天氣情境，TAIVAS 會顯示可能的能源風險與建議檢視項目。",
     "controls": "控制面板",
     "country": "國家",
     "city": "城市",
@@ -2867,7 +2867,7 @@ I18N["繁體中文"].update({
     "watch": "需注意",
     "critical": "高風險",
     "quick_start": "快速開始",
-    "quick_start_body": "選擇城市與極端天氣情境後，查看風險與建議優先動作。",
+    "quick_start_body": "選擇城市與極端天氣情境後，查看風險與建議檢視項目。",
     "basic_setup": "基本設定",
     "scenario_setup": "情境設定",
     "energy_capacity": "能源容量",
@@ -2894,7 +2894,7 @@ I18N["繁體中文"].update({
     "battery_reserve_available": "電池備援可用",
     "renewable_acceptable": "再生能源供應可接受",
     "renewable_watch": "再生能源供應需注意",
-    "quick_reco": "建議優先動作",
+    "quick_reco": "建議檢視項目",
     "reason_chain": "原因說明",
     "priority_signals": "優先檢查項目",
     "baseline_vs_selected": "基準與目前情境比較",
@@ -2970,16 +2970,16 @@ I18N["繁體中文"].update({
     "falling": "下降",
     "flat": "持平",
     "time_window_control": "時間視窗控制",
-    "forecast_horizon": "預測範圍",
+    "forecast_horizon": "情境推估範圍",
     "confidence_band": "信賴帶",
     "time_window_rows": "滾動視窗（列）",
-    "forecast_steps": "預測步數",
+    "forecast_steps": "情境推估步數",
     "confidence_level": "信賴帶強度",
     "upper_band_pct": "上緣（%）",
     "lower_band_pct": "下緣（%）",
     "history_sorting": "歷史資料排序",
-    "multi_step_forecast": "多步預測表",
-    "forecast_step": "預測步數",
+    "multi_step_forecast": "多步情境推估表",
+    "forecast_step": "推估步數",
     "timestamp_col": "時間欄位",
     "history_rows_used": "使用歷史列數",
     "scenario_confidence_factor": "情境信賴因子",
@@ -3020,6 +3020,14 @@ with st.sidebar:
     basic_panel.caption("Factory + Grid Failure and Community + Flood demos are planned, not enabled in this climate-scenario version.")
     if demo_mode != "Manual":
         basic_panel.caption(f"Demo preset active: {demo_mode}")
+
+    user_perspective = basic_panel.selectbox(
+        "User Perspective",
+        ["General Public", "Farmer / Agricultural User", "Local Government Official", "Energy Expert"],
+        index=0,
+        help="Changes the role-specific interpretation panel only. It does not change calculations, scenarios, KPIs, or core results.",
+    )
+    basic_panel.caption("All perspectives use the same simulation engine. The selected perspective only changes how the current result is explained.")
 
     use_csv_upload = basic_panel.checkbox("Use uploaded CSV", value=False, help="Optional. Leave this off for a simple guided setup.")
     uploaded_baseline_file = basic_panel.file_uploader(tr("uploaded_data"), type=["csv"], key="uploaded_baseline_csv") if use_csv_upload else None
@@ -3109,7 +3117,7 @@ with st.sidebar:
         "storm": "Storm: renewable generation and infrastructure stability may be affected. Solar may decrease and wind may become unstable. Watch first: Renewable Supply, Final Supply, and Grid Dependency.",
         "cold_wave": "Cold Wave: low-temperature stress. Heating demand usually rises and battery reserve may decline faster. Watch first: Demand, Battery Reserve, and System Performance.",
         "blizzard": "Blizzard: severe winter disruption. Solar and wind contribution may decline and battery support becomes critical. Watch first: Energy Gap, Battery Reserve, and Critical Failure Timeline.",
-        "typhoon": "Typhoon: high-impact tropical storm. Renewable assumptions may be reduced by disruption and battery may cover short-term shortage. Watch first: Energy Gap, Risk Tier, and Recommended Adjustment.",
+        "typhoon": "Typhoon: high-impact tropical storm. Renewable assumptions may be reduced by disruption and battery may cover short-term shortage. Watch first: Energy Gap, Risk Tier, and Suggested Scenario Test.",
     }
     scenario_panel.info(scenario_explanations.get(scenario_key, "This scenario changes demand and supply assumptions for decision-support comparison."))
     scenario_panel.caption(get_geological_hazard_module_note())
@@ -3168,7 +3176,7 @@ with st.sidebar:
     geopolitical_duration_days = advanced_panel.slider(tr("geopolitical_duration_days"), 0, 90, 7, 1)
     fossil_share = advanced_panel.slider(tr("fossil_share"), 0.0, 1.0, 0.40, 0.05)
 
-    advanced_panel.markdown("**Timeline and forecast**")
+    advanced_panel.markdown("**Timeline and scenario projection**")
     rolling_window_rows = advanced_panel.slider(tr("time_window_rows"), 2, 8, 3, 1)
     forecast_steps = advanced_panel.slider(tr("forecast_steps"), 1, 6, 2, 1)
     confidence_level = advanced_panel.slider(tr("confidence_level"), 0.5, 2.0, 1.0, 0.1)
@@ -3327,7 +3335,7 @@ SCENARIO_LOGIC_GUIDE = {
         "Demand effect": "Demand may rise due to emergency response and backup needs.",
         "Renewable effect": "Solar, wind, and hydro assumptions may be reduced by disruption.",
         "Battery effect": "Battery may be used to cover short-term shortage.",
-        "Watch first": "Energy Gap, Risk Tier, and Recommended Adjustment.",
+        "Watch first": "Energy Gap, Risk Tier, and Suggested Scenario Test.",
     },
 }
 
@@ -3338,7 +3346,7 @@ def scenario_logic_profile(scenario):
         "Demand effect": "Demand changes according to selected assumptions.",
         "Renewable effect": "Renewable output changes according to selected assumptions.",
         "Battery effect": "Battery behavior changes according to selected assumptions.",
-        "Watch first": "Energy Gap, Risk Tier, and Recommended Adjustment.",
+        "Watch first": "Energy Gap, Risk Tier, and Suggested Scenario Test.",
     })
 
 
@@ -3517,12 +3525,12 @@ def emergency_brief_suggested_action():
         advisory = current_agentic_advisory()
         actions = advisory.get("recommended_actions", [])
         if actions:
-            return actions[0].replace("Recommended action: ", "")
+            return actions[0].replace("Suggested review action: ", "")
     except Exception:
         pass
     if results.get("shortfall", 0.0) > 0:
-        return "Reduce non-critical load and review backup storage."
-    return "Continue monitoring the scenario and keep reserve capacity available."
+        return "Test a lower non-critical-load assumption and review backup-storage assumptions."
+    return "Review reserve-capacity assumptions in additional scenario comparisons."
 
 
 def render_emergency_brief():
@@ -3533,7 +3541,7 @@ def render_emergency_brief():
     st.markdown(
         f"""
         <div class="emergency-summary">
-          <h3>Emergency Brief</h3>
+          <h3>Scenario Brief</h3>
           <div class="emergency-grid">
             <div class="emergency-item">
               <div class="emergency-label">Risk Level</div>
@@ -3548,7 +3556,7 @@ def render_emergency_brief():
               <div class="emergency-text">{emergency_brief_main_problem()}</div>
             </div>
             <div class="emergency-item">
-              <div class="emergency-label">Suggested Action</div>
+              <div class="emergency-label">Suggested Review</div>
               <div class="emergency-text">{emergency_brief_suggested_action()}</div>
             </div>
           </div>
@@ -3563,12 +3571,11 @@ def render_emergency_brief():
 
 def public_risk_message():
     severity = plain_language_severity()
-    concern = main_emergency_concern()
     if severity in ("critical", "high risk"):
-        return "Energy demand may increase under this scenario. Please reduce non-essential electricity use and follow official updates."
+        return "In a real event with similar verified conditions, authorities may consider communicating energy-conservation guidance and directing the public to official information sources."
     if severity == "stressed":
-        return "Energy conditions require monitoring. Please conserve electricity where possible and follow official updates."
-    return "Energy conditions appear stable in this simulation. Continue normal use and follow official updates."
+        return "If similar conditions were verified in a real event, authorities may consider reviewing conservation guidance and directing the public to official information sources."
+    return "The selected simulation does not indicate a major modeled energy gap. This does not confirm current real-world grid conditions."
 
 
 def decision_brief_message():
@@ -3578,7 +3585,7 @@ def decision_brief_message():
     return (
         f"The simulation indicates {concern.lower()} as the first communication priority. "
         f"Current modeled energy gap is {gap:.2f} MW and backup grid need is {grid_need:.2f}%. "
-        "Review battery reserve, energy gap, and backup grid support before issuing operational guidance."
+        "Review battery reserve, energy gap, and backup grid assumptions before drawing conclusions or preparing an illustrative communication draft."
     )
 
 
@@ -3598,7 +3605,8 @@ def render_public_risk_communication_summary():
           <h3>Public Risk Communication Summary</h3>
           <div class="communication-grid">
             <div class="communication-card">
-              <div class="communication-label">Public Message</div>
+              <div class="communication-label">Illustrative Communication Draft</div>
+              <div class="communication-disclaimer">Hypothetical example based on the selected scenario.</div>
               <div class="communication-text">{public_risk_message()}</div>
             </div>
             <div class="communication-card">
@@ -3606,7 +3614,7 @@ def render_public_risk_communication_summary():
               <div class="communication-text">{decision_brief_message()}</div>
             </div>
           </div>
-          <div class="communication-disclaimer">This summary is scenario-based decision-support information and not a confirmed prediction.</div>
+          <div class="communication-disclaimer">This is scenario-based decision-support information, not a confirmed prediction or official public instruction.</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -3627,7 +3635,7 @@ def data_classification_rows():
         {"Area": "Uploaded CSV", "Classification": csv_label, "Note": "User-provided file when uploaded; otherwise demo/manual inputs."},
         {"Area": "Demand and supply outputs", "Classification": DATA_CLASSIFICATION_LABELS["estimated"], "Note": "Calculated from selected assumptions and simplified model logic."},
         {"Area": "Scenario comparison", "Classification": DATA_CLASSIFICATION_LABELS["simulated"], "Note": "Baseline vs selected scenario simulation output."},
-        {"Area": "AI recommendation text", "Classification": DATA_CLASSIFICATION_LABELS["estimated"], "Note": "Conditional decision-support guidance, not an operational directive."},
+        {"Area": "Rule-based advisory text", "Classification": DATA_CLASSIFICATION_LABELS["estimated"], "Note": "Conditional interpretation of simulation outputs, not an operational directive."},
     ]
 
 
@@ -3731,7 +3739,7 @@ def render_confidence_panel():
         <div class="quality-grid">
           <div class="quality-card"><div class="quality-label">Confidence Level</div><div class="quality-value">{profile["confidence_level"]}</div></div>
           <div class="quality-card"><div class="quality-label">Uncertainty Level</div><div class="quality-value">{profile["uncertainty_level"]}</div></div>
-          <div class="quality-card"><div class="quality-label">Forecast Reliability</div><div class="quality-value">{profile["forecast_reliability"]}</div></div>
+          <div class="quality-card"><div class="quality-label">Scenario Interpretation Reliability</div><div class="quality-value">{profile["forecast_reliability"]}</div></div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -3771,6 +3779,39 @@ def conditional_recommendation_lines():
     ]
 
 
+def positioning_safe_report_text(value):
+    """Align exported/displayed legacy module text with current product positioning."""
+    text = safe_str(value, "")
+    replacements = (
+        ("TAIVAS Agentic Advisory Layer", "TAIVAS Explainable Advisory Layer"),
+        ("TAIVAS Agentic Advisory", "TAIVAS Explainable Advisory"),
+        ("Agentic Advisory", "Explainable Advisory"),
+        ("Operational Monitoring Layer", "Scenario Stress Monitoring View"),
+        ("Operational Monitoring Report", "Scenario Stress Monitoring Report"),
+        ("Operational monitoring", "Simulated scenario monitoring"),
+        ("Workflow Coordination Layer", "Human Review Workflow"),
+        ("Operational Workflow Briefing", "Scenario Review Briefing"),
+        ("Operational Briefing", "Scenario Review Briefing"),
+        ("Operational Review Queue", "Review Queue"),
+        ("Escalation Required", "Additional Review Suggested"),
+        ("Recommended Actions", "Suggested Review Actions"),
+        ("Recommended actions", "Suggested review actions"),
+        ("Operational Checklist", "Human Review Checklist"),
+        ("Operational checklist", "Human review checklist"),
+    )
+    for old, new in replacements:
+        text = text.replace(old, new)
+    return text
+
+
+def positioning_safe_dataframe(rows):
+    """Create a display-only copy without changing workflow or monitoring data."""
+    frame = pd.DataFrame(rows)
+    if frame.empty:
+        return frame
+    return frame.apply(lambda column: column.map(positioning_safe_report_text))
+
+
 def explainable_ai_rows():
     reason = "No modeled operational energy stress detected under current scenario assumptions."
     if results.get("shortfall", 0) > 0:
@@ -3782,7 +3823,7 @@ def explainable_ai_rows():
     elif results.get("renewable_supply", 0) < baseline_results.get("renewable_supply", 0):
         reason = "Renewable supply is lower than baseline, which can reduce local resilience margin."
 
-    tradeoff = "Recommended actions may improve modeled resilience but require review of cost, siting, maintenance, and local operating constraints."
+    tradeoff = "Suggested review actions may improve modeled resilience but require review of cost, siting, maintenance, and local operating constraints."
     if scenario_key in {"storm", "blizzard", "typhoon"}:
         tradeoff = "Renewable variability and infrastructure access constraints may increase during prolonged severe-weather conditions."
     elif scenario_key in {"heat_wave", "cold_wave"}:
@@ -3830,7 +3871,7 @@ def render_scenario_comparison_matrix():
 
 
 def generate_agentic_advisory(simulation_results, context):
-    # Agentic Advisory Layer V1: decision-support synthesis only.
+    # Internal advisory helper: transparent rule-based synthesis only.
     # Reads existing model outputs and returns structured guidance without changing calculations.
     demand = float(simulation_results.get("demand", 0.0) or 0.0)
     renewable_supply = float(simulation_results.get("renewable_supply", 0.0) or 0.0)
@@ -3871,16 +3912,16 @@ def generate_agentic_advisory(simulation_results, context):
 
     recommended_actions = []
     if shortfall > 0:
-        recommended_actions.append("Recommended action: review critical-load prioritization and available backup supply.")
-        recommended_actions.append("Recommended action: evaluate temporary demand reduction for non-essential loads.")
+        recommended_actions.append("Suggested review action: review critical-load prioritization and available backup supply.")
+        recommended_actions.append("Suggested review action: evaluate temporary demand reduction for non-essential loads.")
     if battery_ratio < 0.50:
-        recommended_actions.append("Recommended action: verify battery reserve assumptions and storage readiness.")
+        recommended_actions.append("Suggested review action: verify battery reserve assumptions and storage readiness.")
     if renewable_supply < demand:
-        recommended_actions.append("Recommended action: review renewable variability and firm-capacity assumptions.")
+        recommended_actions.append("Suggested review action: review renewable variability and firm-capacity assumptions.")
     if grid_dependency >= 10:
-        recommended_actions.append("Recommended action: review backup grid dependency and external supply constraints.")
+        recommended_actions.append("Suggested review action: review backup grid dependency and external supply constraints.")
     if not recommended_actions:
-        recommended_actions.append("Recommended action: continue monitoring scenario assumptions and preserve reserve margin.")
+        recommended_actions.append("Suggested review action: continue reviewing scenario assumptions and preserve reserve margin.")
 
     checklist = [
         "Confirm selected city, facility type, and scenario inputs.",
@@ -3891,12 +3932,12 @@ def generate_agentic_advisory(simulation_results, context):
     ]
 
     management_summary = (
-        f"TAIVAS Agentic Advisory Layer classifies the current scenario as {risk_tier}. "
+        f"TAIVAS Explainable Advisory Layer classifies the current scenario as {risk_tier}. "
         f"{detected_issue} Human confirmation is required before operational changes."
     )
 
     report_lines = [
-        "# TAIVAS Agentic Advisory Report",
+        "# TAIVAS Explainable Advisory Report",
         "",
         f"- Location: {context.get('city', '-')}, {context.get('country', '-')}",
         f"- Scenario: {str(context.get('scenario', '-')).replace('_', ' ').title()}",
@@ -3908,10 +3949,10 @@ def generate_agentic_advisory(simulation_results, context):
         "## Why it matters",
         reason,
         "",
-        "## Recommended actions",
+        "## Suggested review actions",
         *[f"- {action}" for action in recommended_actions],
         "",
-        "## Operational checklist",
+        "## Human review checklist",
         *[f"- [ ] {item}" for item in checklist],
         "",
         "## Management summary",
@@ -3947,7 +3988,7 @@ def current_agentic_advisory():
 
 def render_agentic_advisory_layer():
     advisory = current_agentic_advisory()
-    st.subheader("TAIVAS Agentic Advisory Layer")
+    st.subheader("TAIVAS Explainable Advisory Layer")
     st.markdown(
         f"""
         <div class="risk-strip">
@@ -3964,11 +4005,11 @@ def render_agentic_advisory_layer():
     st.markdown(f'<div class="note"><b>Why it matters:</b> {advisory["reason"]}</div>', unsafe_allow_html=True)
     action_cols = st.columns(2)
     with action_cols[0]:
-        st.markdown("##### Recommended Actions")
+        st.markdown("##### Suggested Review Actions")
         for action in advisory["recommended_actions"]:
             st.write(f"- {action}")
     with action_cols[1]:
-        st.markdown("##### Operational Checklist")
+        st.markdown("##### Human Review Checklist")
         for item in advisory["checklist"]:
             st.checkbox(item, value=False, key=f"agentic_check_{item}")
     st.markdown(
@@ -3978,9 +4019,9 @@ def render_agentic_advisory_layer():
     with st.expander("Management Summary and Exportable Markdown Report", expanded=False):
         st.write(advisory["management_summary"])
         st.download_button(
-            "Download Agentic Advisory Markdown",
+            "Download Explainable Advisory Markdown",
             advisory["report_markdown"],
-            file_name="taivas_agentic_advisory_report.md",
+            file_name="taivas_explainable_advisory_report.md",
             mime="text/markdown",
         )
         st.code(advisory["report_markdown"], language="markdown")
@@ -4022,12 +4063,12 @@ def render_operational_monitoring_layer():
         "WARNING": "risk-high",
         "CRITICAL": "risk-critical",
     }.get(alert["alert_state"], "risk-moderate")
-    st.subheader("TAIVAS Operational Monitoring Layer")
+    st.subheader("TAIVAS Scenario Stress Monitoring View")
     st.markdown(
         f"""
         <div class="risk-strip">
           <div>
-            <div class="risk-title">Current Alert State: {alert["alert_state"]}</div>
+            <div class="risk-title">Scenario Stress State: {alert["alert_state"]}</div>
             <div class="risk-note">{alert["reason"]}</div>
           </div>
           <div class="risk-badge {alert_class}">{alert["alert_state"]}</div>
@@ -4043,17 +4084,18 @@ def render_operational_monitoring_layer():
     st.markdown("##### What changed from baseline?")
     for item in drift["drift_items"]:
         st.write(f"- {item}")
-    st.markdown(f'<div class="note"><b>Monitoring Summary:</b> {summary["daily_monitoring_summary"]}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="governance-notice"><b>Recommended Review Priority:</b> {alert["review_priority"]}<br><br><b>Human Review Reminder:</b> Operational monitoring only. Human review is required before operational changes. TAIVAS does not provide autonomous infrastructure control or guaranteed prediction.</div>', unsafe_allow_html=True)
-    with st.expander("Scenario Stress Timeline and Monitoring Report", expanded=False):
-        st.dataframe(pd.DataFrame(monitoring["stress_timeline"]), use_container_width=True, hide_index=True)
+    st.markdown(f'<div class="note"><b>Scenario Stress Summary:</b> {positioning_safe_report_text(summary["daily_monitoring_summary"])}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="governance-notice"><b>Suggested Review Priority:</b> {alert["review_priority"]}<br><br><b>Human Review Reminder:</b> This view summarizes simulated scenario indicators only. Human review is required before operational changes. TAIVAS does not provide autonomous infrastructure control or guaranteed prediction.</div>', unsafe_allow_html=True)
+    with st.expander("Simulated Scenario Stress Timeline and Report", expanded=False):
+        st.dataframe(positioning_safe_dataframe(monitoring["stress_timeline"]), use_container_width=True, hide_index=True)
+        report_text = positioning_safe_report_text(summary["report_markdown"])
         st.download_button(
-            "Download Monitoring Report MD",
-            summary["report_markdown"],
-            file_name="taivas_operational_monitoring_report.md",
+            "Download Scenario Stress Report MD",
+            report_text,
+            file_name="taivas_scenario_stress_report.md",
             mime="text/markdown",
         )
-        st.code(summary["report_markdown"], language="markdown")
+        st.code(report_text, language="markdown")
 
 
 def current_operational_workflow():
@@ -4099,38 +4141,39 @@ def render_operational_workflow_layer():
     workflow = current_operational_workflow()
     snapshot = workflow["executive_snapshot"]
     escalation = workflow["escalation"]
-    st.subheader("TAIVAS Workflow Coordination Layer")
+    st.subheader("TAIVAS Human Review Workflow")
     st.markdown(
         f"""
         <div class="governance-notice">
-          <b>Executive Workflow Snapshot:</b> {snapshot["summary"]}
+          <b>Scenario Review Snapshot:</b> {positioning_safe_report_text(snapshot["summary"])}
         </div>
         """,
         unsafe_allow_html=True,
     )
     cols = st.columns(4)
-    cols[0].metric("Alert State", snapshot["alert_state"])
+    cols[0].metric("Scenario Stress State", snapshot["alert_state"])
     cols[1].metric("Advisory Risk", snapshot["advisory_risk_tier"])
-    cols[2].metric("Escalation", "Required" if escalation["escalation_required"] else "Not required")
+    cols[2].metric("Additional Review", "Suggested" if escalation["escalation_required"] else "Not suggested")
     cols[3].metric("Human Review", "Required")
-    st.markdown("##### Operational Review Queue")
-    st.dataframe(pd.DataFrame(workflow["review_queue"]), use_container_width=True, hide_index=True)
-    with st.expander("Operational Workflow Timeline", expanded=False):
-        st.dataframe(pd.DataFrame(workflow["workflow_timeline"]), use_container_width=True, hide_index=True)
-    with st.expander("Recommendation & Monitoring History", expanded=False):
-        st.dataframe(pd.DataFrame(workflow["recommendation_history"]), use_container_width=True, hide_index=True)
+    st.markdown("##### Review Queue")
+    st.dataframe(positioning_safe_dataframe(workflow["review_queue"]), use_container_width=True, hide_index=True)
+    with st.expander("Human Review Timeline", expanded=False):
+        st.dataframe(positioning_safe_dataframe(workflow["workflow_timeline"]), use_container_width=True, hide_index=True)
+    with st.expander("Advisory & Scenario Review History", expanded=False):
+        st.dataframe(positioning_safe_dataframe(workflow["recommendation_history"]), use_container_width=True, hide_index=True)
     st.markdown(
-        '<div class="governance-notice"><b>Human Governance Layer:</b> TAIVAS may recommend, organize, summarize, escalate, monitor, and prepare reports. It does not directly control infrastructure, self-authorize operational changes, or bypass human review.</div>',
+        '<div class="governance-notice"><b>Human Governance Layer:</b> TAIVAS may interpret simulated outputs, organize review items, and prepare reports. It does not directly control infrastructure, self-authorize operational changes, or bypass human review.</div>',
         unsafe_allow_html=True,
     )
-    with st.expander("Operational Briefing Export", expanded=False):
+    with st.expander("Scenario Review Briefing Export", expanded=False):
+        briefing_text = positioning_safe_report_text(workflow["operational_briefing_markdown"])
         st.download_button(
-            "Download V3 Workflow Briefing MD",
-            workflow["operational_briefing_markdown"],
-            file_name="taivas_v3_operational_workflow_briefing.md",
+            "Download Human Review Briefing MD",
+            briefing_text,
+            file_name="taivas_human_review_briefing.md",
             mime="text/markdown",
         )
-        st.code(workflow["operational_briefing_markdown"], language="markdown")
+        st.code(briefing_text, language="markdown")
 
 
 def build_audit_trail_record():
@@ -4175,6 +4218,18 @@ def build_audit_trail_record():
         "operational_monitoring": current_operational_monitoring(),
         "operational_workflow": current_operational_workflow(),
         "explainable_ai": explainable_ai_rows().to_dict(orient="records"),
+        "terminology": {
+            "advisory_type": "Transparent rule-based interpretation",
+            "runtime_ai_model_present_in_main_file": False,
+            "legacy_internal_identifiers": [
+                "ai_recommendations",
+                "agentic_advisory",
+                "operational_monitoring",
+                "operational_workflow",
+                "explainable_ai",
+            ],
+            "note": "These are legacy internal field names retained for compatibility. They do not indicate runtime AI, live operational monitoring, autonomous workflow execution, or infrastructure control.",
+        },
         "confidence": confidence,
         "scenario_matrix": scenario_comparison_matrix().to_dict(orient="records"),
         "data_classification": data_classification_rows(),
@@ -4187,7 +4242,7 @@ def build_audit_trail_record():
                 "Scenario assumptions",
                 "Core outputs",
                 "Confidence and uncertainty",
-                "Explainable AI recommendation basis",
+                "Explainable rule-based advisory basis",
                 "Human review notes",
             ],
         },
@@ -4213,7 +4268,7 @@ def render_human_in_loop_panel():
         "Data Input",
         "Scenario Simulation",
         "Risk Comparison",
-        "AI Decision Support",
+        "Rule-Based Advisory",
         "Human Review",
         "Final Operational Decision",
         "Logged Outcome",
@@ -4252,7 +4307,7 @@ def render_governance_readiness_panel():
             "selected_inputs": "included",
             "scenario_assumptions": "included",
             "outputs": "included",
-            "ai_recommendations": "included",
+            "rule_based_advisory": "included",
             "confidence_labels": confidence_profile(),
             "timestamps": "included",
             "future_pdf_ready_structure": "included in audit JSON",
@@ -4267,9 +4322,9 @@ if st.session_state.get("ui_lang", "English") == "繁體中文":
     hero_subtitle = "在災害發生前，評估極端天氣下可能出現的能源缺口與韌性風險。"
     hero_kicker = "TAIVAS 協助使用者快速檢視能源缺口、備援需求與初步應對行動。"
 else:
-    hero_title = "TAIVAS Energy Resilience Simulator"
-    hero_subtitle = "Evaluate potential energy shortages and resilience risks under extreme weather scenarios before disasters occur."
-    hero_kicker = "TAIVAS helps users explore possible energy gaps, backup needs, and first actions before extreme weather affects critical facilities."
+    hero_title = "Understand Energy Resilience Under Extreme Weather"
+    hero_subtitle = "TAIVAS is a scenario-based energy resilience simulation tool with an explainable advisory and interpretation layer."
+    hero_kicker = "Explore how extreme weather, energy supply, storage, backup systems, and infrastructure failures may affect local energy resilience."
 
 st.markdown(
     f"""
@@ -4297,11 +4352,12 @@ if beginner_mode:
           <b>First time using TAIVAS?</b><br>
           Start with a demo scenario or follow the six-step workflow. You do not need exact engineering data for a first review.
           TAIVAS is designed to help you understand possible energy gaps, risk drivers, and first actions under extreme-weather scenarios.
+          Demo scenarios are hypothetical starting points for exploration, not guaranteed forecasts.
           <br><br>
           <b>Tips:</b><br>
           1. Use Normal as a baseline.<br>
           2. Select one extreme-weather scenario to compare.<br>
-          3. Focus first on Energy Gap, Risk Tier, and Recommended Adjustment.
+          3. Focus first on Energy Gap, Risk Tier, and Suggested Scenario Test.
         </div>
         """,
         unsafe_allow_html=True,
@@ -4315,23 +4371,21 @@ st.markdown(
     """
     <div class="note"><b>How TAIVAS Works</b></div>
     <div class="usage-guide">
-      <div class="usage-step"><b>Step 1 - Select Location</b><span>Choose the country and city to define the regional context.</span></div>
-      <div class="usage-step"><b>Step 2 - Select Facility</b><span>Choose the protected site or facility type.</span></div>
-      <div class="usage-step"><b>Step 3 - Choose Scenario</b><span>Select the extreme-weather condition to test.</span></div>
-      <div class="usage-step"><b>Step 4 - Configure Energy</b><span>Set local energy, storage, weather, and failure assumptions.</span></div>
-      <div class="usage-step"><b>Step 5 - Run Simulation</b><span>Review the modeled supply-demand balance.</span></div>
-      <div class="usage-step"><b>Step 6 - Review Results</b><span>Check Energy Gap, Risk Tier, Scenario Logic, and Recommended Adjustment.</span></div>
+      <div class="usage-step"><b>Step 1 - Define the Context</b><span>Select location, population or facility scale, energy sources, storage capacity, backup systems, critical loads, scenario, and duration.</span></div>
+      <div class="usage-step"><b>Step 2 - Apply Scenario Conditions</b><span>TAIVAS applies the selected extreme-weather or failure assumptions to demand, renewable availability, storage, and backup conditions.</span></div>
+      <div class="usage-step"><b>Step 3 - Simulate Energy Resilience</b><span>The system evaluates demand, available supply, renewable contribution, storage, backup, energy deficit, support duration, and vulnerability.</span></div>
+      <div class="usage-step"><b>Step 4 - Explain the Result</b><span>TAIVAS presents resilience status, risk drivers, support duration, energy shortage, baseline comparison, and variables for further testing.</span></div>
     </div>
     <div class="audience-card">
       <b>Who is this for?</b>
       <div class="audience-list">
-        <span class="audience-pill">Local Governments</span>
+        <span class="audience-pill">General Public</span>
+        <span class="audience-pill">Farmers / Agricultural Users</span>
+        <span class="audience-pill">Local Government Officials</span>
+        <span class="audience-pill">Energy Experts</span>
         <span class="audience-pill">Hospitals</span>
         <span class="audience-pill">Schools</span>
-        <span class="audience-pill">Industrial Facilities</span>
-        <span class="audience-pill">Energy Managers</span>
         <span class="audience-pill">Researchers</span>
-        <span class="audience-pill">Community Planners</span>
       </div>
     </div>
     """,
@@ -4376,14 +4430,214 @@ def render_why_this_matters_panel():
     st.markdown(
         """
         <div class="governance-notice">
-          <b>Why this matters:</b> TAIVAS supports infrastructure resilience analysis under climate and energy stress scenarios.
-          The platform focuses on scenario comparison, resilience communication, operational awareness,
-          explainable decision support, and human-reviewed workflows.
+          <b>Why this matters:</b> TAIVAS helps users with different levels of technical knowledge understand
+          energy-resilience risks under extreme-weather scenarios. It supports scenario understanding,
+          risk communication, decision-informed analysis, and human-reviewed workflows without replacing
+          professional judgement.
         </div>
         """,
         unsafe_allow_html=True,
     )
 # UI-ONLY CHANGE END
+
+
+def render_role_interpretation_panel():
+    role_guidance = {
+        "General Public": {
+            "Focus": "overall resilience condition, main risk source, support duration, energy shortage severity, and backup availability.",
+            "Interpretation": "Use the result to understand what may become stressed under the selected scenario, without needing to inspect every technical assumption.",
+            "Boundary": "This is a scenario-based explanation, not a public emergency instruction.",
+        },
+        "Farmer / Agricultural User": {
+            "Focus": "irrigation, refrigeration, ventilation, temperature control, water pumping, and other critical agricultural loads.",
+            "Interpretation": "Use the result to identify whether energy gaps or battery limits may interrupt agricultural operations.",
+            "Boundary": "TAIVAS does not add separate agricultural calculations in this view; it interprets the same energy-resilience outputs.",
+        },
+        "Local Government Official": {
+            "Focus": "regional supply-demand balance, critical infrastructure exposure, backup sufficiency, possible disruption duration, and vulnerable components.",
+            "Interpretation": "Use the result as scenario-informed evidence for further assessment and coordination.",
+            "Boundary": "This is not an official policy recommendation and does not determine public budget or infrastructure investment.",
+        },
+        "Energy Expert": {
+            "Focus": "assumptions, capacity factors, generation availability, storage conditions, failure rates, time-series outputs, and uncertainty notes.",
+            "Interpretation": "Use the detailed panels to inspect the model inputs and compare baseline versus selected scenario behavior.",
+            "Boundary": "Expert view reveals detail without changing the underlying simulation result.",
+        },
+    }
+    selected = role_guidance.get(user_perspective, role_guidance["General Public"])
+    st.markdown(
+        f"""
+        <div class="emergency-summary">
+          <h3>User Perspective: {user_perspective}</h3>
+          <div class="emergency-grid">
+            <div class="emergency-item"><div class="emergency-label">Primary focus</div><div class="emergency-text">{selected["Focus"]}</div></div>
+            <div class="emergency-item"><div class="emergency-label">How to read this result</div><div class="emergency-text">{selected["Interpretation"]}</div></div>
+            <div class="emergency-item"><div class="emergency-label">Boundary</div><div class="emergency-text">{selected["Boundary"]}</div></div>
+          </div>
+          <div class="communication-disclaimer">All perspectives use the same simulation engine. The selected perspective only changes how the current result is explained.</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_ai_transparency_note():
+    st.markdown(
+        """
+        <div class="governance-notice">
+          <b>Advisory and interpretation transparency:</b> Core simulation outputs are generated by defined
+          energy-resilience calculations and scenario parameters. The advisory layer uses transparent rule-based
+          interpretation to explain risk drivers, summarize KPI changes, and suggest variables for further scenario
+          testing. It does not independently predict future grid failures, optimize policy, replace engineers, or
+          guarantee outcomes.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_kpi_reference_panel():
+    kpi_rows = [
+        {
+            "KPI": "Energy Demand",
+            "Unit": "MW",
+            "Definition": "Projected energy demand under the selected context and scenario.",
+            "Direction": "Lower stress is generally better when service needs are still met.",
+            "Affected by": "Population, facility type, weather scenario, temperature, humidity.",
+            "Limitation": "Simplified load model; not a real-time metered load forecast.",
+        },
+        {
+            "KPI": "Available Energy Supply / Final Supply",
+            "Unit": "MW",
+            "Definition": "Modeled available supply after renewable output, battery support, and backup/grid support.",
+            "Direction": "Higher is generally better when demand is high.",
+            "Affected by": "Installed capacity, scenario factors, failure ratios, battery availability.",
+            "Limitation": "Simplified supply stack; no live utility grid dispatch integration.",
+        },
+        {
+            "KPI": "Energy Gap",
+            "Unit": "MW",
+            "Definition": "Unmet demand after available supply is applied.",
+            "Direction": "Lower is better; zero indicates no modeled shortfall.",
+            "Affected by": "Demand, renewable supply, battery support, backup/grid support.",
+            "Limitation": "Scenario estimate only; not a guaranteed outage prediction.",
+        },
+        {
+            "KPI": "Renewable Energy Availability",
+            "Unit": "MW / %",
+            "Definition": "Estimated renewable contribution after weather and failure assumptions.",
+            "Direction": "Higher is generally better, depending on stability and demand.",
+            "Affected by": "Solar, wind, hydro, geothermal capacity and scenario factors.",
+            "Limitation": "Does not use live solar, wind, or hydrological data unless provided by user uploads.",
+        },
+        {
+            "KPI": "Storage Level / Battery Reserve",
+            "Unit": "MWh",
+            "Definition": "Estimated remaining storage buffer after modeled charge, discharge, and losses.",
+            "Direction": "Higher reserve is generally better.",
+            "Affected by": "Battery capacity, battery failure ratio, demand-supply balance, timeline assumptions.",
+            "Limitation": "Simplified storage behavior; not a battery-management-system simulation.",
+        },
+        {
+            "KPI": "Backup Duration / Resilience Duration",
+            "Unit": "hours / days",
+            "Definition": "Estimated duration of continued operation under selected assumptions.",
+            "Direction": "Longer duration is generally better.",
+            "Affected by": "Battery reserve, strategic reserve days, critical load share, scenario severity.",
+            "Limitation": "Scenario-based estimate; real operations require local validation.",
+        },
+        {
+            "KPI": "Risk Tier",
+            "Unit": "Low / Moderate / High / Critical",
+            "Definition": "Plain-language classification based on modeled energy gap and resilience stress.",
+            "Direction": "Lower risk tier is better.",
+            "Affected by": "Energy gap, battery reserve, grid dependency, system performance.",
+            "Limitation": "Communication aid only; not an official emergency classification.",
+        },
+        {
+            "KPI": "Baseline-versus-Scenario Difference",
+            "Unit": "MW / MWh / %",
+            "Definition": "Difference between normal baseline and selected scenario outputs.",
+            "Direction": "Depends on the metric; lower energy gap and lower dependency are better.",
+            "Affected by": "Selected scenario and all configured input assumptions.",
+            "Limitation": "Useful for comparison; not deterministic forecasting.",
+        },
+    ]
+    st.subheader("KPI Reference")
+    st.caption("KPI definitions are grounded in existing TAIVAS outputs. Unsupported social, political, or budget-performance KPIs are intentionally not included.")
+    st.dataframe(pd.DataFrame(kpi_rows), use_container_width=True, hide_index=True)
+
+
+def render_methodology_and_limitations_panel():
+    st.subheader("Methodology, Assumptions, and Limitations")
+    render_ai_transparency_note()
+    method_cols = st.columns(2)
+    with method_cols[0]:
+        st.markdown(
+            """
+            **Simulation scope**
+            - Scenario-based energy resilience simulation.
+            - Compares baseline and selected extreme-weather or disruption conditions.
+            - Evaluates demand, supply, renewable availability, storage, backup needs, energy deficit, and resilience duration.
+
+            **Calculation sequence**
+            1. User defines context and energy configuration.
+            2. TAIVAS applies scenario conditions and failure assumptions.
+            3. The model computes demand, renewable supply, battery contribution, final supply, and energy gap.
+            4. Explanation layers summarize risk drivers and comparison results.
+
+            **Input sources**
+            - Built-in city/facility assumptions.
+            - User-provided inputs.
+            - Optional uploaded CSV rows.
+            - Predefined scenario assumptions.
+            """
+        )
+    with method_cols[1]:
+        st.markdown(
+            """
+            **Known limitations**
+            - Not a real-time forecasting system.
+            - No live utility-grid dispatch integration.
+            - Weather impacts are simplified scenario assumptions.
+            - Outputs depend on selected inputs and model boundaries.
+            - Operational decisions require expert review and local validation.
+
+            **Intended use**
+            - Scenario understanding.
+            - Risk communication.
+            - Decision-informed analysis.
+            - Research review and methodological discussion.
+
+            **Inappropriate uses**
+            - Guaranteed future prediction.
+            - Automated policy decision.
+            - Real-time emergency dispatch.
+            - Replacement for engineering assessment.
+            """
+        )
+    st.info("TAIVAS is a scenario-exploration and risk-understanding tool. Results depend on user inputs, predefined assumptions, and model boundaries. They should not be treated as guaranteed predictions or substitutes for detailed engineering assessment.")
+
+
+def render_research_case_study_panel():
+    st.subheader("Research Case Study")
+    st.markdown(
+        """
+        This panel frames the current run as a research-oriented scenario case study.
+
+        **Research framing**
+        - Local government is one application and validation case of TAIVAS, not the sole identity of TAIVAS.
+        - The same engine can also support public, agricultural, and expert interpretation layers.
+        - This case-study mode can support research-oriented case-study framing of assumptions, KPI definitions, reproducibility, limitations, and validation pathways.
+
+        **Current case-study structure**
+        - Baseline configuration: normal scenario using selected location and capacity assumptions.
+        - Stress condition: selected scenario shown in the sidebar.
+        - Outputs: energy demand, renewable availability, final supply, energy gap, storage state, risk tier, and baseline-versus-scenario difference.
+        - Interpretation: major risk drivers and variables for further testing.
+        """
+    )
+    st.caption("Label: Municipal Resilience Demonstration / Research Case Study. This does not rename TAIVAS as a government-only product.")
 
 def render_scenario_plausibility_panel():
     if scenario_warning["show_warning"]:
@@ -4448,30 +4702,30 @@ def build_executive_summary_text():
         f"- System Efficiency: {results['system_efficiency']}%",
         f"- Grid Dependency: {results['grid_dependency']}%",
         "",
-        "Agentic Advisory Layer",
+        "Explainable Advisory Layer",
         f"- Risk Tier: {advisory['risk_tier']}",
         f"- Detected Issue: {advisory['detected_issue']}",
         f"- Management Summary: {advisory['management_summary']}",
         "",
-        "Operational Monitoring Layer",
-        f"- Alert State: {monitoring_state['alert']['alert_state']}",
+        "Scenario Stress Monitoring View",
+        f"- Scenario Stress State: {monitoring_state['alert']['alert_state']}",
         f"- Stress Stage: {monitoring_state['monitoring']['stress_stage']}",
         f"- Review Priority: {monitoring_state['alert']['review_priority']}",
         "",
-        "Workflow Coordination Layer",
-        f"- Escalation Required: {workflow['escalation']['escalation_required']}",
+        "Human Review Workflow",
+        f"- Additional Review Suggested: {workflow['escalation']['escalation_required']}",
         f"- Executive Snapshot: {workflow['executive_snapshot']['summary']}",
         "",
         "Risk Notes",
         f"- Geopolitical Risk Level: {geopolitical_shock.get('risk_level', 'N/A')}",
         f"- Oil/Gas Supply Disruption: {geopolitical_shock.get('oil_supply_disruption_percent', 0)}%",
-        f"- Estimated Hours Until Shortfall: {timeline_results.get('hours_until_shortfall')}",
-        f"- Estimated Hours Until Critical Failure: {timeline_results.get('hours_until_critical_failure')}",
+        f"- Simulated Hours Until Shortfall: {timeline_results.get('hours_until_shortfall')}",
+        f"- Simulated Hours Until Critical Failure: {timeline_results.get('hours_until_critical_failure')}",
         "",
         "Confidence and Uncertainty",
         f"- Confidence Level: {confidence_profile()['confidence_level']}",
         f"- Uncertainty Level: {confidence_profile()['uncertainty_level']}",
-        f"- Forecast Reliability: {confidence_profile()['forecast_reliability']}",
+        f"- Scenario Interpretation Reliability: {confidence_profile()['forecast_reliability']}",
         "",
         "Decision-Support Boundary",
         TAIVAS_DECISION_SUPPORT_NOTICE,
@@ -4505,15 +4759,15 @@ def render_executive_overview_workspace():
         unsafe_allow_html=True,
     )
     render_product_notice()
-    st.subheader("Executive Recommendation")
+    st.subheader("Scenario Interpretation Summary")
     for idx, line in enumerate(recommendation_lines(results, energy_security_scenario)[:3], 1):
         st.write(f"{idx}. {line}")
 
 
 summary_txt = build_executive_summary_text()
 agentic_advisory_markdown = current_agentic_advisory()["report_markdown"]
-monitoring_report_markdown = current_operational_monitoring()["summary"]["report_markdown"]
-workflow_briefing_markdown = current_operational_workflow()["operational_briefing_markdown"]
+monitoring_report_markdown = positioning_safe_report_text(current_operational_monitoring()["summary"]["report_markdown"])
+workflow_briefing_markdown = positioning_safe_report_text(current_operational_workflow()["operational_briefing_markdown"])
 buf_scen = StringIO(); comparison_dataframe(inputs, failure_ratios, reserve_recovery_lag_days).to_csv(buf_scen, index=False)
 buf_reason = StringIO(); pd.DataFrame(recommendation_reason_chain(results, energy_security_scenario, timeline_results, facility_type, facility_profile)).to_csv(buf_reason, index=False)
 audit_json = audit_record_to_json(build_audit_trail_record())
@@ -4533,11 +4787,11 @@ def render_export_center():
         with download_cols[3]:
             st.download_button(tr("download_audit"), audit_json, file_name="taivas_audit_trail.json", mime="application/json")
         with download_cols[4]:
-            st.download_button("Agentic Report MD", agentic_advisory_markdown, file_name="taivas_agentic_advisory_report.md", mime="text/markdown")
+            st.download_button("Explainable Advisory Report MD", agentic_advisory_markdown, file_name="taivas_explainable_advisory_report.md", mime="text/markdown")
         with download_cols[5]:
-            st.download_button("Monitoring Report MD", monitoring_report_markdown, file_name="taivas_operational_monitoring_report.md", mime="text/markdown")
+            st.download_button("Scenario Stress Report MD", monitoring_report_markdown, file_name="taivas_scenario_stress_report.md", mime="text/markdown")
         with download_cols[6]:
-            st.download_button("Workflow Briefing MD", workflow_briefing_markdown, file_name="taivas_v3_operational_workflow_briefing.md", mime="text/markdown")
+            st.download_button("Human Review Briefing MD", workflow_briefing_markdown, file_name="taivas_human_review_briefing.md", mime="text/markdown")
 
 # UI IMPROVEMENT START
 # Donut chart UI renderer only: fixed source colors and external legend prevent label overlap.
@@ -4650,10 +4904,10 @@ def operational_risk_tier_for_display():
     if results["shortfall"] <= 0:
         return "Low", "risk-low", "No modeled energy gap under the selected scenario."
     if ratio < 0.05:
-        return "Moderate", "risk-moderate", "Small energy gap detected; monitor reserve margin."
+        return "Moderate", "risk-moderate", "Small modeled energy gap detected; review reserve-margin assumptions."
     if ratio < 0.15:
-        return "High", "risk-high", "Supply stress is material; prioritize critical load protection."
-    return "Critical", "risk-critical", "Large energy gap detected; immediate resilience action is recommended."
+        return "High", "risk-high", "Supply stress is material; additional review of critical-load assumptions is suggested."
+    return "Critical", "risk-critical", "Large modeled energy gap detected; prompt qualified human review is suggested."
 
 
 def render_risk_tier_panel():
@@ -4663,7 +4917,7 @@ def render_risk_tier_panel():
         f"""
         <div class="risk-strip">
           <div>
-            <div class="risk-title">Operational Risk Tier</div>
+            <div class="risk-title">Scenario Risk Tier</div>
             <div class="risk-note">{note}</div>
           </div>
           <div class="risk-badge {class_name}">{tier}</div>
@@ -4793,7 +5047,7 @@ def render_stress_test_workspace():
 def render_ai_recommendation_workspace():
     page_question(tr("tabs")[3])
     # UI-ONLY CHANGE START
-    render_decision_support_notice("AI recommendation safety boundary")
+    render_decision_support_notice("Advisory interpretation boundary")
     st.markdown(
         '<div class="note">Recommendations below are conditional decision-support guidance. They should be reviewed alongside local infrastructure constraints, operating procedures, and qualified expert assessment.</div>',
         unsafe_allow_html=True,
@@ -4806,7 +5060,7 @@ def render_ai_recommendation_workspace():
     st.caption(quality_note)
     # UI-ONLY CHANGE END
     st.subheader(tr("quick_reco"))
-    st.caption("Recommended Adjustment: suggested first actions to reduce the modeled resilience risk. This is decision-support guidance, not an operational command.")
+    st.caption("Suggested Review Actions: variables and assumptions to review for the modeled resilience risk. This is decision-support guidance, not an operational command.")
     for idx, line in enumerate(conditional_recommendation_lines(), 1):
         st.write(f"{idx}. {line}")
     # UI-ONLY CHANGE START
@@ -4841,6 +5095,7 @@ def render_energy_security_workspace():
 
 def render_survival_timeline_workspace():
     page_question(tr("tabs")[5])
+    st.caption("Scenario-derived stress indicators from the selected simulation; this is not live operational monitoring or a confirmed prediction.")
     t1, t2, t3 = st.columns(3)
     t1.metric(tr("shortfall_hour"), timeline_results["hours_until_shortfall"])
     t2.metric(tr("critical_failure_hour"), timeline_results["hours_until_critical_failure"])
@@ -5789,7 +6044,7 @@ def render_operational_summary_panel():
     st.markdown(
         """
         <div class="hero">
-          <h3>Operational Summary</h3>
+          <h3>Scenario Resilience Summary</h3>
           <p>TAIVAS converts the selected scenario into a short resilience readout for decision review.</p>
         </div>
         """,
@@ -6004,17 +6259,17 @@ def generate_diagnostic_recommendations():
     driver_names = [row["Driver"] for row in rank_shortfall_drivers()]
     recommendations = []
     if "Demand surge" in driver_names:
-        recommendations.append("Reduce peak demand or test a lower critical-load operating mode.")
+        recommendations.append("Test a lower peak-demand or critical-load assumption and compare the results.")
     if "Battery capacity limitation" in driver_names:
-        recommendations.append("Increase battery capacity by 20-30% and rerun the scenario for comparison.")
+        recommendations.append("Test a battery-capacity assumption 20-30% higher and compare the simulated outputs.")
     if "Renewable supply drop" in driver_names or "Renewable share decline" in driver_names:
-        recommendations.append("Adjust renewable mix or add firm backup capacity for the selected scenario.")
+        recommendations.append("Compare alternative renewable-mix or firm-backup assumptions for the selected scenario.")
     if "External power dependency increase" in driver_names:
         recommendations.append("Review external power support assumptions and backup supply availability.")
     if "Data quality uncertainty" in driver_names:
         recommendations.append("Review uploaded data fields, abnormal values, and timestamp consistency.")
     if not recommendations:
-        recommendations.append("Use baseline comparison to test whether additional storage or demand reduction improves resilience margin.")
+        recommendations.append("Use baseline comparison to test alternative storage-capacity or demand assumptions.")
     return recommendations
 
 
@@ -6034,8 +6289,8 @@ def render_failure_diagnostics_panel():
         st.markdown("##### Root Cause Ranking")
         st.dataframe(pd.DataFrame(rank_shortfall_drivers()), use_container_width=True, hide_index=True)
     with right:
-        st.markdown("##### Recommended Adjustment")
-        st.caption("Suggested first actions to reduce the modeled resilience risk. This is decision-support guidance, not an operational command.")
+        st.markdown("##### Suggested Scenario Test")
+        st.caption("Suggested variables to test against the baseline. This is decision-support guidance, not an operational command.")
         for recommendation in generate_diagnostic_recommendations():
             st.write(f"- {recommendation}")
         st.caption("Rerun the scenario after each adjustment to compare whether the possible energy gap improves.")
@@ -6172,9 +6427,9 @@ def generate_risk_alerts():
     if not alerts:
         alerts.append({
             "Alert Level": "Low",
-            "What Happened": "No major modeled risk alert detected.",
+            "What Happened": "No major modeled scenario risk indicator detected.",
             "Why It Matters": "Current scenario remains within modeled operating margin.",
-            "Recommended Next Step": "Continue monitoring and compare other scenarios if needed.",
+            "Recommended Next Step": "Continue reviewing assumptions and compare other scenarios if needed.",
         })
     return alerts
 
@@ -6196,7 +6451,8 @@ def render_risk_event_feed():
 
 def render_risk_alert_panel():
     update_risk_alert_state()
-    st.subheader("Risk Alert Panel")
+    st.subheader("Scenario Risk Indicator Panel")
+    st.caption("These indicators are generated from the selected simulation. They are not official alerts or live system notifications.")
     alerts = st.session_state.get("risk_alerts", [])
     for idx, alert in enumerate(alerts, 1):
         level = alert.get("Alert Level", "Low")
@@ -6206,7 +6462,7 @@ def render_risk_alert_panel():
               <div>
                 <div class="risk-title">{level} Risk: {alert.get("What Happened", "-")}</div>
                 <div class="risk-note"><b>Why it matters:</b> {alert.get("Why It Matters", "-")}<br>
-                <b>Recommended next step:</b> {alert.get("Recommended Next Step", "-")}</div>
+                <b>Suggested review step:</b> {alert.get("Recommended Next Step", "-")}</div>
               </div>
               <div class="risk-badge risk-{level.lower() if level.lower() in ["low", "high", "critical"] else "moderate"}">{level}</div>
             </div>
@@ -6330,9 +6586,9 @@ def generate_simulation_report_text():
     ]
     for row in comparison.to_dict(orient="records"):
         lines.append(f"- {row['Metric']}: baseline {row['Baseline']} {row['Unit']} | scenario {row['Scenario']} {row['Unit']} | delta {row['Delta']} {row['Unit']}")
-    lines.extend(["", "Risk Alert Summary"])
+    lines.extend(["", "Scenario Risk Indicator Summary"])
     for alert in alerts:
-        lines.append(f"- {alert.get('Alert Level')}: {alert.get('What Happened')} Recommended next step: {alert.get('Recommended Next Step')}")
+        lines.append(f"- {alert.get('Alert Level')}: {alert.get('What Happened')} Suggested review step: {alert.get('Recommended Next Step')}")
     lines.extend(["", "Recommendation Summary"])
     for recommendation in current_agentic_advisory().get("recommended_actions", []):
         lines.append(f"- {recommendation}")
@@ -6365,7 +6621,7 @@ def render_pilot_decision_support_modules():
     update_risk_alert_state()
     st.subheader("Pilot Decision-Support Modules")
     module_tabs = st.tabs([
-        "Risk Alert Panel",
+        "Scenario Risk Indicators",
         "Risk Event Feed",
         "City / Facility Profile",
         "Recommendation Decision Log",
@@ -6451,6 +6707,8 @@ def render_context_cards():
 
 def render_product_overview():
     render_emergency_brief()
+    render_role_interpretation_panel()
+    render_ai_transparency_note()
     render_scenario_plausibility_panel()
     render_scenario_logic_panel()
     render_context_cards()
@@ -6478,7 +6736,7 @@ def render_product_overview():
 
 
 def render_product_scenario_analysis():
-    scenario_tabs = st.tabs(["What Changes Under This Scenario?", "Visual Simulator", "Suggested Actions"])
+    scenario_tabs = st.tabs(["What Changes Under This Scenario?", "Visual Simulator", "Suggested Review"])
     with scenario_tabs[0]:
         render_scenario_comparison_workspace()
     with scenario_tabs[1]:
@@ -6489,7 +6747,7 @@ def render_product_scenario_analysis():
 
 def render_product_advanced_analytics():
     st.markdown('<div class="note">Advanced analytics preserve the original technical workflow for analyst review.</div>', unsafe_allow_html=True)
-    advanced_tabs = st.tabs(["Energy Mix", "Stress Test", "Energy Security", "Survival Timeline", "Concept Lab", "Governance / Audit", "Export"])
+    advanced_tabs = st.tabs(["Energy Mix", "Stress Test", "Energy Security", "Survival Timeline", "Concept Lab", "Methodology", "Research Case Study", "Governance / Audit", "Export"])
     with advanced_tabs[0]:
         render_energy_mix_workspace()
     with advanced_tabs[1]:
@@ -6501,8 +6759,13 @@ def render_product_advanced_analytics():
     with advanced_tabs[4]:
         render_concept_lab_workspace()
     with advanced_tabs[5]:
-        render_governance_readiness_panel()
+        render_methodology_and_limitations_panel()
+        render_kpi_reference_panel()
     with advanced_tabs[6]:
+        render_research_case_study_panel()
+    with advanced_tabs[7]:
+        render_governance_readiness_panel()
+    with advanced_tabs[8]:
         render_export_center()
 
 
