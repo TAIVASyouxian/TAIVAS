@@ -1515,20 +1515,20 @@ section[data-testid="stSidebar"] .stFileUploader {
     font-size: 0.98rem;
 }
 .quick-start {
-    padding: 0.72rem 0.9rem;
+    padding: 0.66rem 0.88rem;
     border-radius: 10px;
     background: rgba(59,130,246,0.09);
     border: 1px solid rgba(96,165,250,0.22);
-    margin: 0.65rem 0 0.9rem 0;
+    margin: 0.45rem 0 0.55rem 0;
     line-height: 1.42;
     font-size: 0.96rem;
 }
 .quick-start b {display:block; margin-bottom:0.18rem;}
 .usage-guide {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.7rem;
-    margin: 0.75rem 0 0.95rem 0;
+    margin: 0.55rem 0 0.8rem 0;
 }
 .usage-step {
     border: 1px solid rgba(96,165,250,0.22);
@@ -1668,6 +1668,9 @@ div[data-testid="stDataFrame"] {font-size: 0.95rem;}
     border-radius: 10px 10px 0 0;
     font-size: 0.95rem;
 }
+@media (max-width: 1050px) {
+    .usage-guide {grid-template-columns: repeat(2, minmax(0, 1fr));}
+}
 @media (max-width: 900px) {
     .block-container {padding-left: 0.9rem; padding-right: 0.9rem;}
     .product-strip {grid-template-columns: repeat(2, minmax(0,1fr));}
@@ -1691,10 +1694,10 @@ div[data-testid="stDataFrame"] {font-size: 0.95rem;}
 st.markdown("""
 <style>
 .taivas-brand {
-    margin: 0.25rem 0 0.55rem 0;
+    margin: 0.15rem 0 0.4rem 0;
 }
 .taivas-brand-title {
-    font-size: clamp(2.2rem, 3vw, 3.35rem);
+    font-size: clamp(2.1rem, 2.7vw, 3.05rem);
     line-height: 0.98;
     font-weight: 900;
     letter-spacing: 0;
@@ -3010,14 +3013,14 @@ with st.sidebar:
         index=demo_options.index(default_demo_mode) if default_demo_mode in demo_options else 0,
         help="Use a prepared scenario for fast demos. Manual keeps all sidebar values unchanged.",
     )
+    basic_panel.caption("Quick demo scenarios")
     demo_cols = basic_panel.columns(2)
-    if demo_cols[0].button("Demo: Hospital + Typhoon", use_container_width=True):
+    if demo_cols[0].button("Hospital + Typhoon", use_container_width=True):
         st.session_state["taivas_demo_shortcut"] = "Hospital Typhoon"
         st.rerun()
-    if demo_cols[1].button("Demo: School + Heatwave", use_container_width=True):
+    if demo_cols[1].button("School + Heatwave", use_container_width=True):
         st.session_state["taivas_demo_shortcut"] = "School Heatwave"
         st.rerun()
-    basic_panel.caption("Factory + Grid Failure and Community + Flood demos are planned, not enabled in this climate-scenario version.")
     if demo_mode != "Manual":
         basic_panel.caption(f"Demo preset active: {demo_mode}")
 
@@ -3027,7 +3030,7 @@ with st.sidebar:
         index=0,
         help="Changes the role-specific interpretation panel only. It does not change calculations, scenarios, KPIs, or core results.",
     )
-    basic_panel.caption("All perspectives use the same simulation engine. The selected perspective only changes how the current result is explained.")
+    basic_panel.caption("Perspective changes explanation only; calculations remain unchanged.")
 
     use_csv_upload = basic_panel.checkbox("Use uploaded CSV", value=False, help="Optional. Leave this off for a simple guided setup.")
     uploaded_baseline_file = basic_panel.file_uploader(tr("uploaded_data"), type=["csv"], key="uploaded_baseline_csv") if use_csv_upload else None
@@ -4335,7 +4338,7 @@ st.markdown(
       <div class="command-meta">
         <span class="command-chip">Scenario-based</span>
         <span class="command-chip">Decision support</span>
-        <span class="command-chip">Simulation integrity preserved</span>
+        <span class="command-chip">Transparent assumptions</span>
       </div>
     </div>
     """,
@@ -4345,23 +4348,21 @@ st.markdown(
 st.markdown(f'<div class="quick-start"><b>{tr("quick_start")}</b>{tr("quick_start_body")}</div>', unsafe_allow_html=True)
 st.caption("Results update after you choose the location and scenario.")
 if beginner_mode:
-    st.info("Beginner Mode is on: follow the workflow below, then use the sidebar to select location, facility, scenario, and energy inputs.")
-    st.markdown(
-        """
-        <div class="note">
-          <b>First time using TAIVAS?</b><br>
-          Start with a demo scenario or follow the six-step workflow. You do not need exact engineering data for a first review.
-          TAIVAS is designed to help you understand possible energy gaps, risk drivers, and first actions under extreme-weather scenarios.
-          Demo scenarios are hypothetical starting points for exploration, not guaranteed forecasts.
-          <br><br>
-          <b>Tips:</b><br>
-          1. Use Normal as a baseline.<br>
-          2. Select one extreme-weather scenario to compare.<br>
-          3. Focus first on Energy Gap, Risk Tier, and Suggested Scenario Test.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    with st.expander("First-time guide", expanded=False):
+        st.markdown(
+            """
+            Start with a demo scenario or configure a location, facility, and extreme-weather scenario in the sidebar.
+
+            You do not need exact engineering data for an initial scenario review.
+
+            Focus first on:
+            1. Energy Gap
+            2. Risk Tier
+            3. Suggested Scenario Test
+
+            Demo scenarios are hypothetical starting points for exploration, not guaranteed forecasts.
+            """
+        )
 if "taivas_guided_step" not in st.session_state:
     st.session_state["taivas_guided_step"] = 1
 guided_step = int(st.session_state.get("taivas_guided_step", 1))
@@ -4391,20 +4392,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-with st.expander("New to TAIVAS?", expanded=bool(beginner_mode)):
-    st.markdown(
-        """
-        TAIVAS helps users explore how extreme weather may affect energy resilience.
-
-        To begin:
-        1. Select a location.
-        2. Select a facility.
-        3. Choose an extreme weather scenario.
-        4. Configure energy resources.
-        5. Run the simulation.
-        6. Review energy gaps and risk indicators.
-        """
-    )
 with st.expander("Model Assumptions and Limitations", expanded=False):
     st.markdown(
         """
@@ -6489,7 +6476,6 @@ def render_city_facility_profile():
         {"Field": "Key Climate Stress Factors", "Value": f"Temperature {temperature} C, Wind {wind_speed} m/s, Solar {solar_radiation} W/m2, Precipitation {precipitation} mm, Humidity {humidity}%"},
         {"Field": "Current Resilience Status", "Value": friendly_risk_level()},
         {"Field": "Last Simulation Timestamp", "Value": datetime.now().strftime("%Y-%m-%d %H:%M:%S")},
-        {"Field": "Future Enterprise Facility Mode", "Value": "Hospital / Data Center / School / Emergency Shelter / Industrial Site fields are planned, not enabled in this version."},
     ]
     st.dataframe(pd.DataFrame(profile_rows), use_container_width=True, hide_index=True)
 
