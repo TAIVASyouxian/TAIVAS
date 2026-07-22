@@ -5,7 +5,7 @@ TAIVAS is a Streamlit-based energy resilience decision-support simulation tool.
 It is not a disaster prediction system, not an automatic emergency command system,
 and not a guaranteed forecasting engine.
 
-## Current Entry Point
+## Sole Supported Entry Point
 
 Run the app with:
 
@@ -13,11 +13,30 @@ Run the app with:
 streamlit run taivas_control_center.py
 ```
 
-The main app file remains:
+The sole supported application entry point is:
 
 ```text
 taivas_control_center.py
 ```
+
+This documented entry point delegates its energy-balance calculation to the
+single authoritative deterministic core:
+
+```text
+core/energy_balance_phase2.py
+```
+
+The core uses an explicit one-hour simulation interval, MW for power, MWh for
+battery state and transfers, and defines System Performance Score as the
+percentage of modeled demand served.
+
+`taivas_control_center_PHASE2.py` is retained as a compatibility reference and
+is not a supported application entry point. Legacy snapshots under
+`archive/legacy/` use non-executable extensions and are historical records only;
+they must not be executed, imported, deployed, or used for research results.
+
+`core.energy_balance_phase2` is the authoritative manuscript-aligned
+energy-balance core used by the supported entry point.
 
 ## Folder Structure
 
@@ -46,7 +65,15 @@ taivas_control_center.py
 └── tests/
 ```
 
-## Setup
+## Optional Extensions
+
+The repository snapshot may not include the historical `modules/` package or
+`concept_lab_components.py`. The official app treats these as optional
+presentation/advisory extensions and reports their absence without changing the
+authoritative energy-balance result. No replacement scientific logic is
+fabricated when they are unavailable.
+
+## Installation
 
 Create a virtual environment if desired, then install dependencies:
 

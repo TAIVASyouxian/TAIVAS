@@ -1,0 +1,11 @@
+TAIVAS Phase 2 Remaining Evidence Gaps
+Generated: 2026-07-21T19:19:14
+
+- Authoritative '(5)' source: Exact file required for material-difference comparison
+- Parameter calibration: Observed or documented basis for coefficients, multipliers, and thresholds
+- Historical validation: Cases, observed outputs, comparison method, and error measures
+- Storage dynamics: Multi-period state transitions, power limits, technology-specific efficiencies
+- Uncertainty: Calibrated distributions or documented sensitivity ranges
+- Usability: Participant groups, protocol, tasks, measures, and results
+
+These gaps are not hidden by the illustrative analysis. The generated scenario and sensitivity outputs demonstrate deterministic internal model behavior only.

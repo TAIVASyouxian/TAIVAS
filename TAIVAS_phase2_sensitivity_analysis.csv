@@ -1,0 +1,10 @@
+﻿scenario,battery_capacity_multiplier,battery_capacity_mwh,demand_assumption_multiplier,population_equivalent_used,demand_mw,renewable_supply_mw,battery_contribution_mw,final_supply_mw,possible_energy_gap_mw,unmet_demand_ratio,system_performance_score_pct,external_support_need_proxy_pct,risk_tier
+blizzard,0.5,10.0,0.8,531200,30.48,26.19,2.98,29.16,1.32,0.043429,95.66,4.34,Elevated
+blizzard,0.5,10.0,1.0,664000,38.11,26.19,2.98,29.16,8.95,0.234743,76.53,23.47,Critical
+blizzard,0.5,10.0,1.2,796800,45.73,26.19,2.98,29.16,16.57,0.362286,63.77,36.23,Critical
+blizzard,1.0,20.0,0.8,531200,30.48,26.19,4.3,30.48,0.0,0.0,100.0,0.0,Low
+blizzard,1.0,20.0,1.0,664000,38.11,26.19,5.95,32.14,5.97,0.156672,84.33,15.67,Critical
+blizzard,1.0,20.0,1.2,796800,45.73,26.19,5.95,32.14,13.59,0.297227,70.28,29.72,Critical
+blizzard,1.5,30.0,0.8,531200,30.48,26.19,4.3,30.48,0.0,0.0,100.0,0.0,Low
+blizzard,1.5,30.0,1.0,664000,38.11,26.19,8.92,35.11,3.0,0.0786,92.14,7.86,High
+blizzard,1.5,30.0,1.2,796800,45.73,26.19,8.92,35.11,10.62,0.232167,76.78,23.22,Critical

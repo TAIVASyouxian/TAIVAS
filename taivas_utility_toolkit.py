@@ -294,8 +294,8 @@ def build_pdf_report(context: dict, results: dict, inputs: dict, notes: str = ""
         ["Possible Energy Gap", f"{results.get('shortfall', '-')} MW"],
         ["Renewable Ratio", f"{results.get('renewable_ratio', '-')}%"],
         ["Battery Level", f"{results.get('battery_levels', '-')} MWh"],
-        ["System Efficiency", f"{results.get('system_efficiency', '-')}%"],
-        ["Grid Dependency", f"{results.get('grid_dependency', '-')}%"],
+        ["System Performance Score", f"{results.get('system_performance_score', results.get('system_efficiency', '-'))}%"],
+        ["External Support Need Proxy", f"{results.get('external_support_need_proxy', results.get('grid_dependency', '-'))}%"],
     ]
 
     for title, rows in (("Scenario Summary", summary_rows), ("Input Capacity Summary", capacity_rows), ("Key Output Summary", output_rows)):
@@ -342,7 +342,7 @@ def recommendation_from_results(results: dict) -> str:
     if battery <= 0:
         return "Review storage assumptions and confirm available backup capacity before operational use."
     if grid_dependency >= 10:
-        return "Review external power dependency and confirm backup grid support assumptions."
+        return "Review the External Support Need Proxy and external-support assumptions."
     return "Continue monitoring scenario assumptions and preserve reserve margin."
 
 
@@ -473,8 +473,8 @@ def build_ppt_report(context: dict, results: dict, inputs: dict, notes: str = ""
     ])
     add_key_value_table(slide, [
         ["Renewable Ratio", format_metric(results.get("renewable_ratio"), "%")],
-        ["System Efficiency", format_metric(results.get("system_efficiency"), "%")],
-        ["Grid Dependency", format_metric(results.get("grid_dependency"), "%")],
+        ["System Performance Score", format_metric(results.get("system_performance_score", results.get("system_efficiency")), "%")],
+        ["External Support Need Proxy", format_metric(results.get("external_support_need_proxy", results.get("grid_dependency")), "%")],
         ["Battery Level", format_metric(results.get("battery_levels"), "MWh")],
     ], top=3.25, height=2.5)
 
@@ -517,12 +517,12 @@ def build_ppt_report(context: dict, results: dict, inputs: dict, notes: str = ""
     if scenario_rows:
         slide = prs.slides.add_slide(blank_layout)
         add_slide_title(slide, "Scenario Comparison", "Comparison table from available TAIVAS scenario results.")
-        rows = [["Scenario", "Energy Gap", "System Efficiency"]]
+        rows = [["Scenario", "Energy Gap", "System Performance Score"]]
         for item in scenario_rows[:8]:
             rows.append([
                 item.get("Scenario", "-"),
                 str(item.get("Energy Gap (MW)", item.get("Energy Gap", "-"))),
-                str(item.get("System Stability (%)", item.get("System Efficiency", "-"))),
+                str(item.get("System Performance Score (%)", item.get("System Stability (%)", item.get("System Efficiency", "-")))),
             ])
         table_shape = slide.shapes.add_table(len(rows), 3, Inches(0.7), Inches(1.35), Inches(12.0), Inches(4.8))
         table = table_shape.table

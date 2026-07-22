@@ -97,14 +97,14 @@ def build_alert_state(current_state, monitoring_signals=None):
     if shortfall_trend > 0 or shortfall_ratio >= 0.05 or grid_dependency >= 25:
         return {
             "alert_state": "WARNING",
-            "reason": "Modeled shortfall or backup grid dependency is increasing.",
-            "review_priority": "Review energy gap, grid dependency, and storage reserve assumptions.",
+            "reason": "Modeled energy gap or External Support Need Proxy is increasing.",
+            "review_priority": "Review energy gap, External Support Need Proxy, and storage reserve assumptions.",
         }
     if renewable_ratio < 35 or grid_dependency >= 10 or battery_ratio < 0.5:
         return {
             "alert_state": "WATCH",
             "reason": "Operational monitoring signals indicate reduced margin or elevated dependency.",
-            "review_priority": "Monitor renewable contribution, battery reserve, and backup grid need.",
+            "review_priority": "Monitor renewable contribution, battery reserve, and External Support Need Proxy.",
         }
     return {
         "alert_state": "NORMAL",
@@ -138,9 +138,9 @@ def detect_operational_drift(current_state, baseline_state):
     if abs(renewable_delta_pct) >= 5:
         drift_items.append(f"Renewable supply changed by {renewable_delta_pct:+.1f}% from baseline.")
     if grid_delta >= 5:
-        drift_items.append(f"Backup grid need increased by {grid_delta:+.1f} percentage points.")
+        drift_items.append(f"External Support Need Proxy increased by {grid_delta:+.1f} percentage points.")
     if stability_delta <= -5:
-        drift_items.append(f"System stability decreased by {stability_delta:+.1f} percentage points.")
+        drift_items.append(f"System Performance Score decreased by {stability_delta:+.1f} percentage points.")
     if gap_delta > 0:
         drift_items.append(f"Energy gap increased by {gap_delta:+.2f} MW.")
 

@@ -4,6 +4,7 @@ from core.scenario_compatibility import (
     get_allowed_scenarios,
     evaluate_scenario_plausibility,
     build_scenario_warning,
+    get_geological_hazard_module_note,
 )
 
 
@@ -30,6 +31,13 @@ class ScenarioCompatibilityTests(unittest.TestCase):
         self.assertIn("normal", allowed)
         evaluation = evaluate_scenario_plausibility("Unknown", "Unknown City", "typhoon")
         self.assertEqual(evaluation["plausibility"], "MEDIUM")
+
+    def test_geological_hazards_are_not_selectable(self):
+        for mode in ["General Mode", "Advanced Stress Testing"]:
+            allowed = get_allowed_scenarios("Taiwan", "Taipei", mode)
+            self.assertNotIn("earthquake", allowed)
+            self.assertNotIn("volcanic_eruption", allowed)
+        self.assertIn("planned but not enabled", get_geological_hazard_module_note())
 
 
 if __name__ == "__main__":

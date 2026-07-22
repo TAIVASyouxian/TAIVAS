@@ -1,0 +1,7 @@
+﻿comparison_type,demand_mw,energy_gap_mw,previous_formula,previous_value,phase2_formula,phase2_value,behavior_change
+System performance fixture,100.0,10.0,"clamp(100 - 0.55 x energy_gap_MW, 0, 100)",94.5,"100 x clamp(1 - energy_gap_MW / demand_MW, 0, 1)",90.0,Normalized by demand; zero demand is not applicable
+System performance fixture,1000.0,10.0,"clamp(100 - 0.55 x energy_gap_MW, 0, 100)",94.5,"100 x clamp(1 - energy_gap_MW / demand_MW, 0, 1)",99.0,Normalized by demand; zero demand is not applicable
+System performance fixture,50.0,10.0,"clamp(100 - 0.55 x energy_gap_MW, 0, 100)",94.5,"100 x clamp(1 - energy_gap_MW / demand_MW, 0, 1)",80.0,Normalized by demand; zero demand is not applicable
+System performance fixture,0.0,0.0,"clamp(100 - 0.55 x energy_gap_MW, 0, 100)",100.0,"100 x clamp(1 - energy_gap_MW / demand_MW, 0, 1)",,Normalized by demand; zero demand is not applicable
+Battery state update,,,battery_current_MWh + charge_MW - discharge_MW - loss,Implicit 1 h; MW and MWh added directly,battery_current_MWh + charge_energy_MWh - discharge_energy_MWh - loss_energy_MWh,Power x 1 h before storage update,Dimensionally explicit and bounded
+Battery loss,,,0.04 x (charge + discharge),Unit implicit,0.04 x (charge_energy_MWh + discharge_energy_MWh),MWh loss over interval,Existing 4% assumption retained

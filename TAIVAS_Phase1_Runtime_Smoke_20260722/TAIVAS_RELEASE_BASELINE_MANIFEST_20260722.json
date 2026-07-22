@@ -1,0 +1,473 @@
+{
+  "manifest_schema": "TAIVAS release baseline manifest v1",
+  "baseline_name": "TAIVAS-v1.0-research-baseline (not tagged)",
+  "baseline_date": "2026-07-22",
+  "timezone": "Asia/Taipei",
+  "generated_at": "2026-07-22T16:10:07.728315+08:00",
+  "manuscript_title": "TAIVAS: A Transparent Scenario-Based Energy Resilience Simulator for Extreme-Weather Decision Support",
+  "authoritative_entry_point": "taivas_control_center.py",
+  "authoritative_core": "core.energy_balance_phase2",
+  "python_version": "3.12.13",
+  "isolated_environment": {
+    "path": "C:\\Users\\USER\\AppData\\Local\\Temp\\TAIVAS_Phase1_Smoke_20260722_2",
+    "installation_command": "python -m pip install -r requirements.txt",
+    "installation_status": "FAILED_ENVIRONMENT_NETWORK_RESTRICTION",
+    "failure_summary": "Package index access was blocked while resolving streamlit; no undeclared package was installed.",
+    "declared_requirements": [
+      "streamlit>=1.32,<2",
+      "pandas>=2.0,<3",
+      "matplotlib>=3.8,<4",
+      "openpyxl>=3.1,<4",
+      "xlrd>=2.0,<3",
+      "pillow>=10,<12",
+      "reportlab>=4,<5",
+      "python-pptx>=0.6.23,<2"
+    ],
+    "installed_required_package_versions": {
+      "streamlit": null,
+      "pandas": null,
+      "matplotlib": null,
+      "openpyxl": null,
+      "xlrd": null,
+      "pillow": null,
+      "reportlab": null,
+      "python-pptx": null
+    }
+  },
+  "runtime_smoke": {
+    "local_launch_status": "NOT_RUN_DEPENDENCIES_UNAVAILABLE",
+    "deployed_url": "https://taivasyouxian-taivas-taivas-control-center-yd79xr.streamlit.app/",
+    "deployed_title": "TAIVAS Energy Control Center ? Streamlit",
+    "deployed_fatal_exception": false,
+    "deployed_verification_status": "DEPLOYMENT NOT YET UPDATED",
+    "deployed_baseline_note": "Remote UI verification is inconclusive because the Streamlit Cloud deployment has not yet been updated to the verified Phase 1 baseline. Observed legacy outputs do not invalidate the local Phase 1 implementation."
+  },
+  "regression_tests": {
+    "command": "python -B -m unittest discover -s tests -v",
+    "discovered": 37,
+    "passed": 37,
+    "failed": 0,
+    "skipped": 0,
+    "runtime_seconds": 0.726
+  },
+  "git": {
+    "available": false,
+    "valid_history": false,
+    "tag_created": false,
+    "limitation": "Git executable unavailable and local .git directory is empty."
+  },
+  "required_file_sha256": {
+    "taivas_control_center.py": "cc4a1c1efa4c69020544e1356f5df64914c5e419f9c14adca33afbbb4304389d",
+    "core/energy_balance_phase2.py": "c0f162b6c8b8f481cf915dc2eacd048f2e510f58382c7c4c581043b752633c5f",
+    "README.md": "3bb16e1519a2e8b316f3d8aebb4685c539c4b4cccbae93d3d447f0a8e77b543c",
+    "requirements.txt": "c1faef45d37ef02d2c8174f4b207f67698ef902ec3662c2f08c17c14e040d39f"
+  },
+  "tests_aggregate_sha256": "26a67ee86f008bee46575bb2d065047bd949271f731a9dc49d1636517ed113cc",
+  "test_files": [
+    {
+      "path": "tests/test_audit_export.py",
+      "size_bytes": 598,
+      "sha256": "8e5c63bf0cb599f98045e9459083875d67a7b9e6a55938c4dd67b46d0d87c2da"
+    },
+    {
+      "path": "tests/test_data_validation.py",
+      "size_bytes": 884,
+      "sha256": "40a32897abf252929027b677cd88d0b53ea2364ce58c796d7d8605f57cc0c67a"
+    },
+    {
+      "path": "tests/test_energy_balance_phase2.py",
+      "size_bytes": 6451,
+      "sha256": "a6c87912ae4f6cc96011ceca38393fa7f57e240d731dc6f59e52182453459d6c"
+    },
+    {
+      "path": "tests/test_official_entrypoint_alignment.py",
+      "size_bytes": 8016,
+      "sha256": "718331895d37d8da8259d71f5bd91a851dedf994f935499d52bc201ae5a53409"
+    },
+    {
+      "path": "tests/test_risk_engine.py",
+      "size_bytes": 611,
+      "sha256": "99130ee50122c1ad846ad1034849c8656e3bf4957f22e0d6ed8425ef3182dd24"
+    },
+    {
+      "path": "tests/test_scenario_compatibility.py",
+      "size_bytes": 1949,
+      "sha256": "95936354ca32e00f1d75fcfd4a71c842e6bfaded4c672bea2ed841886b0d5192"
+    }
+  ],
+  "source_file_inventory_count": 66,
+  "source_file_inventory": [
+    {
+      "path": ".env.example",
+      "size_bytes": 465,
+      "sha256": "94822a83d55ef983a4f79dad4e95f0f4f025368808b4d08cc645f14f90e4e4c3"
+    },
+    {
+      "path": "agent/__init__.py",
+      "size_bytes": 208,
+      "sha256": "46954cf5d837e4ebd513b6ad6953fd71e0d4202206b6cd598c169f3c3ab88cf9"
+    },
+    {
+      "path": "agent/monitoring_layer.py",
+      "size_bytes": 9137,
+      "sha256": "50be3d81434e72934666878c20a22491ce63bed6c3bb107d7ea2d15239b46194"
+    },
+    {
+      "path": "agent/workflow_layer.py",
+      "size_bytes": 8021,
+      "sha256": "4872fe19048939cff106b90e509ae5119f0b6fda836fb7f5194de4eee3abe631"
+    },
+    {
+      "path": "analytics.py",
+      "size_bytes": 4893,
+      "sha256": "5576b0260ea245596df821815ae05ba17b94fe9233c0faf1316e40add58057a9"
+    },
+    {
+      "path": "archive/legacy/taivas_control_center_COMPLETE_FOR_GITHUB.py.legacy",
+      "size_bytes": 387904,
+      "sha256": "9f101175b255e419f3239395e2c0d40d6288cf90b7187a7ca2844c743a5cb9ad"
+    },
+    {
+      "path": "build_eia2026_revision.py",
+      "size_bytes": 45222,
+      "sha256": "ee03c6406a5034ffd12aa6d26671623f9f565bca4f546b45259b590cfa991256"
+    },
+    {
+      "path": "build_taivas_final_submission.py",
+      "size_bytes": 32493,
+      "sha256": "8a0b362e9b10cc86e429dd6d8d0a1f39c26d6b034806be3e705890e3b345ea24"
+    },
+    {
+      "path": "build_taivas_phase2_artifacts.py",
+      "size_bytes": 70922,
+      "sha256": "16edc4cd491b274468709b129c522b13829a3b910e3418a36fe5e3675d809615"
+    },
+    {
+      "path": "core/__init__.py",
+      "size_bytes": 105,
+      "sha256": "dd73ff58996fc4ecbe44de1dd9101f137a90f1d0f967681c790ce73ecc5c7d1b"
+    },
+    {
+      "path": "core/energy_balance_phase2.py",
+      "size_bytes": 11247,
+      "sha256": "c0f162b6c8b8f481cf915dc2eacd048f2e510f58382c7c4c581043b752633c5f"
+    },
+    {
+      "path": "core/risk_engine.py",
+      "size_bytes": 959,
+      "sha256": "c6ffb77dc58401e0613a1ae42c2389e75bcca6ec33b20b4c3db6a0b9f5fbe381"
+    },
+    {
+      "path": "core/scenario_compatibility.py",
+      "size_bytes": 4805,
+      "sha256": "9db04f2e80b04ffb5bdbb1f4654b447102f9ecc8f1176053c4ffb651579dcf02"
+    },
+    {
+      "path": "data/__init__.py",
+      "size_bytes": 181,
+      "sha256": "4c2d907fcd663d405e908dd2687b8d6cac8c83718f392d19a53428992c7ea0ad"
+    },
+    {
+      "path": "data/csv_loader.py",
+      "size_bytes": 1081,
+      "sha256": "0fa932dae3fbd999f6d28b9ee77e236c8012cf90ab7b755ef138ee77dad0e015"
+    },
+    {
+      "path": "data/validation_utils.py",
+      "size_bytes": 2556,
+      "sha256": "1543af27d565ea540b1f156ce48961980380a42183bada1089b3b6cc0d45237c"
+    },
+    {
+      "path": "DEPLOYMENT_PORTABILITY.md",
+      "size_bytes": 2266,
+      "sha256": "239d10bd8ef9ffd47bd39d63726c25d33bb22c52c6aac310ba442e761c3b6022"
+    },
+    {
+      "path": "docx_media_eia2026/image1.png",
+      "size_bytes": 389083,
+      "sha256": "ea0f8bcca9f5c10254fb4780c0b113eb65d93cd35c2f1db335a2b2921f581f42"
+    },
+    {
+      "path": "docx_media_eia2026/image2.png",
+      "size_bytes": 437349,
+      "sha256": "31fbb8232661a3dd068cfc7cdb2b8e855c4385d30d31a9e95d37273fb01c293f"
+    },
+    {
+      "path": "export/__init__.py",
+      "size_bytes": 37,
+      "sha256": "85afb4d2d5d8d7d6865c1e61d6984c7d61e7aa2fb2cb5c08259e855b58080aea"
+    },
+    {
+      "path": "export/audit_export.py",
+      "size_bytes": 208,
+      "sha256": "0f13d34fab0101daa42932d2d31f89f7c7ba412f4dce7dd9369d97336c2d99ab"
+    },
+    {
+      "path": "export/markdown_export.py",
+      "size_bytes": 440,
+      "sha256": "1f34d43055f52b04875b91a099e1de6c3ba2686035d32c45850f90520700088f"
+    },
+    {
+      "path": "final_build_output.txt",
+      "size_bytes": 5684,
+      "sha256": "cae9c4039eb956f76c5fa23919a56253f0c95cba38920db051074d9894d8d027"
+    },
+    {
+      "path": "pages/99_Analytics_Dashboard.py",
+      "size_bytes": 1820,
+      "sha256": "488a4ae19a7221ceba5793e2ec5791c2d0c4d0f4bef938cabf9c0f11a6341228"
+    },
+    {
+      "path": "paper_revision_assets/source_results_interface.png",
+      "size_bytes": 437349,
+      "sha256": "31fbb8232661a3dd068cfc7cdb2b8e855c4385d30d31a9e95d37273fb01c293f"
+    },
+    {
+      "path": "paper_revision_assets/taivas_results_interface_annotated.png",
+      "size_bytes": 393773,
+      "sha256": "09a5342498cc414aefb6ffda8d30282d42154d34ecc8c4ba1ce889c737bcc1b1"
+    },
+    {
+      "path": "paper_revision_assets/taivas_transparent_pipeline.png",
+      "size_bytes": 112459,
+      "sha256": "13f79e508ca6b9e3505fda1835fb2d565a615f1d5e21983d9b36e0e33d29e998"
+    },
+    {
+      "path": "paper_revision_assets_phase2/TAIVAS_phase2_figure1_pipeline.png",
+      "size_bytes": 122898,
+      "sha256": "2e780094aed0a5c6abcb044a513099719770864bfdf26780f87a4204baaa41bb"
+    },
+    {
+      "path": "paper_revision_assets_phase2/TAIVAS_phase2_figure1_pipeline.svg",
+      "size_bytes": 4583,
+      "sha256": "483ca0a42924dcc850f3b8342d720e58526b472f8f16c509a5dcd0c263d4c312"
+    },
+    {
+      "path": "paper_revision_assets_phase2/TAIVAS_phase2_sensitivity_heatmap.png",
+      "size_bytes": 139370,
+      "sha256": "b4a4e0c1c4993a4e3e914667da80523a1f890aa898e4643a44bf4c2905b959ae"
+    },
+    {
+      "path": "paper_revision_assets_phase2/TAIVAS_phase2_sensitivity_heatmap.svg",
+      "size_bytes": 4398,
+      "sha256": "9229673db7de579413d34c16400288a193dcc76a58cac5764f89f95fb792df6a"
+    },
+    {
+      "path": "README.md",
+      "size_bytes": 4106,
+      "sha256": "3bb16e1519a2e8b316f3d8aebb4685c539c4b4cccbae93d3d447f0a8e77b543c"
+    },
+    {
+      "path": "requirements.txt",
+      "size_bytes": 137,
+      "sha256": "c1faef45d37ef02d2c8174f4b207f67698ef902ec3662c2f08c17c14e040d39f"
+    },
+    {
+      "path": "samples/taivas_sample_input.csv",
+      "size_bytes": 452,
+      "sha256": "7bfdfe56efc815428b21a2b1bfcf0c255d85ff806630395d303b87ddb7c97c93"
+    },
+    {
+      "path": "taivas_control_center.py",
+      "size_bytes": 393590,
+      "sha256": "cc4a1c1efa4c69020544e1356f5df64914c5e419f9c14adca33afbbb4304389d"
+    },
+    {
+      "path": "taivas_control_center_PHASE2.py",
+      "size_bytes": 386503,
+      "sha256": "2ed11218930a94617e96f13e465c22c271218edb969e4bf9610533d3d87330af"
+    },
+    {
+      "path": "TAIVAS_EIA2026_FINAL_SUBMISSION.docx",
+      "size_bytes": 512622,
+      "sha256": "6316a6a8226619875a0572f1d4154dbcd742eef7cef85b443483bef13c973225"
+    },
+    {
+      "path": "TAIVAS_EIA2026_revision_log_and_reviewer_mapping.docx",
+      "size_bytes": 42191,
+      "sha256": "ffe7a9bb8fcd388ecd5d491b6b2d9ba2290d3b93cc4e56394952a313da8ec441"
+    },
+    {
+      "path": "TAIVAS_EIA2026_revision_log_and_reviewer_mapping_PHASE2.docx",
+      "size_bytes": 39562,
+      "sha256": "706647c8daeec3369465d90d6218d2c323c36eac2b1709d63092c736ffde8f5b"
+    },
+    {
+      "path": "TAIVAS_EIA2026_revision_log_FINAL.docx",
+      "size_bytes": 38282,
+      "sha256": "c4152b1caeaaecf2811a92ed3ece44838b503fcb41606a376b396b638b1b4e85"
+    },
+    {
+      "path": "TAIVAS_EIA2026_short_paper_abbreviations_revised.docx",
+      "size_bytes": 805020,
+      "sha256": "9adc66fd6bef29f016488466ad2b3307431fda07ede0e162f36c2c1819206f04"
+    },
+    {
+      "path": "TAIVAS_EIA2026_short_paper_abbreviations_working.docx",
+      "size_bytes": 853201,
+      "sha256": "6f7799a88d53ef615d861e855afaa2cc60df2da1ffc9f0580578662fbcb50749"
+    },
+    {
+      "path": "TAIVAS_EIA2026_short_paper_revised_PHASE2.docx",
+      "size_bytes": 1728421,
+      "sha256": "6d3029cb3739a6afac006c14da023fa633bfc8c82a78efcec2e8a020a76afe9f"
+    },
+    {
+      "path": "TAIVAS_EIA2026_short_paper_revised_second_submission.docx",
+      "size_bytes": 1289293,
+      "sha256": "bf5210eb381deb3889b15da662d5fe48f564dcda40e6940bbc2321903c7fbd54"
+    },
+    {
+      "path": "TAIVAS_FINAL_manual_checks.txt",
+      "size_bytes": 928,
+      "sha256": "6265a748d4afc57d2ee8bc613f027234061fa18879652d753dae5a45ff8dab43"
+    },
+    {
+      "path": "TAIVAS_FINAL_structural_and_visual_verification_report.docx",
+      "size_bytes": 38440,
+      "sha256": "033f685894bbb0c51155b0c907e581a0811181d5530b61454209ac448927769c"
+    },
+    {
+      "path": "TAIVAS_MANUSCRIPT_SYSTEM_TRACEABILITY_AUDIT.md",
+      "size_bytes": 23873,
+      "sha256": "7aadd5bf3b3c1fc340f2ea3716fc949253a016170b811b6e07313acda053a076"
+    },
+    {
+      "path": "TAIVAS_PHASE1_ALIGNMENT_CHANGE_REPORT.md",
+      "size_bytes": 8647,
+      "sha256": "548fca61be8d025c062186e1c0d5764ea4d5200f5dad18957e27cc908f995a04"
+    },
+    {
+      "path": "TAIVAS_phase2_automated_test_report.txt",
+      "size_bytes": 4978,
+      "sha256": "b02bab15ab79df9384a791bbcf9a8983e7559d49c264689a3e3c5d7fc40725bc"
+    },
+    {
+      "path": "TAIVAS_phase2_before_after_formula_comparison.csv",
+      "size_bytes": 1329,
+      "sha256": "ea926b13fadc65ed08e847d9c8535755d923a001191aa9789bec7d7263b17cf5"
+    },
+    {
+      "path": "TAIVAS_phase2_figure2_composite.png",
+      "size_bytes": 218191,
+      "sha256": "8da84edf9551a27fa85c1149c335d8e1972d331500208632c5675ad9f2bb7388"
+    },
+    {
+      "path": "TAIVAS_phase2_figure2_composite.svg",
+      "size_bytes": 5890,
+      "sha256": "28de5a8e83a0b11b4e65f09a587a0251f773e9855bcc5038f65b64fe387a0b61"
+    },
+    {
+      "path": "TAIVAS_phase2_illustrative_scenario_results.csv",
+      "size_bytes": 2181,
+      "sha256": "dd257a6c14bc3c9b6ed4717938e7cf1b5a8149cea40c4e51904597ae051305ea"
+    },
+    {
+      "path": "TAIVAS_phase2_parameter_provenance.csv",
+      "size_bytes": 4314,
+      "sha256": "039a66254e1457c28c85575153a7290a6d9d33677c72207a7992a072aaddefee"
+    },
+    {
+      "path": "TAIVAS_phase2_remaining_evidence_gaps.txt",
+      "size_bytes": 757,
+      "sha256": "e3b958063d1cdb8359ff2138cb647a8d9298ef8e97e8e540565c5717c2cc4883"
+    },
+    {
+      "path": "TAIVAS_phase2_sensitivity_analysis.csv",
+      "size_bytes": 1059,
+      "sha256": "5db0b42a45da19576ade7e2f9cebbced243385c5c72a87d9c42c49a352925d28"
+    },
+    {
+      "path": "TAIVAS_phase2_source_version_comparison.docx",
+      "size_bytes": 38080,
+      "sha256": "6b38f9b0f043a7ca13e81afd1713b576733912052251769728ba68d5430789bf"
+    },
+    {
+      "path": "TAIVAS_phase2_variable_unit_audit.csv",
+      "size_bytes": 1911,
+      "sha256": "788c934c73500948c07351a3db151cb12e1e10a0e55aa299a87228e90ae8c744"
+    },
+    {
+      "path": "TAIVAS_source_version_comparison_COMPLETED.docx",
+      "size_bytes": 38178,
+      "sha256": "8c0234e29c4e815b754833bc9e98bba50205b218374943a2b379f594e3c157f5"
+    },
+    {
+      "path": "taivas_utility_toolkit.py",
+      "size_bytes": 34366,
+      "sha256": "e5f2c1224cd7bb323e88dd000ba6fc9c9611d0f73e1b1ac30106cf32277cfa0b"
+    },
+    {
+      "path": "tests/test_audit_export.py",
+      "size_bytes": 598,
+      "sha256": "8e5c63bf0cb599f98045e9459083875d67a7b9e6a55938c4dd67b46d0d87c2da"
+    },
+    {
+      "path": "tests/test_data_validation.py",
+      "size_bytes": 884,
+      "sha256": "40a32897abf252929027b677cd88d0b53ea2364ce58c796d7d8605f57cc0c67a"
+    },
+    {
+      "path": "tests/test_energy_balance_phase2.py",
+      "size_bytes": 6451,
+      "sha256": "a6c87912ae4f6cc96011ceca38393fa7f57e240d731dc6f59e52182453459d6c"
+    },
+    {
+      "path": "tests/test_official_entrypoint_alignment.py",
+      "size_bytes": 8016,
+      "sha256": "718331895d37d8da8259d71f5bd91a851dedf994f935499d52bc201ae5a53409"
+    },
+    {
+      "path": "tests/test_risk_engine.py",
+      "size_bytes": 611,
+      "sha256": "99130ee50122c1ad846ad1034849c8656e3bf4957f22e0d6ed8425ef3182dd24"
+    },
+    {
+      "path": "tests/test_scenario_compatibility.py",
+      "size_bytes": 1949,
+      "sha256": "95936354ca32e00f1d75fcfd4a71c842e6bfaded4c672bea2ed841886b0d5192"
+    }
+  ],
+  "verification_artifacts": [
+    {
+      "path": "TAIVAS_Phase1_Runtime_Smoke_20260722/01_official_launch_screen.png",
+      "size_bytes": 83463,
+      "sha256": "5b361e3921c360c7b10ef24203690b02fdb46af7d318928e0fb74c04ad6a51d2"
+    },
+    {
+      "path": "TAIVAS_Phase1_Runtime_Smoke_20260722/02_helsinki_blizzard_inputs.png",
+      "size_bytes": 100183,
+      "sha256": "4a0ab1fbb9e992d924b9cd40cc627625bc21a07001dc63b4ae5881404850c9a3"
+    },
+    {
+      "path": "TAIVAS_Phase1_Runtime_Smoke_20260722/03_result_kpi_area.png",
+      "size_bytes": 92882,
+      "sha256": "74979c64c142eed804ba2512760834769c9730bd2d78afadd85ebdb0d566586f"
+    },
+    {
+      "path": "TAIVAS_Phase1_Runtime_Smoke_20260722/04_mw_mwh_displays.png",
+      "size_bytes": 78754,
+      "sha256": "eb98f9f6ca23c9bc113a585e7f390ff9e6fa3ed2ec87808abff4922b4124434c"
+    },
+    {
+      "path": "TAIVAS_Phase1_Runtime_Smoke_20260722/05_human_review_boundary.png",
+      "size_bytes": 109449,
+      "sha256": "352f7bedc40abe714a6e2ad8a26656bcb8b58425c0fdd2e5ad2bcf74120e1e30"
+    },
+    {
+      "path": "TAIVAS_Phase1_Runtime_Smoke_20260722/06_export_confirmation.png",
+      "size_bytes": 81171,
+      "sha256": "5a62d3430cfe5e871ae4885488721f1150e9ff6db361ba25948d4b9f2343dcf2"
+    },
+    {
+      "path": "TAIVAS_Phase1_Runtime_Smoke_20260722/07_browser_warnings_errors.json",
+      "size_bytes": 31268,
+      "sha256": "887ad49321a292599341ebe01e68426d9c77b4267d4d0f9ca1094bcb1f5257fd"
+    },
+    {
+      "path": "TAIVAS_Phase1_Runtime_Smoke_20260722/08_export_preview.txt",
+      "size_bytes": 2551,
+      "sha256": "15467d1c8b54f4304d04177106a98cfb604f89713e60b5530cf33b825d8508c9"
+    }
+  ]
+}

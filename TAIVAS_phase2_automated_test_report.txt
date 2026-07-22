@@ -1,0 +1,50 @@
+TAIVAS Phase 2 Automated Test Report
+Generated: 2026-07-21T19:19:14
+
+COMMAND: C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m py_compile C:\Users\USER\Documents\Codex\2026-05-15\streamlit-scenario-logic-ui-1-sidebar\taivas_control_center_PHASE2.py C:\Users\USER\Documents\Codex\2026-05-15\streamlit-scenario-logic-ui-1-sidebar\core\energy_balance_phase2.py C:\Users\USER\Documents\Codex\2026-05-15\streamlit-scenario-logic-ui-1-sidebar\build_taivas_phase2_artifacts.py
+EXIT CODE: 0
+
+
+
+COMMAND: C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m unittest discover -s C:\Users\USER\Documents\Codex\2026-05-15\streamlit-scenario-logic-ui-1-sidebar\tests -v
+EXIT CODE: 0
+
+test_audit_json_schema_minimum (test_audit_export.AuditExportTests.test_audit_json_schema_minimum) ... ok
+test_empty_dataframe_validation (test_data_validation.DataValidationTests.test_empty_dataframe_validation) ... ok
+test_invalid_numeric_column_warning (test_data_validation.DataValidationTests.test_invalid_numeric_column_warning) ... ok
+test_malformed_csv_falls_back_with_warning (test_data_validation.DataValidationTests.test_malformed_csv_falls_back_with_warning) ... ok
+test_capacity_bounds_are_enforced (test_energy_balance_phase2.BatteryUnitConsistencyTests.test_capacity_bounds_are_enforced) ... ok
+test_full_battery_does_not_accept_surplus_charge (test_energy_balance_phase2.BatteryUnitConsistencyTests.test_full_battery_does_not_accept_surplus_charge) ... ok
+test_one_hour_mw_to_mwh_conversion (test_energy_balance_phase2.BatteryUnitConsistencyTests.test_one_hour_mw_to_mwh_conversion) ... ok
+test_repeatability (test_energy_balance_phase2.BatteryUnitConsistencyTests.test_repeatability) ... ok
+test_shortage_discharge_is_energy_bounded (test_energy_balance_phase2.BatteryUnitConsistencyTests.test_shortage_discharge_is_energy_bounded) ... ok
+test_surplus_charging_applies_one_hour_conversion_and_loss (test_energy_balance_phase2.BatteryUnitConsistencyTests.test_surplus_charging_applies_one_hour_conversion_and_loss) ... ok
+test_zero_stored_energy_cannot_discharge (test_energy_balance_phase2.BatteryUnitConsistencyTests.test_zero_stored_energy_cannot_discharge) ... ok
+test_normalized_score_is_percentage_of_demand_served (test_energy_balance_phase2.SystemPerformanceScoreTests.test_normalized_score_is_percentage_of_demand_served) ... ok
+test_old_and_new_scores_differ_by_demand_scale (test_energy_balance_phase2.SystemPerformanceScoreTests.test_old_and_new_scores_differ_by_demand_scale) ... ok
+test_score_is_scale_invariant (test_energy_balance_phase2.SystemPerformanceScoreTests.test_score_is_scale_invariant) ... ok
+test_zero_demand_is_not_applicable (test_energy_balance_phase2.SystemPerformanceScoreTests.test_zero_demand_is_not_applicable) ... ok
+test_critical_shortfall_threshold (test_risk_engine.RiskEngineTests.test_critical_shortfall_threshold) ... ok
+test_high_shortfall_threshold (test_risk_engine.RiskEngineTests.test_high_shortfall_threshold) ... ok
+test_moderate_shortfall_is_elevated (test_risk_engine.RiskEngineTests.test_moderate_shortfall_is_elevated) ... ok
+test_normal_no_shortfall_is_low (test_risk_engine.RiskEngineTests.test_normal_no_shortfall_is_low) ... ok
+test_geological_hazards_are_not_selectable (test_scenario_compatibility.ScenarioCompatibilityTests.test_geological_hazards_are_not_selectable) ... ok
+test_germany_can_show_cold_wave_and_storm (test_scenario_compatibility.ScenarioCompatibilityTests.test_germany_can_show_cold_wave_and_storm) ... ok
+test_sweden_can_show_blizzard_general_mode (test_scenario_compatibility.ScenarioCompatibilityTests.test_sweden_can_show_blizzard_general_mode) ... ok
+test_taiwan_can_show_blizzard_advanced_with_low_warning (test_scenario_compatibility.ScenarioCompatibilityTests.test_taiwan_can_show_blizzard_advanced_with_low_warning) ... ok
+test_taiwan_does_not_show_blizzard_general_mode (test_scenario_compatibility.ScenarioCompatibilityTests.test_taiwan_does_not_show_blizzard_general_mode) ... ok
+test_unknown_country_falls_back_safely (test_scenario_compatibility.ScenarioCompatibilityTests.test_unknown_country_falls_back_safely) ... ok
+
+----------------------------------------------------------------------
+Ran 25 tests in 0.003s
+
+OK
+
+
+DOCX STRUCTURAL CHECKS
+TAIVAS_EIA2026_short_paper_revised_PHASE2.docx: PASS; paragraphs=66; tables=4; images=7
+TAIVAS_EIA2026_revision_log_and_reviewer_mapping_PHASE2.docx: PASS; paragraphs=9; tables=4; images=0
+TAIVAS_phase2_source_version_comparison.docx: PASS; paragraphs=8; tables=2; images=0
+
+VISUAL RENDERING NOTE
+The canonical DOCX renderer could not start because LibreOffice/soffice is unavailable in this environment. Microsoft Word COM automation also failed in the background session. PNG source figures were inspected directly; DOCX layout was checked structurally, including image and table widths against the manuscript text area.

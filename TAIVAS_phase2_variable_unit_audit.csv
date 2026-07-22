@@ -1,0 +1,19 @@
+﻿variable_name,meaning,previous_code_unit_or_state,displayed_interface_unit,phase2_manuscript_unit,required_correction
+"solar_capacity, wind_capacity, geothermal_capacity, hydro_capacity",Installed source capacity,MW,MW,MW,None
+"base_demand, demand",Interval-average power demand,MW,MW,MW,None
+"solar_supply, wind_supply, hydro_supply, geothermal_supply",Source power,MW,MW,MW,None
+renewable_supply,Combined renewable power,MW,MW,MW,None
+"battery_capacity, battery_current, battery_levels",Stored energy/state,MWh,MWh,MWh,Explicit MWh naming added
+renewable_surplus_power,Available surplus power,MW,Not shown,MW,Multiplied by interval before storage update
+charge_power,Accepted charging power,Previously implicit MW,Not shown,MW,Separated from charge energy
+charge_energy,Energy accepted during interval,Previously added directly,Not shown,MWh,charge_power x 1 h
+discharge_power / battery_discharge,Battery power delivered,Previously mixed with MWh limit,MW,MW,Derived from discharge energy / 1 h
+discharge_energy,Energy removed during interval,Previously implicit,Not shown,MWh,Bounded by stored energy including loss
+battery_losses,Transfer loss over interval,Previously mixed units,Not shown,MWh,4% of accepted charge plus discharge energy
+grid_support,External support power assumption,MW,MW,MW,None
+final_supply,Available power after aggregation,MW,MW,MW,None
+shortfall / possible_energy_gap,Unmet power demand,MW,MW,MW,None
+unmet_demand_ratio,Energy gap divided by demand,Not explicit,% or ratio,ratio,Added explicit field
+system_efficiency (legacy key),Percentage of modeled demand served,Scale-dependent score,%,%,Normalized; visible label changed to System Performance Score
+grid_dependency (legacy key),Unmet-demand share,%,%,%,Visible label changed to External Support Need Proxy
+simulation_interval_hours,Storage calculation interval,Implicit,Not shown,h,Set explicitly to 1 h
