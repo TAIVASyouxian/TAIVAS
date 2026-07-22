@@ -3,7 +3,7 @@
   "baseline_name": "TAIVAS-v1.0-research-baseline (not tagged)",
   "baseline_date": "2026-07-22",
   "timezone": "Asia/Taipei",
-  "generated_at": "2026-07-22T16:10:07.728315+08:00",
+  "generated_at": "2026-07-22T19:33:42.313384+08:00",
   "manuscript_title": "TAIVAS: A Transparent Scenario-Based Energy Resilience Simulator for Extreme-Weather Decision Support",
   "authoritative_entry_point": "taivas_control_center.py",
   "authoritative_core": "core.energy_balance_phase2",
@@ -44,11 +44,11 @@
   },
   "regression_tests": {
     "command": "python -B -m unittest discover -s tests -v",
-    "discovered": 37,
-    "passed": 37,
+    "discovered": 45,
+    "passed": 45,
     "failed": 0,
     "skipped": 0,
-    "runtime_seconds": 0.726
+    "runtime_seconds": 0.761
   },
   "git": {
     "available": false,
@@ -57,12 +57,12 @@
     "limitation": "Git executable unavailable and local .git directory is empty."
   },
   "required_file_sha256": {
-    "taivas_control_center.py": "cc4a1c1efa4c69020544e1356f5df64914c5e419f9c14adca33afbbb4304389d",
+    "taivas_control_center.py": "2dd616e5736165075c042e434c8d46c7a560d93329dec96fce19178d2aa29a3a",
     "core/energy_balance_phase2.py": "c0f162b6c8b8f481cf915dc2eacd048f2e510f58382c7c4c581043b752633c5f",
     "README.md": "3bb16e1519a2e8b316f3d8aebb4685c539c4b4cccbae93d3d447f0a8e77b543c",
     "requirements.txt": "c1faef45d37ef02d2c8174f4b207f67698ef902ec3662c2f08c17c14e040d39f"
   },
-  "tests_aggregate_sha256": "26a67ee86f008bee46575bb2d065047bd949271f731a9dc49d1636517ed113cc",
+  "tests_aggregate_sha256": "95ad400bd324bf1d388bc306070bcbdcd73f19030655dc67dade82a2149a676f",
   "test_files": [
     {
       "path": "tests/test_audit_export.py",
@@ -73,6 +73,11 @@
       "path": "tests/test_data_validation.py",
       "size_bytes": 884,
       "sha256": "40a32897abf252929027b677cd88d0b53ea2364ce58c796d7d8605f57cc0c67a"
+    },
+    {
+      "path": "tests/test_deployed_ui_alignment.py",
+      "size_bytes": 8523,
+      "sha256": "08e48dcc5484a2b8b1870692a69b67fca6757a6125949f68924b6c44e99adb95"
     },
     {
       "path": "tests/test_energy_balance_phase2.py",
@@ -95,7 +100,7 @@
       "sha256": "95936354ca32e00f1d75fcfd4a71c842e6bfaded4c672bea2ed841886b0d5192"
     }
   ],
-  "source_file_inventory_count": 66,
+  "source_file_inventory_count": 67,
   "source_file_inventory": [
     {
       "path": ".env.example",
@@ -269,8 +274,8 @@
     },
     {
       "path": "taivas_control_center.py",
-      "size_bytes": 393590,
-      "sha256": "cc4a1c1efa4c69020544e1356f5df64914c5e419f9c14adca33afbbb4304389d"
+      "size_bytes": 396989,
+      "sha256": "2dd616e5736165075c042e434c8d46c7a560d93329dec96fce19178d2aa29a3a"
     },
     {
       "path": "taivas_control_center_PHASE2.py",
@@ -408,6 +413,11 @@
       "sha256": "40a32897abf252929027b677cd88d0b53ea2364ce58c796d7d8605f57cc0c67a"
     },
     {
+      "path": "tests/test_deployed_ui_alignment.py",
+      "size_bytes": 8523,
+      "sha256": "08e48dcc5484a2b8b1870692a69b67fca6757a6125949f68924b6c44e99adb95"
+    },
+    {
       "path": "tests/test_energy_balance_phase2.py",
       "size_bytes": 6451,
       "sha256": "a6c87912ae4f6cc96011ceca38393fa7f57e240d731dc6f59e52182453459d6c"
@@ -469,5 +479,20 @@
       "size_bytes": 2551,
       "sha256": "15467d1c8b54f4304d04177106a98cfb604f89713e60b5530cf33b825d8508c9"
     }
-  ]
+  ],
+  "tests_aggregate_method": "SHA-256 of concatenated test file bytes in lexicographic repository-relative path order.",
+  "upload_ready_copy_verification": {
+    "refreshed_at": "2026-07-22T19:33:42.313384+08:00",
+    "file_count_including_manifest": 40,
+    "folder_count_excluding_outer_upload_ready_folder": 10,
+    "synchronized_files": [
+      "taivas_control_center.py",
+      "tests/test_deployed_ui_alignment.py"
+    ],
+    "source_hash_comparison": "PASS",
+    "excluded_directory_scan": "PASS",
+    "secret_filename_scan": "PASS",
+    "active_executable_legacy_scan": "PASS",
+    "archived_legacy_record": "archive/legacy/taivas_control_center_COMPLETE_FOR_GITHUB.py.legacy"
+  }
 }

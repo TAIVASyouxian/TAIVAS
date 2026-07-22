@@ -954,6 +954,47 @@ FACILITY_DEMAND_FACTORS = {
     "Residential Block": 0.88,
 }
 
+# UI-only reproducibility preset. Values mirror the authoritative manuscript
+# fixture in tests/test_official_entrypoint_alignment.py without changing the
+# general application defaults or the core energy-balance model.
+MANUSCRIPT_FIXTURE_DEMO_NAME = "Manuscript Fixture — Helsinki Hospital Blizzard"
+MANUSCRIPT_FIXTURE_INPUTS = {
+    "country": "Finland",
+    "city": "Helsinki",
+    "lat": 60.1699,
+    "lon": 24.9384,
+    "population": 664000,
+    "facility_type": "Hospital",
+    "scenario_key": "blizzard",
+    "temperature": 5.0,
+    "wind_speed": 8.0,
+    "solar_radiation": 250.0,
+    "precipitation": 30.0,
+    "humidity": 75.0,
+    "solar_capacity": 40.0,
+    "wind_capacity": 30.0,
+    "geothermal_capacity": 10.0,
+    "hydro_capacity": 20.0,
+    "battery_capacity": 20.0,
+    "battery_current": 20.0,
+    "grid_support": 0.0,
+    "reserve_recovery_lag_days": 0,
+    "solar_failure_ratio": 0.0,
+    "wind_failure_ratio": 0.0,
+    "geothermal_failure_ratio": 0.0,
+    "hydro_failure_ratio": 0.0,
+    "battery_failure_ratio": 0.0,
+    "enable_geopolitical_shock": False,
+}
+
+# Widget defaults only. Once shown, the user's visible value is passed to the
+# authoritative core unchanged. Manual mode intentionally retains 3 days.
+DEMO_RESERVE_RECOVERY_LAG_DEFAULTS = {
+    MANUSCRIPT_FIXTURE_DEMO_NAME: MANUSCRIPT_FIXTURE_INPUTS["reserve_recovery_lag_days"],
+    "Germany Energy Security": 7,
+    "Middle East Shock": 10,
+}
+
 
 def scenario_temperature_stress_factor(scenario_key: str, temperature: float) -> float:
     """Demand weather factor: combines selected scenario pressure with hot/cold temperature stress."""
@@ -3037,7 +3078,16 @@ with st.sidebar:
         value=True,
         help="Show plain-language guidance and reduce first-screen technical density.",
     )
-    demo_options = ["Manual", "Hospital Typhoon", "School Heatwave", "Taiwan Typhoon", "Finland Blizzard", "Germany Energy Security", "Middle East Shock"]
+    demo_options = [
+        "Manual",
+        MANUSCRIPT_FIXTURE_DEMO_NAME,
+        "Hospital Typhoon",
+        "School Heatwave",
+        "Taiwan Typhoon",
+        "Finland Blizzard",
+        "Germany Energy Security",
+        "Middle East Shock",
+    ]
     default_demo_mode = st.session_state.pop("taivas_demo_shortcut", "Manual")
     demo_mode = basic_panel.selectbox(
         "Demo Mode",
@@ -3055,6 +3105,8 @@ with st.sidebar:
         st.rerun()
     if demo_mode != "Manual":
         basic_panel.caption(f"Demo preset active: {demo_mode}")
+        if demo_mode == MANUSCRIPT_FIXTURE_DEMO_NAME:
+            basic_panel.caption("Reproduction preset: Helsinki Hospital Blizzard with Reserve Recovery Lag = 0 days.")
 
     user_perspective = basic_panel.selectbox(
         "User Perspective",
@@ -3209,7 +3261,24 @@ with st.sidebar:
     strategic_reserve_days = advanced_panel.number_input(tr("strategic_reserve_days"), 0, 365, 20, 1)
     shipping_dependency = advanced_panel.number_input(tr("shipping_dependency"), 0.0, 1.0, 0.85, 0.01, format="%.2f")
     infrastructure_damage_ratio = advanced_panel.number_input(tr("infrastructure_damage_ratio"), 0.0, 1.0, 0.10, 0.01, format="%.2f")
-    reserve_recovery_lag_days = advanced_panel.number_input(tr("reserve_recovery_lag_days"), 0, 30, 3, 1)
+    reserve_recovery_lag_default = DEMO_RESERVE_RECOVERY_LAG_DEFAULTS.get(demo_mode, 3)
+    reserve_recovery_lag_days = advanced_panel.number_input(
+        tr("reserve_recovery_lag_days"),
+        min_value=0,
+        max_value=30,
+        value=reserve_recovery_lag_default,
+        step=1,
+        key=f"reserve_recovery_lag_days::{demo_mode}",
+        help=(
+            "Exploratory storage assumption. Each recovery-lag day reduces the "
+            "battery discharge available during the modeled interval. Set 0 to "
+            "disable this lag penalty."
+        ),
+    )
+    advanced_panel.caption(
+        f"Applied Reserve Recovery Lag: {reserve_recovery_lag_days} days. "
+        "This visible value is passed unchanged to the authoritative energy-balance core."
+    )
 
     advanced_panel.markdown("**Geopolitical shock**")
     enable_geopolitical_shock = advanced_panel.toggle(tr("enable_geopolitical_shock"), value=False)
@@ -3240,8 +3309,10 @@ with st.sidebar:
 
 # V4 Demo Mode presets: override runtime values after widgets are created,
 # so manual controls remain available while demos can be activated instantly.
+preset = {}
 if demo_mode != "Manual":
     demo_presets = {
+        MANUSCRIPT_FIXTURE_DEMO_NAME: MANUSCRIPT_FIXTURE_INPUTS,
         "Hospital Typhoon": {
             "country": "Taiwan", "city": "Taipei", "population": 2500000,
             "facility_type": "Hospital",
@@ -3277,13 +3348,12 @@ if demo_mode != "Manual":
             "scenario_key": "cold_wave", "temperature": 1, "wind_speed": 5.5,
             "solar_radiation": 220, "precipitation": 28, "humidity": 78,
             "import_dependency": 0.62, "shipping_dependency": 0.55, "infrastructure_damage_ratio": 0.12,
-            "reserve_recovery_lag_days": 7, "enable_geopolitical_shock": False,
+            "enable_geopolitical_shock": False,
         },
         "Middle East Shock": {
             "country": active_country, "city": active_city, "population": population,
             "scenario_key": scenario_key, "import_dependency": max(import_dependency, 0.78),
             "shipping_dependency": max(shipping_dependency, 0.90), "infrastructure_damage_ratio": max(infrastructure_damage_ratio, 0.18),
-            "reserve_recovery_lag_days": max(reserve_recovery_lag_days, 10),
             "enable_geopolitical_shock": True, "geopolitical_event_type": "Hormuz disruption",
             "geopolitical_severity": 4, "geopolitical_duration_days": 21, "fossil_share": max(fossil_share, 0.55),
         },
@@ -3291,6 +3361,8 @@ if demo_mode != "Manual":
     preset = demo_presets.get(demo_mode, {})
     active_country = preset.get("country", active_country)
     active_city = preset.get("city", active_city)
+    active_lat = preset.get("lat", active_lat)
+    active_lon = preset.get("lon", active_lon)
     population = int(preset.get("population", population))
     facility_type = preset.get("facility_type", facility_type)
     facility_profile = FACILITY_PROFILES[facility_type]
@@ -3300,14 +3372,19 @@ if demo_mode != "Manual":
     solar_radiation = preset.get("solar_radiation", solar_radiation)
     precipitation = preset.get("precipitation", precipitation)
     humidity = preset.get("humidity", humidity)
+    solar_capacity = preset.get("solar_capacity", solar_capacity)
+    wind_capacity = preset.get("wind_capacity", wind_capacity)
+    geothermal_capacity = preset.get("geothermal_capacity", geothermal_capacity)
+    hydro_capacity = preset.get("hydro_capacity", hydro_capacity)
+    battery_capacity = preset.get("battery_capacity", battery_capacity)
     solar_failure_ratio = preset.get("solar_failure_ratio", solar_failure_ratio)
     wind_failure_ratio = preset.get("wind_failure_ratio", wind_failure_ratio)
+    geothermal_failure_ratio = preset.get("geothermal_failure_ratio", geothermal_failure_ratio)
     hydro_failure_ratio = preset.get("hydro_failure_ratio", hydro_failure_ratio)
     battery_failure_ratio = preset.get("battery_failure_ratio", battery_failure_ratio)
     import_dependency = preset.get("import_dependency", import_dependency)
     shipping_dependency = preset.get("shipping_dependency", shipping_dependency)
     infrastructure_damage_ratio = preset.get("infrastructure_damage_ratio", infrastructure_damage_ratio)
-    reserve_recovery_lag_days = preset.get("reserve_recovery_lag_days", reserve_recovery_lag_days)
     enable_geopolitical_shock = preset.get("enable_geopolitical_shock", enable_geopolitical_shock)
     geopolitical_event_type = preset.get("geopolitical_event_type", geopolitical_event_type)
     geopolitical_severity = preset.get("geopolitical_severity", geopolitical_severity)
@@ -3325,6 +3402,8 @@ failure_ratios = {
     "hydro": hydro_failure_ratio,
     "battery": battery_failure_ratio,
 }
+battery_current = preset.get("battery_current", battery_capacity)
+grid_support = preset.get("grid_support", 0.0)
 inputs = {
     "country_key": active_country, "city_key": active_city, "lat": active_lat, "lon": active_lon,
     "temperature": temperature, "wind_speed": wind_speed, "solar_radiation": solar_radiation,
@@ -3333,6 +3412,7 @@ inputs = {
     "solar_capacity": solar_capacity, "wind_capacity": wind_capacity,
     "geothermal_capacity": geothermal_capacity, "hydro_capacity": hydro_capacity,
     "battery_capacity": battery_capacity,
+    "battery_current": battery_current, "grid_support": grid_support,
 }
 critical_load_share = facility_profile["critical_load_share"]
 
@@ -3540,15 +3620,35 @@ def render_plain_language_emergency_summary():
     )
 
 
+def authoritative_risk_tier_for_results(simulation_results):
+    """Return the canonical four-tier label produced by the risk engine."""
+    canonical_tiers = {
+        "low": "Low",
+        "elevated": "Elevated",
+        "high": "High",
+        "critical": "Critical",
+    }
+    stored_tier = str(simulation_results.get("risk_tier", "")).strip().lower()
+    if stored_tier in canonical_tiers:
+        return canonical_tiers[stored_tier]
+    return calculate_risk_tier(
+        float(simulation_results.get("shortfall", 0.0) or 0.0),
+        float(simulation_results.get("demand", 0.0) or 0.0),
+    )
+
+
+def risk_tier_css_class(risk_tier):
+    return {
+        "Low": "risk-low",
+        "Elevated": "risk-moderate",
+        "High": "risk-high",
+        "Critical": "risk-critical",
+    }.get(risk_tier, "risk-moderate")
+
+
 def friendly_risk_level():
-    tier = str(results.get("risk_tier", "")).lower()
-    gap_ratio = safe_div(results.get("shortfall", 0.0), results.get("demand", 0.0)) if results.get("demand", 0.0) else 0.0
-    battery_ratio = safe_div(results.get("battery_levels", 0.0), inputs.get("battery_capacity", 0.0)) if inputs.get("battery_capacity", 0.0) else 1.0
-    if tier == "critical" or gap_ratio >= 0.15 or battery_ratio < 0.15:
-        return "High"
-    if tier in ("high", "elevated") or gap_ratio > 0 or results.get("grid_dependency", 0.0) >= 10 or battery_ratio < 0.5:
-        return "Medium"
-    return "Low"
+    """Backward-compatible UI helper that now preserves the core risk tier."""
+    return authoritative_risk_tier_for_results(results)
 
 
 def emergency_brief_main_problem():
@@ -3581,7 +3681,7 @@ def render_emergency_brief():
     # Decision Support Layer: first-screen summary for non-expert users.
     gap_pct = safe_div(results.get("shortfall", 0.0), results.get("demand", 0.0)) * 100 if results.get("demand", 0.0) else 0.0
     risk_level = friendly_risk_level()
-    risk_class = "risk-low" if risk_level == "Low" else "risk-moderate" if risk_level == "Medium" else "risk-high"
+    risk_class = risk_tier_css_class(risk_level)
     st.markdown(
         f"""
         <div class="emergency-summary">
@@ -3603,6 +3703,9 @@ def render_emergency_brief():
               <div class="emergency-label">Suggested Review</div>
               <div class="emergency-text">{emergency_brief_suggested_action()}</div>
             </div>
+          </div>
+          <div class="communication-disclaimer">
+            Applied storage assumption: Reserve Recovery Lag = {reserve_recovery_lag_days} days.
           </div>
           <div class="communication-disclaimer">
             TAIVAS is a decision-support simulation tool. It does not predict the future with certainty. It helps users explore possible risks and response options.
@@ -3933,10 +4036,7 @@ def generate_agentic_advisory(simulation_results, context):
 
     # Use the authoritative unmet-demand thresholds for every visible Risk Tier.
     # Battery state remains a separate advisory signal and does not redefine it.
-    risk_tier = str(
-        simulation_results.get("risk_tier")
-        or calculate_risk_tier(shortfall, demand)
-    ).upper()
+    risk_tier = authoritative_risk_tier_for_results(simulation_results)
 
     if shortfall > 0:
         detected_issue = f"The system suggests a modeled energy gap of {shortfall:.2f} MW under the selected scenario."
@@ -4040,7 +4140,7 @@ def render_agentic_advisory_layer():
             <div class="risk-title">Risk Tier: {advisory["risk_tier"]}</div>
             <div class="risk-note">Human confirmation is required before operational changes.</div>
           </div>
-          <div class="risk-badge risk-{advisory["risk_tier"].lower() if advisory["risk_tier"] != "MODERATE" else "moderate"}">{advisory["risk_tier"]}</div>
+          <div class="risk-badge {risk_tier_css_class(advisory["risk_tier"])}">{advisory["risk_tier"]}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -4916,6 +5016,7 @@ def build_executive_summary_text():
         f"- System Performance Score: {format_system_performance_score(results.get('system_performance_score'))}",
         f"- External Support Need Proxy: {results['grid_dependency']}%",
         f"- Simulation Interval: {results.get('simulation_interval_hours', SIMULATION_INTERVAL_HOURS)} h",
+        f"- Reserve Recovery Lag: {reserve_recovery_lag_days} days",
         "",
         "Explainable Advisory Layer",
         f"- Risk Tier: {advisory['risk_tier']}",
@@ -5115,14 +5216,14 @@ def scenario_comparison_metrics():
 
 
 def operational_risk_tier_for_display():
-    ratio = safe_div(results["shortfall"], results["demand"]) if results["demand"] > 0 else 0.0
-    if results["shortfall"] <= 0:
-        return "Low", "risk-low", "No modeled energy gap under the selected scenario."
-    if ratio < 0.05:
-        return "Elevated", "risk-moderate", "Small modeled energy gap detected; review reserve-margin assumptions."
-    if ratio < 0.15:
-        return "High", "risk-high", "Supply stress is material; additional review of critical-load assumptions is suggested."
-    return "Critical", "risk-critical", "Large modeled energy gap detected; prompt qualified human review is suggested."
+    tier = authoritative_risk_tier_for_results(results)
+    notes = {
+        "Low": "No modeled energy gap under the selected scenario.",
+        "Elevated": "Small modeled energy gap detected; review reserve-margin assumptions.",
+        "High": "Supply stress is material; additional review of critical-load assumptions is suggested.",
+        "Critical": "Large modeled energy gap detected; prompt qualified human review is suggested.",
+    }
+    return tier, risk_tier_css_class(tier), notes[tier]
 
 
 def render_risk_tier_panel():
@@ -6421,7 +6522,7 @@ def rank_shortfall_drivers():
         })
     if grid_delta > 0:
         drivers.append({
-            "Driver": "External power dependency increase",
+            "Driver": "External Support Need Proxy increase",
             "Impact": grid_delta,
             "Evidence": f"External Support Need Proxy changed by {grid_delta:+.1f} percentage points.",
         })
@@ -6468,7 +6569,7 @@ def generate_diagnostic_summary():
     if results.get("shortfall", 0) > 0:
         event = f"Possible energy shortfall detected under the {scenario_label} scenario."
     elif results.get("grid_dependency", 0) >= 10:
-        event = f"External power dependency increased under the {scenario_label} scenario."
+        event = f"External Support Need Proxy increased under the {scenario_label} scenario."
     elif results.get("renewable_ratio", 0) < 35:
         event = f"Renewable contribution is limited under the {scenario_label} scenario."
     elif results.get("system_efficiency", 100) < 85:
@@ -6487,8 +6588,8 @@ def generate_diagnostic_recommendations():
         recommendations.append("Test a battery-capacity assumption 20-30% higher and compare the simulated outputs.")
     if "Renewable supply drop" in driver_names or "Renewable share decline" in driver_names:
         recommendations.append("Compare alternative renewable-mix or firm-backup assumptions for the selected scenario.")
-    if "External power dependency increase" in driver_names:
-        recommendations.append("Review external power support assumptions and backup supply availability.")
+    if "External Support Need Proxy increase" in driver_names:
+        recommendations.append("Review the External Support Need Proxy and backup-supply assumptions.")
     if "Data quality uncertainty" in driver_names:
         recommendations.append("Review uploaded data fields, abnormal values, and timestamp consistency.")
     if not recommendations:
@@ -6498,6 +6599,10 @@ def generate_diagnostic_recommendations():
 
 def render_failure_diagnostics_panel():
     st.subheader("Why did this happen?")
+    st.caption(
+        f"Applied storage assumption: Reserve Recovery Lag = {reserve_recovery_lag_days} days. "
+        "The visible sidebar value is passed unchanged to the authoritative energy-balance core."
+    )
     st.markdown(
         f"""
         <div class="note">
@@ -6560,7 +6665,7 @@ def generate_risk_event():
         main_risk = "Renewable supply decreased"
     elif results.get("grid_dependency", 0) >= 10:
         explanation = "Need for external power is elevated under the selected scenario."
-        main_risk = "External power dependency elevated"
+        main_risk = "External Support Need Proxy elevated"
     else:
         explanation = f"{active_city} {scenario_label} comparison completed with no major modeled energy gap."
         main_risk = "Scenario comparison completed"
@@ -6594,7 +6699,7 @@ def generate_risk_alerts():
     efficiency_delta = float(results.get("system_efficiency", 0) or 0) - float(baseline_results.get("system_efficiency", 0) or 0)
 
     if shortfall > 0:
-        level = "Critical" if shortfall_ratio >= 0.15 else "High" if shortfall_ratio >= 0.05 else "Medium"
+        level = authoritative_risk_tier_for_results(results)
         alerts.append({
             "Alert Level": level,
             "What Happened": "Possible energy gap detected.",
