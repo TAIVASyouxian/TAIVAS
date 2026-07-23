@@ -6874,60 +6874,139 @@ def render_recommendation_log():
         st.info("No recommendation decisions recorded yet.")
 
 
+def format_report_number(value, decimal_places=2):
+    """Format exported runtime values without implying extra precision."""
+    if value is None:
+        return "Not available"
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    return f"{number:.{decimal_places}f}".rstrip("0").rstrip(".")
+
+
+def format_simulation_interval(hours):
+    """Render the explicit simulation interval in reproducible report units."""
+    try:
+        interval = float(hours)
+    except (TypeError, ValueError):
+        return "Not available"
+    unit = "hour" if abs(interval - 1.0) < 1e-9 else "hours"
+    return f"{format_report_number(interval)} {unit}"
+
+
+def build_simulation_report_text(
+    *,
+    generated_at,
+    country,
+    city,
+    scenario,
+    facility,
+    runtime_inputs,
+    runtime_results,
+    applied_reserve_recovery_lag_days,
+    authoritative_risk_tier,
+    comparison_records,
+    alerts,
+    recommendations,
+    decision_logs,
+    model_limitation,
+):
+    """Build a traceable TXT report from the exact runtime input/result state."""
+    initial_battery_state = runtime_inputs.get(
+        "battery_current",
+        runtime_inputs.get("battery_capacity"),
+    )
+    battery_capacity_value = runtime_inputs.get("battery_capacity")
+    battery_contribution = runtime_results.get(
+        "battery_discharge",
+        runtime_results.get("battery_contribution"),
+    )
+    battery_remaining = runtime_results.get(
+        "battery_levels",
+        runtime_results.get("battery_remaining"),
+    )
+    external_support_need = runtime_results.get("external_support_need_proxy")
+    if external_support_need is None:
+        external_support_need = runtime_results.get("grid_dependency")
+
+    lines = [
+        "TAIVAS Simulation Report",
+        "========================",
+        f"Generated: {generated_at}",
+        "",
+        "Decision-Support Disclaimer",
+        "TAIVAS is a decision-support simulation tool. Results are based on selected assumptions, available data, and simplified modeling logic. Outputs should not be interpreted as guaranteed predictions or emergency instructions. Final operational decisions should be reviewed by qualified professionals.",
+        "",
+        "Scenario Context",
+        f"- Country / City: {country} / {city}",
+        f"- Scenario: {scenario.replace('_', ' ').title()}",
+        f"- Facility Type: {facility}",
+        "",
+        "Main Input Assumptions",
+        f"- Solar Capacity: {runtime_inputs.get('solar_capacity')} MW",
+        f"- Wind Capacity: {runtime_inputs.get('wind_capacity')} MW",
+        f"- Geothermal Capacity: {runtime_inputs.get('geothermal_capacity')} MW",
+        f"- Hydro Capacity: {runtime_inputs.get('hydro_capacity')} MW",
+        f"- Initial Battery State: {format_report_number(initial_battery_state)} MWh",
+        f"- Battery Capacity: {format_report_number(battery_capacity_value)} MWh",
+        f"- Reserve Recovery Lag: {format_report_number(applied_reserve_recovery_lag_days)} days",
+        "",
+        "Main Output Results",
+        f"- Demand: {runtime_results.get('demand')} MW",
+        f"- Renewable Supply: {runtime_results.get('renewable_supply')} MW",
+        f"- Battery Contribution: {format_report_number(battery_contribution)} MW",
+        f"- Final Supply: {runtime_results.get('final_supply')} MW",
+        f"- Possible Energy Gap: {runtime_results.get('shortfall')} MW",
+        f"- Battery Remaining: {format_report_number(battery_remaining)} MWh",
+        f"- Renewable Ratio: {runtime_results.get('renewable_ratio')}%",
+        f"- System Performance Score: {format_system_performance_score(runtime_results.get('system_performance_score'))}",
+        f"- External Support Need Proxy: {external_support_need}%",
+        f"- Risk Tier: {authoritative_risk_tier}",
+        f"- Simulation Interval: {format_simulation_interval(runtime_results.get('simulation_interval_hours', SIMULATION_INTERVAL_HOURS))}",
+        "",
+        "Baseline vs Selected Scenario",
+    ]
+    for row in comparison_records:
+        lines.append(f"- {row['Metric']}: baseline {row['Baseline']} {row['Unit']} | scenario {row['Scenario']} {row['Unit']} | delta {row['Delta']} {row['Unit']}")
+    lines.extend(["", "Scenario Risk Indicator Summary"])
+    for alert in alerts:
+        lines.append(f"- {alert.get('Alert Level')}: {alert.get('What Happened')} Suggested review step: {alert.get('Recommended Next Step')}")
+    lines.extend(["", "Recommendation Summary"])
+    for recommendation in recommendations:
+        lines.append(f"- {recommendation}")
+    lines.extend(["", "User Decision Log Summary"])
+    if decision_logs:
+        for log in decision_logs:
+            lines.append(f"- {log.get('Timestamp')}: {log.get('User Decision')} | {log.get('Recommendation')}")
+    else:
+        lines.append("- No user recommendation decisions recorded in this session.")
+    lines.extend(["", "Model Limitation Note", model_limitation])
+    return "\n".join(lines)
+
+
 def generate_simulation_report_text():
     from datetime import datetime
 
     alerts = st.session_state.get("risk_alerts", generate_risk_alerts())
     logs = st.session_state.get("recommendation_logs", [])
     comparison = compare_baseline_vs_scenario()
-    lines = [
-        "TAIVAS Simulation Report",
-        "========================",
-        f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-        "",
-        "Decision-Support Disclaimer",
-        "TAIVAS is a decision-support simulation tool. Results are based on selected assumptions, available data, and simplified modeling logic. Outputs should not be interpreted as guaranteed predictions or emergency instructions. Final operational decisions should be reviewed by qualified professionals.",
-        "",
-        "Scenario Context",
-        f"- Country / City: {active_country} / {active_city}",
-        f"- Scenario: {scenario_key.replace('_', ' ').title()}",
-        f"- Facility Type: {facility_type}",
-        "",
-        "Main Input Assumptions",
-        f"- Solar Capacity: {solar_capacity} MW",
-        f"- Wind Capacity: {wind_capacity} MW",
-        f"- Geothermal Capacity: {geothermal_capacity} MW",
-        f"- Hydro Capacity: {hydro_capacity} MW",
-        f"- Battery Capacity: {battery_capacity} MWh",
-        "",
-        "Main Output Results",
-        f"- Demand: {results.get('demand')} MW",
-        f"- Renewable Supply: {results.get('renewable_supply')} MW",
-        f"- Final Supply: {results.get('final_supply')} MW",
-        f"- Possible Energy Gap: {results.get('shortfall')} MW",
-        f"- Renewable Ratio: {results.get('renewable_ratio')}%",
-        f"- System Performance Score: {format_system_performance_score(results.get('system_performance_score'))}",
-        f"- External Support Need Proxy: {results.get('grid_dependency')}%",
-        f"- Simulation Interval: {results.get('simulation_interval_hours', SIMULATION_INTERVAL_HOURS)} h",
-        "",
-        "Baseline vs Selected Scenario",
-    ]
-    for row in comparison.to_dict(orient="records"):
-        lines.append(f"- {row['Metric']}: baseline {row['Baseline']} {row['Unit']} | scenario {row['Scenario']} {row['Unit']} | delta {row['Delta']} {row['Unit']}")
-    lines.extend(["", "Scenario Risk Indicator Summary"])
-    for alert in alerts:
-        lines.append(f"- {alert.get('Alert Level')}: {alert.get('What Happened')} Suggested review step: {alert.get('Recommended Next Step')}")
-    lines.extend(["", "Recommendation Summary"])
-    for recommendation in current_agentic_advisory().get("recommended_actions", []):
-        lines.append(f"- {recommendation}")
-    lines.extend(["", "User Decision Log Summary"])
-    if logs:
-        for log in logs:
-            lines.append(f"- {log.get('Timestamp')}: {log.get('User Decision')} | {log.get('Recommendation')}")
-    else:
-        lines.append("- No user recommendation decisions recorded in this session.")
-    lines.extend(["", "Model Limitation Note", TAIVAS_PHASE1_MODEL_BOUNDARY])
-    return "\n".join(lines)
+    return build_simulation_report_text(
+        generated_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        country=active_country,
+        city=active_city,
+        scenario=scenario_key,
+        facility=facility_type,
+        runtime_inputs=inputs,
+        runtime_results=results,
+        applied_reserve_recovery_lag_days=reserve_recovery_lag_days,
+        authoritative_risk_tier=authoritative_risk_tier_for_results(results),
+        comparison_records=comparison.to_dict(orient="records"),
+        alerts=alerts,
+        recommendations=current_agentic_advisory().get("recommended_actions", []),
+        decision_logs=logs,
+        model_limitation=TAIVAS_PHASE1_MODEL_BOUNDARY,
+    )
 
 
 def generate_report_csv_bytes():

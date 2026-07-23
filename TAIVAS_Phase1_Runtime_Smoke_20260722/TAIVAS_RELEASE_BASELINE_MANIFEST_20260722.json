@@ -3,7 +3,7 @@
   "baseline_name": "TAIVAS-v1.0-research-baseline (not tagged)",
   "baseline_date": "2026-07-22",
   "timezone": "Asia/Taipei",
-  "generated_at": "2026-07-22T19:33:42.313384+08:00",
+  "generated_at": "2026-07-23T08:21:25.619968+08:00",
   "manuscript_title": "TAIVAS: A Transparent Scenario-Based Energy Resilience Simulator for Extreme-Weather Decision Support",
   "authoritative_entry_point": "taivas_control_center.py",
   "authoritative_core": "core.energy_balance_phase2",
@@ -44,11 +44,11 @@
   },
   "regression_tests": {
     "command": "python -B -m unittest discover -s tests -v",
-    "discovered": 45,
-    "passed": 45,
+    "discovered": 48,
+    "passed": 48,
     "failed": 0,
     "skipped": 0,
-    "runtime_seconds": 0.761
+    "runtime_seconds": 0.802
   },
   "git": {
     "available": false,
@@ -57,12 +57,12 @@
     "limitation": "Git executable unavailable and local .git directory is empty."
   },
   "required_file_sha256": {
-    "taivas_control_center.py": "2dd616e5736165075c042e434c8d46c7a560d93329dec96fce19178d2aa29a3a",
+    "taivas_control_center.py": "4501f41973792ad0663434ad83f7223e9706c41051be5c63f3d0e8e4b7dfd8a1",
     "core/energy_balance_phase2.py": "c0f162b6c8b8f481cf915dc2eacd048f2e510f58382c7c4c581043b752633c5f",
     "README.md": "3bb16e1519a2e8b316f3d8aebb4685c539c4b4cccbae93d3d447f0a8e77b543c",
     "requirements.txt": "c1faef45d37ef02d2c8174f4b207f67698ef902ec3662c2f08c17c14e040d39f"
   },
-  "tests_aggregate_sha256": "95ad400bd324bf1d388bc306070bcbdcd73f19030655dc67dade82a2149a676f",
+  "tests_aggregate_sha256": "408e7c186185ec1355c307a18abea7e0741d7e60a24a9f19d7a032821db8567e",
   "test_files": [
     {
       "path": "tests/test_audit_export.py",
@@ -98,9 +98,14 @@
       "path": "tests/test_scenario_compatibility.py",
       "size_bytes": 1949,
       "sha256": "95936354ca32e00f1d75fcfd4a71c842e6bfaded4c672bea2ed841886b0d5192"
+    },
+    {
+      "path": "tests/test_simulation_report_traceability.py",
+      "size_bytes": 7644,
+      "sha256": "64d6ee6454fa5bd155d1f26fac6509f247ad8b28199ea30a154454b3e8001d3b"
     }
   ],
-  "source_file_inventory_count": 67,
+  "source_file_inventory_count": 68,
   "source_file_inventory": [
     {
       "path": ".env.example",
@@ -274,8 +279,8 @@
     },
     {
       "path": "taivas_control_center.py",
-      "size_bytes": 396989,
-      "sha256": "2dd616e5736165075c042e434c8d46c7a560d93329dec96fce19178d2aa29a3a"
+      "size_bytes": 399867,
+      "sha256": "4501f41973792ad0663434ad83f7223e9706c41051be5c63f3d0e8e4b7dfd8a1"
     },
     {
       "path": "taivas_control_center_PHASE2.py",
@@ -436,6 +441,11 @@
       "path": "tests/test_scenario_compatibility.py",
       "size_bytes": 1949,
       "sha256": "95936354ca32e00f1d75fcfd4a71c842e6bfaded4c672bea2ed841886b0d5192"
+    },
+    {
+      "path": "tests/test_simulation_report_traceability.py",
+      "size_bytes": 7644,
+      "sha256": "64d6ee6454fa5bd155d1f26fac6509f247ad8b28199ea30a154454b3e8001d3b"
     }
   ],
   "verification_artifacts": [
@@ -482,12 +492,12 @@
   ],
   "tests_aggregate_method": "SHA-256 of concatenated test file bytes in lexicographic repository-relative path order.",
   "upload_ready_copy_verification": {
-    "refreshed_at": "2026-07-22T19:33:42.313384+08:00",
-    "file_count_including_manifest": 40,
+    "refreshed_at": "2026-07-23T08:21:25.619968+08:00",
+    "file_count_including_manifest": 41,
     "folder_count_excluding_outer_upload_ready_folder": 10,
     "synchronized_files": [
       "taivas_control_center.py",
-      "tests/test_deployed_ui_alignment.py"
+      "tests/test_simulation_report_traceability.py"
     ],
     "source_hash_comparison": "PASS",
     "excluded_directory_scan": "PASS",
