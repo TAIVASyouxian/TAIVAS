@@ -1,4 +1,5 @@
 from io import StringIO
+import html
 import json
 import os
 from pathlib import Path
@@ -1559,6 +1560,29 @@ section[data-testid="stSidebar"] [data-testid="stExpander"] summary {
     font-size: 0.98rem;
     font-weight: 800;
 }
+.empirical-sidebar-field {
+    margin: 0.45rem 0 0.7rem;
+}
+.empirical-sidebar-label,
+.empirical-sidebar-value {
+    display: block;
+    max-width: 100%;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: normal;
+    hyphens: none;
+}
+.empirical-sidebar-label {
+    color: #94A3B8;
+    font-size: 0.82rem;
+    font-weight: 650;
+    margin-bottom: 0.15rem;
+}
+.empirical-sidebar-value {
+    color: #E5E7EB;
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
 section[data-testid="stSidebar"] .stSlider,
 section[data-testid="stSidebar"] .stSelectbox,
 section[data-testid="stSidebar"] .stNumberInput,
@@ -2204,6 +2228,29 @@ def safe_str(value, default=""):
         return value if value else default
     except Exception:
         return default
+
+
+EMPIRICAL_SIDEBAR_DISPLAY_MAP = {
+    "matched": "Matched",
+    "usable_with_spatial_scope_warning": "Usable — spatial-scale warning applies",
+    "not_provided_use_explicit_taivas_assumption": "Not provided — TAIVAS assumption / user input",
+    "ERA5 hourly time-series on single levels, Paris extract": "ERA5 Paris hourly extract",
+}
+
+
+def render_empirical_sidebar_field(container, label, value, default="Not provided"):
+    """Render empirical metadata without changing its stored source value."""
+    raw_value = safe_str(value, default)
+    display_value = EMPIRICAL_SIDEBAR_DISPLAY_MAP.get(raw_value, raw_value)
+    container.markdown(
+        (
+            '<div class="empirical-sidebar-field">'
+            f'<span class="empirical-sidebar-label">{html.escape(label)}</span>'
+            f'<span class="empirical-sidebar-value">{html.escape(display_value)}</span>'
+            "</div>"
+        ),
+        unsafe_allow_html=True,
+    )
 
 
 def safe_read_csv(uploaded_file):
@@ -3479,20 +3526,27 @@ with st.sidebar:
             key=f"empirical_humidity_display::{empirical_record_id}",
         )
 
-        advanced_panel.caption(
-            f'Selected timestamp: {empirical_inputs.get("timestamp", "-")}'
+        render_empirical_sidebar_field(
+            advanced_panel,
+            "Selected timestamp",
+            empirical_inputs.get("timestamp"),
+            default="-",
         )
-        advanced_panel.caption(
-            "ERA5 weather source: "
-            f'{safe_str(empirical_metadata.get("source_era5"), "ERA5 staging data")}'
+        render_empirical_sidebar_field(
+            advanced_panel,
+            "ERA5 weather source",
+            empirical_metadata.get("source_era5"),
+            default="ERA5 staging data",
         )
-        advanced_panel.caption(
-            "Weather match status: "
-            f'{safe_str(empirical_metadata.get("weather_match_status"), "Not provided")}'
+        render_empirical_sidebar_field(
+            advanced_panel,
+            "Weather match status",
+            empirical_metadata.get("weather_match_status"),
         )
-        advanced_panel.caption(
-            "Data quality flag: "
-            f'{safe_str(empirical_metadata.get("data_quality_flag"), "Not provided")}'
+        render_empirical_sidebar_field(
+            advanced_panel,
+            "Data quality flag",
+            empirical_metadata.get("data_quality_flag"),
         )
     else:
         temperature = advanced_panel.slider(tr("temperature") + " (°C)", -20, 50, int(clamp((uploaded_profile["temperature"] if (use_uploaded and uploaded_profile) else 26), -20, 50)), 1, help="Used to estimate heating or cooling pressure.")
