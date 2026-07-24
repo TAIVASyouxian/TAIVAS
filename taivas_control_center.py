@@ -3232,6 +3232,13 @@ with st.sidebar:
                 f'{empirical_validation_summary["time_end"]}.'
             )
         for finding in empirical_validation_findings:
+            if finding["area"] == "Data quality":
+                render_empirical_sidebar_field(
+                    basic_panel,
+                    "Data quality",
+                    empirical_metadata.get("data_quality_flag"),
+                )
+                continue
             message = f'{finding["area"]}: {finding["message"]}'
             if finding["severity"] == "Error":
                 basic_panel.warning(message)
