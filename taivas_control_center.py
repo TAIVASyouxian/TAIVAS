@@ -1,6 +1,7 @@
 from io import StringIO
 import json
 import os
+from pathlib import Path
 import uuid
 
 import matplotlib.pyplot as plt
@@ -32,8 +33,24 @@ from core.scenario_compatibility import (
 )
 from data.csv_loader import read_csv_with_warnings
 from data.validation_utils import validate_uploaded_dataframe
+from data.empirical_validation import (
+    build_empirical_validation_snapshot,
+    build_empirical_records,
+    format_observed_mw_for_display,
+    read_empirical_validation_csv,
+    select_empirical_record,
+    summarize_empirical_dataframe,
+    validate_empirical_dataframe,
+)
 from export.audit_export import audit_record_to_json
 from analytics import init_analytics_db, log_event, log_once
+
+
+EMPIRICAL_VALIDATION_DATA_PATH = (
+    Path(__file__).resolve().parent
+    / "samples"
+    / "TAIVAS_Paris_Heatwave_2026_staging.csv"
+)
 
 
 # PHASE 1 ALIGNMENT START
@@ -3095,6 +3112,88 @@ with st.sidebar:
         index=demo_options.index(default_demo_mode) if default_demo_mode in demo_options else 0,
         help="Use a prepared scenario for fast demos. Manual keeps all sidebar values unchanged.",
     )
+    empirical_validation_mode = basic_panel.toggle(
+        "Empirical Validation Mode",
+        value=False,
+        disabled=(demo_mode != "Manual"),
+        help=(
+            "Use timestamped ERA5 weather inputs and compare the resulting "
+            "Paris-scale TAIVAS estimate with separate RTE observations."
+        ),
+    )
+    empirical_validation_mode = bool(
+        empirical_validation_mode and demo_mode == "Manual"
+    )
+    empirical_validation_df = pd.DataFrame()
+    empirical_validation_records = []
+    empirical_validation_summary = {
+        "row_count": 0,
+        "unique_record_count": 0,
+        "time_start": None,
+        "time_end": None,
+        "missing_weather_values": 0,
+        "missing_observed_values": 0,
+    }
+    empirical_validation_findings = []
+    empirical_record = None
+    empirical_inputs = {}
+    empirical_observed = {}
+    empirical_metadata = {}
+    if empirical_validation_mode:
+        empirical_validation_df, empirical_load_warnings = (
+            read_empirical_validation_csv(EMPIRICAL_VALIDATION_DATA_PATH)
+        )
+        empirical_validation_findings = validate_empirical_dataframe(
+            empirical_validation_df
+        )
+        empirical_validation_summary = summarize_empirical_dataframe(
+            empirical_validation_df
+        )
+        empirical_validation_records = build_empirical_records(
+            empirical_validation_df
+        )
+        for warning in empirical_load_warnings:
+            basic_panel.warning(warning)
+        if empirical_validation_records:
+            record_labels = [
+                record["selector_label"]
+                for record in empirical_validation_records
+            ]
+            selected_record_label = basic_panel.selectbox(
+                "Empirical observation",
+                record_labels,
+                help=(
+                    "Each option is a distinct country / city / timestamp row. "
+                    "Rows from the same city are never merged or overwritten."
+                ),
+            )
+            empirical_record = select_empirical_record(
+                empirical_validation_records,
+                selected_record_label,
+            )
+            if empirical_record is not None:
+                empirical_inputs = dict(empirical_record.get("model_inputs", {}))
+                empirical_observed = dict(empirical_record.get("observed", {}))
+                empirical_metadata = dict(empirical_record.get("metadata", {}))
+            basic_panel.caption(
+                "Descriptive empirical validation only. Absolute MW values use "
+                "different spatial scales and are not a completed calibration."
+            )
+            basic_panel.caption(
+                f'{empirical_validation_summary["row_count"]} timestamped records '
+                f'from {empirical_validation_summary["time_start"]} to '
+                f'{empirical_validation_summary["time_end"]}.'
+            )
+        for finding in empirical_validation_findings:
+            message = f'{finding["area"]}: {finding["message"]}'
+            if finding["severity"] == "Error":
+                basic_panel.warning(message)
+            else:
+                basic_panel.caption(message)
+    elif demo_mode != "Manual":
+        basic_panel.caption(
+            "Empirical Validation Mode is available in Manual mode."
+        )
     basic_panel.caption("Quick demo scenarios")
     demo_cols = basic_panel.columns(2)
     if demo_cols[0].button("Hospital + Typhoon", use_container_width=True):
@@ -3116,7 +3215,16 @@ with st.sidebar:
     )
     basic_panel.caption("Perspective changes explanation only; calculations remain unchanged.")
 
-    use_csv_upload = basic_panel.checkbox("Use uploaded CSV", value=False, help="Optional. Leave this off for a simple guided setup.")
+    empirical_active = empirical_validation_mode and empirical_record is not None
+    use_csv_upload = basic_panel.checkbox(
+        "Use uploaded CSV",
+        value=False,
+        disabled=empirical_active,
+        help=(
+            "Optional. Leave this off for a simple guided setup. "
+            "Empirical Validation Mode uses its bundled timestamped staging dataset."
+        ),
+    )
     uploaded_baseline_file = basic_panel.file_uploader(tr("uploaded_data"), type=["csv"], key="uploaded_baseline_csv") if use_csv_upload else None
     uploaded_df = safe_read_csv(uploaded_baseline_file)
     uploaded_profiles = build_uploaded_profiles(uploaded_df)
@@ -3149,24 +3257,98 @@ with st.sidebar:
             "country_model": "CSV Open Data Model",
         })
 
-    default_country = uploaded_profile["country"] if (use_uploaded and uploaded_profile) else list(merged_city_data.keys())[0]
+    if empirical_active:
+        empirical_country = empirical_inputs["country_key"]
+        empirical_city = empirical_inputs["city_key"]
+        merged_city_data.setdefault(empirical_country, {})
+        merged_city_data[empirical_country].setdefault(empirical_city, {
+            "lat": safe_float(empirical_inputs.get("lat"), 0.0),
+            "lon": safe_float(empirical_inputs.get("lon"), 0.0),
+            "population": safe_int(empirical_inputs.get("population"), 100000),
+            "country_model": "Empirical Validation Context",
+        })
+    default_country = (
+        empirical_inputs["country_key"]
+        if empirical_active
+        else uploaded_profile["country"]
+        if (use_uploaded and uploaded_profile)
+        else list(merged_city_data.keys())[0]
+    )
     country_options = list(merged_city_data.keys())
     country_index = country_options.index(default_country) if default_country in country_options else 0
-    country = basic_panel.selectbox(tr("country"), country_options, index=country_index, disabled=(use_uploaded and uploaded_profile is not None), help="Step 1: Choose the country you want to test.")
+    country = basic_panel.selectbox(
+        tr("country"),
+        country_options,
+        index=country_index,
+        disabled=(
+            empirical_active
+            or (use_uploaded and uploaded_profile is not None)
+        ),
+        help="Step 1: Choose the country you want to test.",
+    )
     basic_panel.caption("Choose the country for this energy-risk simulation.")
 
     city_options = list(merged_city_data[country].keys())
-    default_city = uploaded_profile["city"] if (use_uploaded and uploaded_profile and uploaded_profile["country"] == country) else city_options[0]
+    default_city = (
+        empirical_inputs["city_key"]
+        if empirical_active and empirical_inputs["country_key"] == country
+        else uploaded_profile["city"]
+        if (
+            use_uploaded
+            and uploaded_profile
+            and uploaded_profile["country"] == country
+        )
+        else city_options[0]
+    )
     city_index = city_options.index(default_city) if default_city in city_options else 0
-    city = basic_panel.selectbox(tr("city"), city_options, index=city_index, disabled=(use_uploaded and uploaded_profile is not None), help="Step 1: Choose the city or area you want to review.")
+    city = basic_panel.selectbox(
+        tr("city"),
+        city_options,
+        index=city_index,
+        disabled=(
+            empirical_active
+            or (use_uploaded and uploaded_profile is not None)
+        ),
+        help="Step 1: Choose the city or area you want to review.",
+    )
     basic_panel.caption("Choose the city or area where energy risk should be reviewed.")
     city_profile = merged_city_data[country][city]
 
-    active_country = uploaded_profile["country"] if (use_uploaded and uploaded_profile) else country
-    active_city = uploaded_profile["city"] if (use_uploaded and uploaded_profile) else city
-    active_lat = uploaded_profile["lat"] if (use_uploaded and uploaded_profile) else city_profile["lat"]
-    active_lon = uploaded_profile["lon"] if (use_uploaded and uploaded_profile) else city_profile["lon"]
-    active_population = uploaded_profile["population"] if (use_uploaded and uploaded_profile) else int(city_profile["population"])
+    active_country = (
+        empirical_inputs["country_key"]
+        if empirical_active
+        else uploaded_profile["country"]
+        if (use_uploaded and uploaded_profile)
+        else country
+    )
+    active_city = (
+        empirical_inputs["city_key"]
+        if empirical_active
+        else uploaded_profile["city"]
+        if (use_uploaded and uploaded_profile)
+        else city
+    )
+    active_lat = (
+        empirical_inputs["lat"]
+        if empirical_active
+        else uploaded_profile["lat"]
+        if (use_uploaded and uploaded_profile)
+        else city_profile["lat"]
+    )
+    active_lon = (
+        empirical_inputs["lon"]
+        if empirical_active
+        else uploaded_profile["lon"]
+        if (use_uploaded and uploaded_profile)
+        else city_profile["lon"]
+    )
+    active_population = (
+        empirical_inputs["population"]
+        if empirical_active
+        else uploaded_profile["population"]
+        if (use_uploaded and uploaded_profile)
+        else int(city_profile["population"])
+    )
 
     facility_type = basic_panel.selectbox(tr("facility_type"), list(FACILITY_PROFILES.keys()), help="Choose the kind of building or site being protected.")
     facility_profile = FACILITY_PROFILES[facility_type]
@@ -3186,12 +3368,29 @@ with st.sidebar:
     allowed_scenario_keys = [key for key in get_allowed_scenarios(active_country, active_city, scenario_mode) if key in SCENARIOS]
     if not allowed_scenario_keys:
         allowed_scenario_keys = ["normal"]
-    scenario_key = scenario_panel.selectbox(
-        tr("weather_scenario"),
-        allowed_scenario_keys,
-        format_func=lambda key: key.replace("_", " ").title(),
-        help="Step 2: Choose the type of extreme weather you want to test.",
-    )
+    if empirical_active:
+        scenario_key = scenario_panel.selectbox(
+            tr("weather_scenario"),
+            ["heat_wave"],
+            format_func=lambda key: key.replace("_", " ").title(),
+            disabled=True,
+            key="empirical_validation_weather_scenario",
+            help=(
+                "The supplied Paris staging dataset is evaluated as a Heat Wave "
+                "scenario. Scenario multipliers remain unchanged."
+            ),
+        )
+        scenario_panel.caption(
+            "Empirical validation context: Paris Heat Wave 2026 staging dataset."
+        )
+    else:
+        scenario_key = scenario_panel.selectbox(
+            tr("weather_scenario"),
+            allowed_scenario_keys,
+            format_func=lambda key: key.replace("_", " ").title(),
+            key="standard_weather_scenario",
+            help="Step 2: Choose the type of extreme weather you want to test.",
+        )
     scenario_panel.caption("Choose the type of extreme weather you want TAIVAS to simulate.")
     scenario_warning = build_scenario_warning(active_country, active_city, scenario_key, scenario_mode)
     if scenario_warning["show_warning"]:
@@ -3241,12 +3440,67 @@ with st.sidebar:
     geothermal_capacity = advanced_panel.slider(tr("geothermal_capacity"), 0, 500, int(clamp((uploaded_profile["geothermal_capacity"] if (use_uploaded and uploaded_profile) else 60), 0, 500)), 5, help="Stable geothermal capacity in MW.")
     hydro_capacity = advanced_panel.slider(tr("hydro_capacity"), 0, 500, int(clamp((uploaded_profile["hydro_capacity"] if (use_uploaded and uploaded_profile) else 70), 0, 500)), 5, help="Hydro power capacity in MW.")
     advanced_panel.markdown("**Weather details**")
-    temperature = advanced_panel.slider(tr("temperature") + " (°C)", -20, 50, int(clamp((uploaded_profile["temperature"] if (use_uploaded and uploaded_profile) else 26), -20, 50)), 1, help="Used to estimate heating or cooling pressure.")
-    wind_speed = advanced_panel.slider(tr("wind_speed") + " (m/s)", 0.0, 30.0, float(clamp((uploaded_profile["wind_speed"] if (use_uploaded and uploaded_profile) else 4.2), 0.0, 30.0)), 0.1, help="Affects wind power output.")
-    solar_radiation = advanced_panel.slider(tr("solar_radiation") + " (W/m²)", 0, 1200, int(clamp((uploaded_profile["solar_radiation"] if (use_uploaded and uploaded_profile) else 640), 0, 1200)), 10, help="Affects solar power output.")
-    precipitation = advanced_panel.slider(tr("precipitation") + " (mm)", 0, 300, int(clamp((uploaded_profile["precipitation"] if (use_uploaded and uploaded_profile) else 12), 0, 300)), 1, help="Affects demand and hydro behavior.")
-    humidity = advanced_panel.slider(tr("humidity") + " (%)", 0, 100, int(clamp((uploaded_profile["humidity"] if (use_uploaded and uploaded_profile) else 73), 0, 100)), 1, help="Higher humidity can increase cooling pressure.")
-    advanced_panel.caption("Weather data label: User Input / Uploaded CSV when enabled")
+    if empirical_active:
+        temperature = float(empirical_inputs["temperature"])
+        wind_speed = float(empirical_inputs["wind_speed"])
+        solar_radiation = float(empirical_inputs["solar_radiation"])
+        precipitation = float(empirical_inputs["precipitation"])
+        humidity = float(empirical_inputs["humidity"])
+        empirical_record_id = empirical_record["record_id"]
+
+        advanced_panel.text_input(
+            tr("temperature") + " (°C)",
+            value=str(temperature),
+            disabled=True,
+            key=f"empirical_temperature_display::{empirical_record_id}",
+        )
+        advanced_panel.text_input(
+            tr("wind_speed") + " (m/s)",
+            value=str(wind_speed),
+            disabled=True,
+            key=f"empirical_wind_speed_display::{empirical_record_id}",
+        )
+        advanced_panel.text_input(
+            tr("solar_radiation") + " (W/m²)",
+            value=str(solar_radiation),
+            disabled=True,
+            key=f"empirical_solar_radiation_display::{empirical_record_id}",
+        )
+        advanced_panel.text_input(
+            tr("precipitation") + " (mm)",
+            value=str(precipitation),
+            disabled=True,
+            key=f"empirical_precipitation_display::{empirical_record_id}",
+        )
+        advanced_panel.text_input(
+            tr("humidity") + " (%)",
+            value=str(humidity),
+            disabled=True,
+            key=f"empirical_humidity_display::{empirical_record_id}",
+        )
+
+        advanced_panel.caption(
+            f'Selected timestamp: {empirical_inputs.get("timestamp", "-")}'
+        )
+        advanced_panel.caption(
+            "ERA5 weather source: "
+            f'{safe_str(empirical_metadata.get("source_era5"), "ERA5 staging data")}'
+        )
+        advanced_panel.caption(
+            "Weather match status: "
+            f'{safe_str(empirical_metadata.get("weather_match_status"), "Not provided")}'
+        )
+        advanced_panel.caption(
+            "Data quality flag: "
+            f'{safe_str(empirical_metadata.get("data_quality_flag"), "Not provided")}'
+        )
+    else:
+        temperature = advanced_panel.slider(tr("temperature") + " (°C)", -20, 50, int(clamp((uploaded_profile["temperature"] if (use_uploaded and uploaded_profile) else 26), -20, 50)), 1, help="Used to estimate heating or cooling pressure.")
+        wind_speed = advanced_panel.slider(tr("wind_speed") + " (m/s)", 0.0, 30.0, float(clamp((uploaded_profile["wind_speed"] if (use_uploaded and uploaded_profile) else 4.2), 0.0, 30.0)), 0.1, help="Affects wind power output.")
+        solar_radiation = advanced_panel.slider(tr("solar_radiation") + " (W/m²)", 0, 1200, int(clamp((uploaded_profile["solar_radiation"] if (use_uploaded and uploaded_profile) else 640), 0, 1200)), 10, help="Affects solar power output.")
+        precipitation = advanced_panel.slider(tr("precipitation") + " (mm)", 0, 300, int(clamp((uploaded_profile["precipitation"] if (use_uploaded and uploaded_profile) else 12), 0, 300)), 1, help="Affects demand and hydro behavior.")
+        humidity = advanced_panel.slider(tr("humidity") + " (%)", 0, 100, int(clamp((uploaded_profile["humidity"] if (use_uploaded and uploaded_profile) else 73), 0, 100)), 1, help="Higher humidity can increase cooling pressure.")
+        advanced_panel.caption("Weather data label: User Input / Uploaded CSV when enabled")
 
     advanced_panel.markdown("**Component failures**")
     solar_failure_ratio = advanced_panel.number_input(tr("solar_failure_ratio"), 0.0, 1.0, 0.00, 0.05, format="%.2f", help="0 means no failure. 1 means fully unavailable.")
@@ -6335,6 +6589,124 @@ def render_concept_lab_workspace():
 
 # PRODUCT UI RESTRUCTURE START
 # Results presentation only: calculations above remain unchanged.
+def render_empirical_validation_snapshot():
+    """Render a descriptive observed-versus-simulated comparison only."""
+    if not empirical_active or empirical_record is None:
+        return
+
+    snapshot = build_empirical_validation_snapshot(empirical_record, results)
+    if snapshot is None:
+        return
+
+    def display_value(value, unit=""):
+        if value is None:
+            return "Not available"
+        suffix = f" {unit}" if unit else ""
+        return f"{value}{suffix}"
+
+    st.subheader("Empirical Validation Snapshot")
+    st.caption(
+        "Descriptive empirical validation only. This panel does not change "
+        "simulation inputs, formulas, scenario logic, battery behavior, or risk tiers."
+    )
+    st.info(
+        "RTE observation: Île-de-France regional electricity observation  \n"
+        "TAIVAS estimate: Paris-scale decision-support simulation  \n"
+        "Absolute MW values are not directly scale-equivalent."
+    )
+
+    selected = snapshot["selected_observation"]
+    taivas_snapshot = snapshot["taivas"]
+    rte_snapshot = snapshot["rte"]
+    observation_col, taivas_col, rte_col = st.columns(3)
+
+    with observation_col:
+        st.markdown("**Selected observation**")
+        st.dataframe(
+            pd.DataFrame([
+                {"Metric": "Timestamp", "Value": display_value(selected["timestamp"])},
+                {"Metric": "ERA5 temperature", "Value": display_value(selected["temperature"], "°C")},
+                {"Metric": "ERA5 wind speed", "Value": display_value(selected["wind_speed"], "m/s")},
+                {"Metric": "ERA5 solar radiation", "Value": display_value(selected["solar_radiation"], "W/m²")},
+                {"Metric": "ERA5 precipitation", "Value": display_value(selected["precipitation"], "mm")},
+                {"Metric": "ERA5 humidity", "Value": display_value(selected["humidity"], "%")},
+            ]),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    with taivas_col:
+        st.markdown("**TAIVAS simulation**")
+        st.dataframe(
+            pd.DataFrame([
+                {"Metric": "Simulated demand", "Value": display_value(taivas_snapshot["simulated_demand_mw"], "MW")},
+                {"Metric": "Renewable supply", "Value": display_value(taivas_snapshot["renewable_supply_mw"], "MW")},
+                {"Metric": "External Support Need Proxy", "Value": display_value(taivas_snapshot["external_support_need_proxy_pct"], "%")},
+                {"Metric": "Battery contribution", "Value": display_value(taivas_snapshot["battery_contribution_mw"], "MW")},
+                {"Metric": "Battery remaining", "Value": display_value(taivas_snapshot["battery_remaining_mwh"], "MWh")},
+                {"Metric": "System Performance Score", "Value": display_value(taivas_snapshot["system_performance_pct"], "%")},
+                {"Metric": "Risk Tier", "Value": display_value(taivas_snapshot["risk_tier"])},
+            ]),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    with rte_col:
+        st.markdown("**RTE observation**")
+        st.dataframe(
+            pd.DataFrame([
+                {"Metric": "Observed demand", "Value": display_value(rte_snapshot["observed_demand_mw"], "MW")},
+                {"Metric": "Observed renewable generation", "Value": display_value(rte_snapshot["observed_renewable_generation_mw"], "MW")},
+                {"Metric": "Observed local generation", "Value": format_observed_mw_for_display(rte_snapshot["observed_local_generation_mw"])},
+                {"Metric": "Observed physical exchange", "Value": display_value(rte_snapshot["observed_external_support_mw"], "MW")},
+                {"Metric": "Observed battery net", "Value": display_value(rte_snapshot["observed_battery_net_mw"], "MW")},
+                {"Metric": "Observed import dependency", "Value": display_value(rte_snapshot["observed_import_dependency_pct"], "%")},
+            ]),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    st.markdown("**Descriptive shares**")
+    share_cols = st.columns(4)
+    share_cols[0].metric(
+        "TAIVAS renewable share",
+        display_value(taivas_snapshot["descriptive_renewable_share_pct"], "%"),
+    )
+    share_cols[1].metric(
+        "TAIVAS external support proxy",
+        display_value(taivas_snapshot["external_support_need_proxy_pct"], "%"),
+    )
+    share_cols[2].metric(
+        "RTE renewable share",
+        display_value(rte_snapshot["descriptive_renewable_share_pct"], "%"),
+    )
+    share_cols[3].metric(
+        "RTE external support share",
+        display_value(rte_snapshot["descriptive_external_support_share_pct"], "%"),
+    )
+    st.caption(
+        "Descriptive comparison only — definitions and spatial scales differ."
+    )
+
+    capacity = snapshot["capacity"]
+    st.markdown(
+        f"**Installed capacity:** {capacity['installed_capacity_label']}  \n"
+        f"**Capacity source:** {capacity['capacity_source']}"
+    )
+    metadata = snapshot["metadata"]
+    st.dataframe(
+        pd.DataFrame([
+            {"Metadata": "Electricity data scope", "Value": display_value(metadata["electricity_data_scope"])},
+            {"Metadata": "Weather data scope", "Value": display_value(metadata["weather_data_scope"])},
+            {"Metadata": "Weather match status", "Value": display_value(metadata["weather_match_status"])},
+            {"Metadata": "Data quality flag", "Value": display_value(metadata["data_quality_flag"])},
+            {"Metadata": "Capacity data status", "Value": display_value(metadata["capacity_data_status"])},
+        ]),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+
 def operational_risk_label():
     if results["shortfall"] >= 15 or results["grid_dependency"] >= 25:
         return tr("high_grid_instability_risk")
@@ -7114,6 +7486,7 @@ def render_context_cards():
 
 def render_product_overview():
     render_emergency_brief()
+    render_empirical_validation_snapshot()
     render_role_interpretation_panel()
     render_ai_transparency_note()
     render_scenario_plausibility_panel()
