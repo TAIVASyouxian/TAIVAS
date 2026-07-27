@@ -35,6 +35,7 @@ from core.scenario_compatibility import (
 from data.csv_loader import read_csv_with_warnings
 from data.validation_utils import validate_uploaded_dataframe
 from data.empirical_validation import (
+    TAIVAS_WEATHER_INPUT_COLUMNS,
     build_empirical_validation_snapshot,
     build_empirical_records,
     format_observed_mw_for_display,
@@ -272,7 +273,7 @@ Primary UI Layers:
    model boundary notice.
 
 Preferred Plain-English Terms:
-- Energy Gap, External Support Need Proxy, Renewable Share, Battery Reserve, System Performance Score.
+- Energy Gap, External Support Need Proxy, Renewable Supply-to-Demand Ratio, Battery Reserve, System Performance Score.
 - Cold-Weather Buffer, Heat Stress, Storm Impact, Scenario Comparison.
 - Scenario Resilience Summary, Public Risk Summary.
 
@@ -293,11 +294,11 @@ Section Direction:
 - Main System Status: Demand, Final Supply, Energy Gap, System Performance Score.
 - Scenario Comparison: core identity of TAIVAS; baseline vs extreme scenario with
   demand, supply, energy gap, battery reserve, External Support Need Proxy, and Risk Tier changes.
-- Risk Tier / Resilience Status: Low, Moderate, High, Critical in a calm analytical tone.
+- Risk Tier / Resilience Status: Low, Elevated, High, Critical in a calm analytical tone.
 - Explainability Panel: what caused stress, which metric changed most,
   what should be checked first.
 - Battery / Storage: Battery Reserve, Reserve Days, Energy Gap Hours, Storage Trend.
-- Renewable Mix: Renewable Share, Dominant Source, Renewable Supply,
+- Renewable Mix: Renewable Supply-to-Demand Ratio, Dominant Source, Renewable Supply,
   with reminder that scenario conditions may reduce actual output when needed.
 - Thermal / Concept Lab: concept visualizations, not engineering blueprints.
   Use clear names such as Cold-Weather Thermal Buffer Concept,
@@ -387,6 +388,34 @@ DATA_CLASSIFICATION_LABELS = {
     "estimated": "Estimated Data",
     "verified": "Verified Data",
     "simulated": "Simulated Scenario Data",
+}
+RENEWABLE_RATIO_DISPLAY_NAME = "Renewable Supply-to-Demand Ratio"
+RENEWABLE_RATIO_TERMINOLOGY = {
+    "internal_key": "renewable_ratio",
+    "display_name": RENEWABLE_RATIO_DISPLAY_NAME,
+    "definition": (
+        "Modeled renewable supply divided by modeled demand, expressed as a "
+        "percentage."
+    ),
+    "interpretation": (
+        "Values above 100% indicate modeled renewable supply exceeds modeled "
+        "demand under the selected assumptions."
+    ),
+    "boundary": (
+        "This is not the renewable share of observed regional generation and "
+        "is not constrained to 100%."
+    ),
+}
+RISK_TIER_TERMINOLOGY = {
+    "source": "core.risk_engine.calculate_risk_tier",
+    "display_source": "authoritative_risk_tier_for_results",
+    "definition": "Classification based on modeled unmet-demand ratio.",
+    "tiers": {
+        "Low": "No modeled energy gap",
+        "Elevated": "Unmet-demand ratio greater than 0% and below 5%",
+        "High": "Unmet-demand ratio from 5% to below 15%",
+        "Critical": "Unmet-demand ratio of 15% or higher",
+    },
 }
 # UI-ONLY CHANGE END
 
@@ -610,7 +639,7 @@ I18N = {
         "final": "Final Supply",
         "shortfall": "Shortfall",
         "battery": "Battery Levels",
-        "rr": "Renewable Ratio",
+        "rr": RENEWABLE_RATIO_DISPLAY_NAME,
         "eff": "System Performance Score",
         "grid": "External Support Need Proxy",
         "status_shortfall": "Shortfall Status",
@@ -1033,6 +1062,23 @@ def calculate_risk_tier(shortfall: float, demand: float) -> str:
     # preserving the original formula and return values.
     return core_calculate_risk_tier(shortfall, demand)
 # CORE FORMULA UPDATE END
+
+# Extended Security is an optional post-core stress layer. These visible
+# defaults preserve the historical behavior while making every assumption
+# named, adjustable, and traceable.
+EXTENDED_SECURITY_ASSUMPTION_DEFAULTS = {
+    "fuel_price_shock": 0.20,
+    "repair_crew_availability": 0.80,
+    "spare_parts_delay_days": 7,
+    "refill_uncertainty": 0.25,
+    "single_point_failure_risk": 0.20,
+}
+EXTENDED_SECURITY_ASSUMPTION_CLASSIFICATION = (
+    "TAIVAS model assumptions / user inputs"
+)
+EXTENDED_SECURITY_ASSUMPTION_OBSERVATION_STATUS = (
+    "Not sourced from RTE observations or ERA5 reanalysis data"
+)
 
 def build_status_label(value: float, thresholds, reverse: bool = False) -> str:
     warn, critical = thresholds
@@ -2234,7 +2280,10 @@ EMPIRICAL_SIDEBAR_DISPLAY_MAP = {
     "matched": "Matched",
     "usable_with_spatial_scope_warning": "Usable — spatial-scale warning applies",
     "not_provided_use_explicit_taivas_assumption": "Not provided — TAIVAS assumption / user input",
-    "ERA5 hourly time-series on single levels, Paris extract": "ERA5 Paris hourly extract",
+    "ERA5 hourly time-series on single levels, Paris extract": "ERA5 hourly reanalysis extract for Paris",
+    "ERA5 Paris grid-point hourly observation": "ERA5 hourly reanalysis extract for Paris",
+    "RTE eCO2mix Île-de-France daily real-time exports, consolidated by TAIVAS workflow": "RTE eCO2mix Île-de-France regional observation",
+    "RTE eCO2mix Île-de-France regional observation": "RTE eCO2mix Île-de-France regional observation",
 }
 
 
@@ -2510,14 +2559,14 @@ def build_geopolitical_reason_chain(shock, results):
             {"Signal": "地緣政治事件", "Value": shock.get("event_type", "None"), "Interpretation": shock.get("event_note", "")},
             {"Signal": "油氣供應中斷估計", "Value": f"{shock.get('oil_supply_disruption_percent', 0)}%", "Interpretation": "用事件嚴重度、持續時間與地點權重估算的簡化中斷壓力。"},
             {"Signal": "價格衝擊指數", "Value": shock.get("price_spike_index", 0), "Interpretation": "代表市場價格與燃料成本壓力，不等於實際油價預測。"},
-            {"Signal": "電網壓力指數", "Value": shock.get("grid_stress_index", 0), "Interpretation": f"目前風險等級：{shock.get('risk_level', 'Low')}。"},
+            {"Signal": "電網壓力指數", "Value": shock.get("grid_stress_index", 0), "Interpretation": f"目前地緣政治壓力等級：{shock.get('risk_level', 'Low')}。"},
             {"Signal": "系統結果", "Value": f"Shortfall {results.get('shortfall', 0)} MW", "Interpretation": "衝擊已折算進需求、可用供應、效率與外部依賴。"},
         ])
     return pd.DataFrame([
         {"Signal": "Geopolitical Event", "Value": shock.get("event_type", "None"), "Interpretation": shock.get("event_note", "")},
         {"Signal": "Oil/Gas Supply Disruption Estimate", "Value": f"{shock.get('oil_supply_disruption_percent', 0)}%", "Interpretation": "Simplified disruption pressure from severity, duration, and location weight."},
         {"Signal": "Price Spike Index", "Value": shock.get("price_spike_index", 0), "Interpretation": "Market and fuel-cost stress signal; not an oil price forecast."},
-        {"Signal": "Grid Stress Index", "Value": shock.get("grid_stress_index", 0), "Interpretation": f"Current geopolitical risk level: {shock.get('risk_level', 'Low')}."},
+        {"Signal": "Grid Stress Index", "Value": shock.get("grid_stress_index", 0), "Interpretation": f"Current geopolitical stress level: {shock.get('risk_level', 'Low')}."},
         {"Signal": "System Result", "Value": f"Shortfall {results.get('shortfall', 0)} MW", "Interpretation": "Shock is reflected in demand, usable supply, System Performance Score, and External Support Need Proxy."},
     ])
 
@@ -2894,7 +2943,7 @@ def extend_i18n():
             "oil_supply_disruption": "Oil Supply Disruption",
             "price_spike_index": "Price Spike Index",
             "geopolitical_grid_stress": "Geopolitical Grid Stress",
-            "geopolitical_risk_level": "Geopolitical Risk Level",
+            "geopolitical_risk_level": "Geopolitical Stress Level",
             "geopolitical_reason_chain": "Geopolitical Reason Chain",
             "geopolitical_model_note": "This module converts geopolitical tension into energy-system stress. It is for decision support, not prediction.",
             "visual_simulator": "Visual Scenario Simulator",
@@ -2928,7 +2977,7 @@ def extend_i18n():
             "oil_supply_disruption": "油氣供應中斷",
             "price_spike_index": "價格衝擊指數",
             "geopolitical_grid_stress": "地緣政治電網壓力",
-            "geopolitical_risk_level": "地緣政治風險等級",
+            "geopolitical_risk_level": "地緣政治壓力等級",
             "geopolitical_reason_chain": "地緣政治理由鏈",
             "geopolitical_model_note": "此模組將地緣政治緊張轉換為能源系統壓力，僅供決策支援，不是預測。",
             "visual_simulator": "情境視覺模擬器",
@@ -2950,7 +2999,7 @@ I18N["English"].update({
     "battery": "Battery Remaining (MWh)",
     "battery_capacity": "Battery Capacity (MWh)",
     "grid": "External Support Need Proxy",
-    "rr": "Renewable Share",
+    "rr": RENEWABLE_RATIO_DISPLAY_NAME,
     "eff": "System Performance Score",
     "quick_start": "Quick Start",
     "quick_start_body": "Choose a city, select an extreme weather scenario, then review risk and suggested review items.",
@@ -2964,7 +3013,7 @@ I18N["English"].update({
     "capacity_help": "Set how much energy can be generated locally and how much backup power is available.",
     "advanced_help": "Optional expert controls for weather details, component failures, security risk, timeline, and thermal concepts.",
     "export_help": "After the simulation loads, use the Export Center in the dashboard to download CSV, TXT, or JSON reports.",
-    "metric_help": "Possible Energy Gap shows unmet demand. Available Renewable Energy shows local renewable supply. System Performance Score is the percentage of modeled demand served. External Support Need Proxy is the unmet-demand ratio expressed as a percentage; it does not measure actual imported grid electricity.",
+    "metric_help": "Possible Energy Gap shows unmet demand. Available Renewable Energy shows local renewable supply. Renewable Supply-to-Demand Ratio is modeled renewable supply divided by modeled demand and may exceed 100%. System Performance Score is the percentage of modeled demand served. External Support Need Proxy is the unmet-demand ratio expressed as a percentage; it does not measure actual imported grid electricity.",
     "product_positioning": "TAIVAS is a decision-support simulation tool. It does not predict the future with certainty. It helps users explore possible risks and response options.",
     "main_system_status": "Main System Status",
     "battery_storage_status": "Battery / Storage Status",
@@ -2973,9 +3022,9 @@ I18N["English"].update({
     "scenario_analysis": "What Changes Under This Scenario?",
     "overview": "Overview",
     "view_detailed_analysis": "View Detailed Technical Analysis",
-    "low_shortfall_risk": "Low shortfall risk",
+    "low_shortfall_risk": "Low modeled supply stress",
     "supply_stress_detected": "Supply stress detected",
-    "high_grid_instability_risk": "High grid instability risk",
+    "high_grid_instability_risk": "High external-support stress",
     "battery_reserve_declining": "Battery reserve declining",
     "battery_reserve_available": "Battery reserve available",
     "renewable_acceptable": "Renewable contribution acceptable",
@@ -2996,7 +3045,7 @@ I18N["繁體中文"].update({
     "final": "可用總供電",
     "shortfall": "可能能源缺口",
     "battery": "電池備援",
-    "rr": "再生能源占比",
+    "rr": "再生能源供需比",
     "eff": "系統穩定度",
     "grid": "外部供電依賴",
     "status_shortfall": "供電缺口狀態",
@@ -3018,7 +3067,7 @@ I18N["繁體中文"].update({
     "capacity_help": "設定本地可發電量與可用備援電力。",
     "advanced_help": "給進階使用者調整天氣細節、設備失效、能源安全、時間軸與熱管理概念。",
     "export_help": "模擬結果產生後，可在儀表板匯出 CSV、TXT 或 JSON 報告。",
-    "metric_help": "可能能源缺口代表尚未滿足的需求。再生能源供應代表本地可用再生電力。系統穩定度是簡化的健康指標。外部供電依賴代表可能需要多少外部支援。",
+    "metric_help": "可能能源缺口代表尚未滿足的需求。再生能源供應代表本地可用再生電力。再生能源供需比是模擬再生能源供應除以模擬需求，可能高於 100%。系統穩定度是簡化的健康指標。外部供電依賴代表可能需要多少外部支援。",
     "product_positioning": "TAIVAS 是決策輔助模擬工具，不保證預測未來；它協助使用者探索可能風險與應對選項。",
     "main_system_status": "主要系統狀態",
     "battery_storage_status": "電池 / 備援狀態",
@@ -3027,9 +3076,9 @@ I18N["繁體中文"].update({
     "scenario_analysis": "此情境下會改變什麼？",
     "overview": "總覽",
     "view_detailed_analysis": "查看進階技術分析",
-    "low_shortfall_risk": "供電缺口風險低",
+    "low_shortfall_risk": "模擬供電壓力低",
     "supply_stress_detected": "偵測到供電壓力",
-    "high_grid_instability_risk": "外部供電壓力高",
+    "high_grid_instability_risk": "外部支援壓力高",
     "battery_reserve_declining": "電池備援下降",
     "battery_reserve_available": "電池備援可用",
     "renewable_acceptable": "再生能源供應可接受",
@@ -3595,6 +3644,61 @@ with st.sidebar:
         "This visible value is passed unchanged to the authoritative energy-balance core."
     )
 
+    advanced_panel.markdown("**Extended Security Assumptions**")
+    advanced_panel.caption(EXTENDED_SECURITY_ASSUMPTION_CLASSIFICATION)
+    advanced_panel.caption(EXTENDED_SECURITY_ASSUMPTION_OBSERVATION_STATUS)
+    fuel_price_shock = advanced_panel.number_input(
+        "Fuel Price Shock",
+        min_value=0.0,
+        max_value=1.0,
+        value=EXTENDED_SECURITY_ASSUMPTION_DEFAULTS["fuel_price_shock"],
+        step=0.01,
+        format="%.2f",
+        help="Exploratory fraction used by the optional Extended Security stress layer.",
+    )
+    repair_crew_availability = advanced_panel.number_input(
+        "Repair Crew Availability",
+        min_value=0.0,
+        max_value=1.0,
+        value=EXTENDED_SECURITY_ASSUMPTION_DEFAULTS["repair_crew_availability"],
+        step=0.01,
+        format="%.2f",
+        help="Exploratory available-share assumption; not an observed staffing value.",
+    )
+    spare_parts_delay_days = advanced_panel.number_input(
+        "Spare Parts Delay (days)",
+        min_value=0,
+        max_value=365,
+        value=EXTENDED_SECURITY_ASSUMPTION_DEFAULTS["spare_parts_delay_days"],
+        step=1,
+        help="Exploratory delay assumption used by the optional stress layer.",
+    )
+    refill_uncertainty = advanced_panel.number_input(
+        "Refill Uncertainty",
+        min_value=0.0,
+        max_value=1.0,
+        value=EXTENDED_SECURITY_ASSUMPTION_DEFAULTS["refill_uncertainty"],
+        step=0.01,
+        format="%.2f",
+        help="Exploratory uncertainty fraction; not an observed RTE or ERA5 value.",
+    )
+    single_point_failure_risk = advanced_panel.number_input(
+        "Single-Point Failure Risk",
+        min_value=0.0,
+        max_value=1.0,
+        value=EXTENDED_SECURITY_ASSUMPTION_DEFAULTS["single_point_failure_risk"],
+        step=0.01,
+        format="%.2f",
+        help="Exploratory risk fraction used only by the optional stress layer.",
+    )
+    extended_security_assumptions = {
+        "fuel_price_shock": fuel_price_shock,
+        "repair_crew_availability": repair_crew_availability,
+        "spare_parts_delay_days": spare_parts_delay_days,
+        "refill_uncertainty": refill_uncertainty,
+        "single_point_failure_risk": single_point_failure_risk,
+    }
+
     advanced_panel.markdown("**Geopolitical shock**")
     enable_geopolitical_shock = advanced_panel.toggle(tr("enable_geopolitical_shock"), value=False)
     geopolitical_event_type = advanced_panel.selectbox(tr("geopolitical_event_type"), list(GEOPOLITICAL_EVENT_WEIGHTS.keys()), index=0)
@@ -3798,7 +3902,14 @@ results, _ = apply_energy_security_layer(
     infrastructure_damage_ratio=infrastructure_damage_ratio,
     reserve_recovery_lag_days=reserve_recovery_lag_days,
 )
-results = apply_extended_security(results, 0.2, 0.8, 7, 0.25, 0.2)
+results = apply_extended_security(
+    results,
+    fuel_price_shock=fuel_price_shock,
+    repair_crew_availability=repair_crew_availability,
+    spare_parts_delay_days=spare_parts_delay_days,
+    refill_uncertainty=refill_uncertainty,
+    single_point_failure_risk=single_point_failure_risk,
+)
 
 geopolitical_shock = calculate_geopolitical_shock(
     event_type=geopolitical_event_type if enable_geopolitical_shock else "None",
@@ -3890,16 +4001,13 @@ def main_emergency_concern():
 
 
 def plain_language_severity():
-    tier = results.get("risk_tier", "")
-    if tier == "Critical":
-        return "critical"
-    if tier == "High":
-        return "high risk"
-    if tier == "Elevated":
-        return "stressed"
-    if results["shortfall"] > 0 or results["grid_dependency"] >= 10:
-        return "stressed"
-    return "stable"
+    tier = authoritative_risk_tier_for_results(results)
+    return {
+        "Low": "stable",
+        "Elevated": "mildly stressed",
+        "High": "high stress",
+        "Critical": "critical stress",
+    }[tier]
 
 
 def render_plain_language_emergency_summary():
@@ -3995,16 +4103,16 @@ def emergency_brief_suggested_action():
 def render_emergency_brief():
     # Decision Support Layer: first-screen summary for non-expert users.
     gap_pct = safe_div(results.get("shortfall", 0.0), results.get("demand", 0.0)) * 100 if results.get("demand", 0.0) else 0.0
-    risk_level = friendly_risk_level()
-    risk_class = risk_tier_css_class(risk_level)
+    risk_tier = authoritative_risk_tier_for_results(results)
+    risk_class = risk_tier_css_class(risk_tier)
     st.markdown(
         f"""
         <div class="emergency-summary">
           <h3>Scenario Brief</h3>
           <div class="emergency-grid">
             <div class="emergency-item">
-              <div class="emergency-label">Risk Level</div>
-              <div class="emergency-text"><span class="risk-badge {risk_class}">{risk_level}</span></div>
+              <div class="emergency-label">TAIVAS Risk Tier</div>
+              <div class="emergency-text"><span class="risk-badge {risk_class}">{risk_tier}</span></div>
             </div>
             <div class="emergency-item">
               <div class="emergency-label">Possible Energy Gap</div>
@@ -4033,9 +4141,9 @@ def render_emergency_brief():
 
 def public_risk_message():
     severity = plain_language_severity()
-    if severity in ("critical", "high risk"):
+    if severity in ("critical stress", "high stress"):
         return "In a real event with similar verified conditions, authorities may consider communicating energy-conservation guidance and directing the public to official information sources."
-    if severity == "stressed":
+    if severity == "mildly stressed":
         return "If similar conditions were verified in a real event, authorities may consider reviewing conservation guidance and directing the public to official information sources."
     return "The selected simulation does not indicate a major modeled energy gap. This does not confirm current real-world grid conditions."
 
@@ -4057,9 +4165,9 @@ def render_public_risk_communication_summary():
         {"Metric": "Energy Gap", "Value": f"{results['shortfall']} MW"},
         {"Metric": "Battery Remaining", "Value": f"{results['battery_levels']} MWh"},
         {"Metric": "External Support Need Proxy", "Value": f"{results['grid_dependency']}%"},
-        {"Metric": "Renewable Share", "Value": f"{results['renewable_ratio']}%"},
+        {"Metric": RENEWABLE_RATIO_DISPLAY_NAME, "Value": f"{results['renewable_ratio']}%"},
         {"Metric": "System Performance Score", "Value": format_system_performance_score(results.get("system_performance_score"))},
-        {"Metric": "Risk Tier", "Value": results.get("risk_tier", plain_language_severity().title())},
+        {"Metric": "TAIVAS Risk Tier", "Value": authoritative_risk_tier_for_results(results)},
     ])
     st.markdown(
         f"""
@@ -4088,8 +4196,68 @@ def render_public_risk_communication_summary():
 # UI-ONLY CHANGE START
 # Governance layer helpers only. These functions read existing inputs/results and add
 # transparency, validation, auditability, and human-review framing without changing model outputs.
-def data_classification_rows():
-    csv_label = DATA_CLASSIFICATION_LABELS["user"] if uploaded_df is not None and not uploaded_df.empty else DATA_CLASSIFICATION_LABELS["demo"]
+EMPIRICAL_RTE_SCOPE_LABEL = (
+    "RTE = Île-de-France regional electricity observation"
+)
+EMPIRICAL_TAIVAS_SCOPE_LABEL = (
+    "TAIVAS = Paris-scale decision-support simulation"
+)
+EMPIRICAL_SPATIAL_SCOPE_BOUNDARY = (
+    "Absolute MW values are not directly scale-equivalent."
+)
+EMPIRICAL_BUNDLED_DATASET_CLASSIFICATION = (
+    "Bundled public reanalysis and observational reference data"
+)
+
+
+def build_data_classification_rows(empirical_enabled, user_upload_present):
+    """Build display-only provenance rows without changing model inputs."""
+    if empirical_enabled:
+        return [
+            {
+                "Area": "ERA5 weather inputs",
+                "Classification": "Public reanalysis data",
+                "Note": (
+                    "Timestamped ERA5 reanalysis weather values from the bundled empirical "
+                    "reference dataset; not Demo Data or an ordinary user upload."
+                ),
+            },
+            {
+                "Area": "RTE observed electricity reference",
+                "Classification": "Public observational data",
+                "Note": (
+                    "Observed comparison values are retained outside the TAIVAS "
+                    "model input and calculation paths."
+                ),
+            },
+            {
+                "Area": "TAIVAS installed-capacity assumptions",
+                "Classification": "User input / model assumption",
+                "Note": (
+                    "Installed-capacity values are TAIVAS assumptions or explicit "
+                    "user inputs, not RTE observations or ERA5 reanalysis data."
+                ),
+            },
+            {
+                "Area": "TAIVAS simulation outputs",
+                "Classification": "Estimated / simulated data",
+                "Note": "Outputs are calculated from TAIVAS model assumptions.",
+            },
+            {
+                "Area": "Rule-based interpretation",
+                "Classification": "Estimated interpretation",
+                "Note": (
+                    "Transparent conditional interpretation of simulation outputs, "
+                    "not an observed value or operational directive."
+                ),
+            },
+        ]
+
+    csv_label = (
+        DATA_CLASSIFICATION_LABELS["user"]
+        if user_upload_present
+        else DATA_CLASSIFICATION_LABELS["demo"]
+    )
     return [
         {"Area": "Location and population", "Classification": DATA_CLASSIFICATION_LABELS["public"], "Note": "Built-in city reference data or selected user override."},
         {"Area": "Weather and scenario inputs", "Classification": DATA_CLASSIFICATION_LABELS["user"], "Note": "Selected controls and scenario assumptions."},
@@ -4101,6 +4269,95 @@ def data_classification_rows():
     ]
 
 
+def data_classification_rows():
+    return build_data_classification_rows(
+        empirical_enabled=bool(empirical_active),
+        user_upload_present=(
+            uploaded_df is not None and not uploaded_df.empty
+        ),
+    )
+
+
+def build_empirical_validation_audit_record(
+    enabled,
+    selected_record,
+    model_inputs,
+    observed_values,
+    metadata,
+):
+    """Build empirical traceability without exposing observations to the model."""
+    record = dict(selected_record or {})
+    approved_model_inputs = {
+        key: model_inputs.get(key)
+        for key in TAIVAS_WEATHER_INPUT_COLUMNS
+        if key in model_inputs
+    }
+    observed_reference = {
+        key: value
+        for key, value in dict(observed_values or {}).items()
+        if str(key).startswith("observed_")
+    }
+    raw_metadata = dict(metadata or {})
+    display_metadata = {
+        key: EMPIRICAL_SIDEBAR_DISPLAY_MAP.get(
+            safe_str(value, ""),
+            safe_str(value, ""),
+        )
+        for key, value in raw_metadata.items()
+    }
+    if enabled:
+        display_metadata.update({
+            "electricity_data_scope": EMPIRICAL_RTE_SCOPE_LABEL,
+            "model_spatial_scope": EMPIRICAL_TAIVAS_SCOPE_LABEL,
+            "spatial_scope_boundary": EMPIRICAL_SPATIAL_SCOPE_BOUNDARY,
+        })
+
+    return {
+        "enabled": bool(enabled),
+        "record_id": record.get("record_id") if enabled else None,
+        "selector_label": record.get("selector_label") if enabled else None,
+        "timestamp": approved_model_inputs.get("timestamp") if enabled else None,
+        "weather_source": raw_metadata.get("source_era5") if enabled else None,
+        "electricity_source": raw_metadata.get("source_rte") if enabled else None,
+        "weather_inputs_used_by_model": (
+            approved_model_inputs if enabled else {}
+        ),
+        "observed_reference": observed_reference if enabled else {},
+        "electricity_data_scope": (
+            EMPIRICAL_RTE_SCOPE_LABEL if enabled else None
+        ),
+        "weather_data_scope": (
+            display_metadata.get("weather_data_scope") if enabled else None
+        ),
+        "weather_match_status": (
+            raw_metadata.get("weather_match_status") if enabled else None
+        ),
+        "data_quality_flag": (
+            raw_metadata.get("data_quality_flag") if enabled else None
+        ),
+        "capacity_data_status": (
+            raw_metadata.get("capacity_data_status") if enabled else None
+        ),
+        "capacity_source": (
+            raw_metadata.get("capacity_source") if enabled else None
+        ),
+        "capacity_provenance": (
+            dict(record.get("capacity_provenance", {})) if enabled else {}
+        ),
+        "model_spatial_scope": (
+            EMPIRICAL_TAIVAS_SCOPE_LABEL if enabled else None
+        ),
+        "spatial_scope_boundary": (
+            EMPIRICAL_SPATIAL_SCOPE_BOUNDARY if enabled else None
+        ),
+        "dataset_classification": (
+            EMPIRICAL_BUNDLED_DATASET_CLASSIFICATION if enabled else None
+        ),
+        "raw_metadata": raw_metadata if enabled else {},
+        "display_metadata": display_metadata if enabled else {},
+    }
+
+
 def render_data_classification_chips():
     chips = "".join(
         f'<span class="data-chip" title="{row["Note"]}">{row["Area"]}: {row["Classification"]}</span>'
@@ -4109,16 +4366,31 @@ def render_data_classification_chips():
     st.markdown(f'<div class="data-chip-row">{chips}</div>', unsafe_allow_html=True)
 
 
-def build_data_quality_findings():
+def build_indicator_range_findings(simulation_results):
+    """Validate bounded KPIs without imposing a false ceiling on supply/demand."""
     findings = []
-    checked_percentages = {
-        "Renewable Share": results.get("renewable_ratio", 0),
-        "System Performance Score": results.get("system_efficiency", 0),
-        "External Support Need Proxy": results.get("grid_dependency", 0),
+    checked_bounded_percentages = {
+        "System Performance Score": simulation_results.get("system_efficiency", 0),
+        "External Support Need Proxy": simulation_results.get("grid_dependency", 0),
     }
-    for label, value in checked_percentages.items():
+    for label, value in checked_bounded_percentages.items():
         if value < 0 or value > 100:
             findings.append({"Severity": "High", "Area": label, "Finding": f"{label} is outside the expected 0-100% range."})
+
+    renewable_ratio = simulation_results.get("renewable_ratio", 0)
+    if renewable_ratio < 0:
+        findings.append({
+            "Severity": "High",
+            "Area": RENEWABLE_RATIO_DISPLAY_NAME,
+            "Finding": (
+                f"{RENEWABLE_RATIO_DISPLAY_NAME} cannot be negative."
+            ),
+        })
+    return findings
+
+
+def build_data_quality_findings():
+    findings = build_indicator_range_findings(results)
 
     if inputs.get("population", 0) <= 0:
         findings.append({"Severity": "High", "Area": "Population", "Finding": "Population must be positive for meaningful demand interpretation."})
@@ -4153,71 +4425,200 @@ def data_quality_status(findings):
     if any(f["Severity"] == "High" for f in findings):
         return "Data Requires Review", "One or more high-priority validation alerts were detected."
     if len(findings) >= 3:
-        return "High Uncertainty", "Multiple soft validation alerts may reduce confidence."
-    return "Moderate Uncertainty", "Soft validation alerts are present; review assumptions before decisions."
+        return "Review suggested", "Multiple soft validation alerts are present; review assumptions before interpretation."
+    return "Review suggested", "Soft validation alerts are present; review assumptions before interpretation."
+
+
+LEGACY_CONFIDENCE_IDENTIFIER_NOTE = (
+    "Legacy display identifier — not statistical confidence."
+)
+
+
+def interpretation_status_profile(
+    findings=None,
+    scenario=None,
+    empirical_enabled=None,
+    empirical_findings=None,
+    empirical_metadata_values=None,
+    empirical_input_values=None,
+    empirical_observed_values=None,
+):
+    """Describe input and evidence status without claiming statistical confidence."""
+    findings = build_data_quality_findings() if findings is None else findings
+    scenario = scenario or scenario_key
+    extreme_scenarios = {"heat_wave", "storm", "cold_wave", "blizzard", "typhoon"}
+    empirical_enabled = (
+        bool(globals().get("empirical_active", False))
+        if empirical_enabled is None
+        else bool(empirical_enabled)
+    )
+    empirical_findings = (
+        list(globals().get("empirical_validation_findings", []))
+        if empirical_findings is None
+        else list(empirical_findings)
+    )
+    metadata = (
+        dict(globals().get("empirical_metadata", {}))
+        if empirical_metadata_values is None
+        else dict(empirical_metadata_values)
+    )
+    model_inputs = (
+        dict(globals().get("empirical_inputs", {}))
+        if empirical_input_values is None
+        else dict(empirical_input_values)
+    )
+    observed_values = (
+        dict(globals().get("empirical_observed", {}))
+        if empirical_observed_values is None
+        else dict(empirical_observed_values)
+    )
+
+    high_general_finding = any(
+        str(item.get("Severity", "")).lower() == "high"
+        for item in findings
+    )
+    empirical_error = any(
+        str(item.get("severity", item.get("Severity", ""))).lower() == "error"
+        for item in empirical_findings
+    )
+    required_weather = (
+        "timestamp",
+        "country_key",
+        "city_key",
+        "lat",
+        "lon",
+        "population",
+        "temperature",
+        "wind_speed",
+        "solar_radiation",
+        "precipitation",
+        "humidity",
+    )
+    required_observed = (
+        "observed_demand_mw",
+        "observed_renewable_generation_mw",
+        "observed_external_support_mw",
+    )
+    missing_weather = (
+        empirical_enabled
+        and any(model_inputs.get(key) in (None, "") for key in required_weather)
+    )
+    missing_observed = (
+        empirical_enabled
+        and any(observed_values.get(key) is None for key in required_observed)
+    )
+    input_completeness = (
+        "Review required"
+        if high_general_finding or empirical_error or missing_weather or missing_observed
+        else "Complete"
+    )
+
+    if empirical_enabled:
+        interpretation_status = "Descriptive empirical comparison"
+        model_evidence_status = "Spatial-scale warning — calibration not completed"
+        empirical_comparison_type = "Descriptive empirical comparison"
+        spatial_scope_warning = (
+            "RTE represents Île-de-France regional electricity observations; "
+            "TAIVAS represents a Paris-scale decision-support estimate. "
+            "Absolute MW values are not directly scale-equivalent."
+        )
+        capacity_verification_status = (
+            "Installed capacity not verified — TAIVAS assumption / user input"
+        )
+        display_notes = [
+            "Descriptive comparison only.",
+            "Spatial scales differ: RTE represents Île-de-France regional observations, while TAIVAS is a Paris-scale estimate.",
+            "Installed capacity not verified; TAIVAS assumptions / user inputs are used.",
+            "Model remains exploratory and uncalibrated.",
+            "ERA5 weather values are used as model inputs.",
+            "RTE electricity values are observational references only.",
+            "Absolute MW values are not directly scale-equivalent.",
+        ]
+        if str(metadata.get("weather_match_status", "")).lower() == "matched":
+            display_notes.append(
+                "Weather timestamp matched; this does not indicate model validation or calibration."
+            )
+        if str(metadata.get("data_quality_flag", "")).strip():
+            data_quality_flag = str(metadata.get("data_quality_flag")).strip()
+            display_notes.append(
+                "Dataset quality flag: "
+                f"{EMPIRICAL_SIDEBAR_DISPLAY_MAP.get(data_quality_flag, data_quality_flag)}."
+            )
+        if str(metadata.get("capacity_data_status", "")).strip():
+            capacity_data_status = str(metadata.get("capacity_data_status")).strip()
+            display_notes.append(
+                "Capacity data status: "
+                f"{EMPIRICAL_SIDEBAR_DISPLAY_MAP.get(capacity_data_status, capacity_data_status)}."
+            )
+    else:
+        interpretation_status = (
+            "Scenario-sensitive" if scenario in extreme_scenarios else "Baseline-oriented"
+        )
+        model_evidence_status = "Exploratory — not empirically calibrated"
+        empirical_comparison_type = "Not active"
+        spatial_scope_warning = None
+        capacity_verification_status = "TAIVAS model assumptions / user inputs"
+        display_notes = [
+            "Deterministic exploratory simulation under selected assumptions.",
+            "Model remains exploratory and is not a statistical prediction system.",
+        ]
+
+    return {
+        "input_completeness": input_completeness,
+        "interpretation_status": interpretation_status,
+        "model_evidence_status": model_evidence_status,
+        "statistical_confidence_claimed": False,
+        "calibration_completed": False,
+        "external_validation_completed": False,
+        "empirical_comparison_type": empirical_comparison_type,
+        "spatial_scope_warning": spatial_scope_warning,
+        "capacity_verification_status": capacity_verification_status,
+        "display_notes": display_notes,
+    }
 
 
 def confidence_profile(findings=None, scenario=None):
-    findings = build_data_quality_findings() if findings is None else findings
-    status, _ = data_quality_status(findings)
-    scenario = scenario or scenario_key
-    extreme_scenarios = {"heat_wave", "storm", "cold_wave", "blizzard", "typhoon"}
+    """Compatibility wrapper for legacy consumers of confidence-named fields."""
+    profile = interpretation_status_profile(findings=findings, scenario=scenario)
     uses_upload = uploaded_df is not None and not uploaded_df.empty
-
-    if status == "Data Requires Review":
-        return {
-            "confidence_level": "Limited Confidence",
-            "uncertainty_level": "High Uncertainty",
-            "forecast_reliability": "Requires Review",
-            "data_quality_label": "Requires Review",
-        }
-    if status in ("High Uncertainty", "Moderate Uncertainty"):
-        return {
-            "confidence_level": "Medium Confidence",
-            "uncertainty_level": status,
-            "forecast_reliability": "Scenario-sensitive",
-            "data_quality_label": "User Provided" if uses_upload else "Public + Estimated",
-        }
-    if scenario in extreme_scenarios:
-        return {
-            "confidence_level": "Medium Confidence",
-            "uncertainty_level": "Scenario Uncertainty",
-            "forecast_reliability": "Comparative only",
-            "data_quality_label": "Public + Estimated" if not uses_upload else "User Provided",
-        }
     return {
-        "confidence_level": "High Confidence",
-        "uncertainty_level": "Low Uncertainty",
-        "forecast_reliability": "Baseline-oriented",
-        "data_quality_label": "Public + Estimated" if not uses_upload else "User Provided",
+        **profile,
+        "confidence_level": profile["input_completeness"],
+        "uncertainty_level": profile["model_evidence_status"],
+        "forecast_reliability": profile["interpretation_status"],
+        "data_quality_label": "User Provided" if uses_upload else "Public + Estimated",
+        "legacy_identifier_note": LEGACY_CONFIDENCE_IDENTIFIER_NOTE,
     }
 
 
 def render_confidence_panel():
     findings = build_data_quality_findings()
-    profile = confidence_profile(findings)
+    profile = interpretation_status_profile(findings=findings)
     st.markdown(
         f"""
         <div class="quality-grid">
-          <div class="quality-card"><div class="quality-label">Confidence Level</div><div class="quality-value">{profile["confidence_level"]}</div></div>
-          <div class="quality-card"><div class="quality-label">Uncertainty Level</div><div class="quality-value">{profile["uncertainty_level"]}</div></div>
-          <div class="quality-card"><div class="quality-label">Scenario Interpretation Reliability</div><div class="quality-value">{profile["forecast_reliability"]}</div></div>
+          <div class="quality-card"><div class="quality-label">Input Completeness</div><div class="quality-value">{profile["input_completeness"]}</div></div>
+          <div class="quality-card"><div class="quality-label">Interpretation Status</div><div class="quality-value">{profile["interpretation_status"]}</div></div>
+          <div class="quality-card"><div class="quality-label">Model Evidence Status</div><div class="quality-value">{profile["model_evidence_status"]}</div></div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    st.caption("Confidence labels reflect input completeness, validation alerts, and scenario severity. They are not statistical guarantees.")
+    for note in profile["display_notes"]:
+        st.caption(note)
 
 
 def render_data_quality_panel():
     findings = build_data_quality_findings()
     status, note = data_quality_status(findings)
-    profile = confidence_profile(findings)
+    profile = interpretation_status_profile(findings=findings)
     st.markdown(
         f"""
         <div class="quality-grid">
           <div class="quality-card"><div class="quality-label">Data Quality</div><div class="quality-value">{status}</div></div>
-          <div class="quality-card"><div class="quality-label">Confidence Indicator</div><div class="quality-value">{profile["confidence_level"]}</div></div>
+          <div class="quality-card"><div class="quality-label">Input Completeness</div><div class="quality-value">{profile["input_completeness"]}</div></div>
+          <div class="quality-card"><div class="quality-label">Interpretation Status</div><div class="quality-value">{profile["interpretation_status"]}</div></div>
+          <div class="quality-card"><div class="quality-label">Model Evidence Status</div><div class="quality-value">{profile["model_evidence_status"]}</div></div>
           <div class="quality-card"><div class="quality-label">Validation Note</div><div class="quality-value" style="font-size:0.95rem; line-height:1.45;">{note}</div></div>
         </div>
         """,
@@ -4313,15 +4714,18 @@ def scenario_comparison_matrix():
             infrastructure_damage_ratio=infrastructure_damage_ratio,
             reserve_recovery_lag_days=reserve_recovery_lag_days,
         )
-        tier = scenario_result.get("risk_tier") or calculate_risk_tier(scenario_result.get("shortfall", 0), scenario_result.get("demand", 0))
+        tier = authoritative_risk_tier_for_results(scenario_result)
+        interpretation_profile = interpretation_status_profile(scenario=key)
         rows.append({
             "Scenario": key.replace("_", " ").title(),
             "System Performance Score (%)": scenario_result["system_efficiency"],
             "Energy Gap (MW)": scenario_result["shortfall"],
             "External Support Need Proxy (%)": scenario_result["grid_dependency"],
-            "Renewable Share (%)": scenario_result["renewable_ratio"],
-            "Risk Tier": tier,
-            "Confidence Level": confidence_profile(scenario=key)["confidence_level"],
+            f"{RENEWABLE_RATIO_DISPLAY_NAME} (%)": scenario_result["renewable_ratio"],
+            "TAIVAS Risk Tier": tier,
+            "Input Completeness": interpretation_profile["input_completeness"],
+            "Interpretation Status": interpretation_profile["interpretation_status"],
+            "Model Evidence Status": interpretation_profile["model_evidence_status"],
         })
     return pd.DataFrame(rows)
 
@@ -4348,6 +4752,7 @@ def generate_agentic_advisory(simulation_results, context):
     battery_capacity_value = max(float(context.get("battery_capacity", 0.0) or 0.0), 0.0)
     battery_ratio = safe_div(battery_levels, battery_capacity_value) if battery_capacity_value > 0 else 1.0
     shortfall_ratio = safe_div(shortfall, demand) if demand > 0 else 0.0
+    interpretation_profile = dict(context.get("interpretation_status", {}))
 
     # Use the authoritative unmet-demand thresholds for every visible Risk Tier.
     # Battery state remains a separate advisory signal and does not redefine it.
@@ -4365,7 +4770,7 @@ def generate_agentic_advisory(simulation_results, context):
     reason = (
         f"For {context.get('city', 'the selected city')}, {context.get('country', 'the selected country')} under "
         f"{str(context.get('scenario', 'selected')).replace('_', ' ').title()}, modeled demand is {demand:.2f} MW, "
-        f"final supply is {final_supply:.2f} MW, renewable share is {renewable_ratio:.2f}%, "
+        f"final supply is {final_supply:.2f} MW, {RENEWABLE_RATIO_DISPLAY_NAME} is {renewable_ratio:.2f}%, "
         f"System Performance Score is {system_performance_score_text}, and External Support Need Proxy is {grid_dependency:.2f}%."
     )
 
@@ -4384,7 +4789,7 @@ def generate_agentic_advisory(simulation_results, context):
 
     checklist = [
         "Confirm selected city, facility type, and scenario inputs.",
-        "Review energy gap, battery reserve, renewable share, and the External Support Need Proxy.",
+        f"Review energy gap, battery reserve, {RENEWABLE_RATIO_DISPLAY_NAME}, and the External Support Need Proxy.",
         "Check uploaded data quality and source classification if CSV data is used.",
         "Compare selected scenario against baseline before communicating conclusions.",
         "Record human review before operational changes are made.",
@@ -4401,6 +4806,9 @@ def generate_agentic_advisory(simulation_results, context):
         f"- Location: {context.get('city', '-')}, {context.get('country', '-')}",
         f"- Scenario: {str(context.get('scenario', '-')).replace('_', ' ').title()}",
         f"- Risk Tier: {risk_tier}",
+        f"- Input Completeness: {interpretation_profile.get('input_completeness', 'Not provided')}",
+        f"- Interpretation Status: {interpretation_profile.get('interpretation_status', 'Not provided')}",
+        f"- Model Evidence Status: {interpretation_profile.get('model_evidence_status', 'Not provided')}",
         "",
         "## What the system detected",
         detected_issue,
@@ -4428,6 +4836,7 @@ def generate_agentic_advisory(simulation_results, context):
         "recommended_actions": recommended_actions,
         "checklist": checklist,
         "management_summary": management_summary,
+        "interpretation_status": interpretation_profile,
         "report_markdown": "\n".join(report_lines),
     }
 
@@ -4441,24 +4850,39 @@ def current_agentic_advisory():
         "scenario": scenario_key,
         "facility_type": facility_type,
         "battery_capacity": inputs.get("battery_capacity", 0.0),
+        "interpretation_status": interpretation_status_profile(),
     }
     return generate_agentic_advisory(results, context)
 
 
 def render_agentic_advisory_layer():
     advisory = current_agentic_advisory()
+    interpretation_profile = advisory["interpretation_status"]
     st.subheader("TAIVAS Explainable Advisory Layer")
     st.markdown(
         f"""
         <div class="risk-strip">
           <div>
-            <div class="risk-title">Risk Tier: {advisory["risk_tier"]}</div>
+            <div class="risk-title">Advisory Risk Tier: {advisory["risk_tier"]}</div>
             <div class="risk-note">Human confirmation is required before operational changes.</div>
           </div>
           <div class="risk-badge {risk_tier_css_class(advisory["risk_tier"])}">{advisory["risk_tier"]}</div>
         </div>
         """,
         unsafe_allow_html=True,
+    )
+    advisory_status_cols = st.columns(3)
+    advisory_status_cols[0].metric(
+        "Input Completeness",
+        interpretation_profile.get("input_completeness", "Not provided"),
+    )
+    advisory_status_cols[1].metric(
+        "Interpretation Status",
+        interpretation_profile.get("interpretation_status", "Not provided"),
+    )
+    advisory_status_cols[2].metric(
+        "Model Evidence Status",
+        interpretation_profile.get("model_evidence_status", "Not provided"),
     )
     st.markdown(f'<div class="note"><b>What the system detected:</b> {advisory["detected_issue"]}</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="note"><b>Why it matters:</b> {advisory["reason"]}</div>', unsafe_allow_html=True)
@@ -4611,7 +5035,7 @@ def render_operational_workflow_layer():
     )
     cols = st.columns(4)
     cols[0].metric("Scenario Stress State", snapshot["alert_state"])
-    cols[1].metric("Advisory Risk", snapshot["advisory_risk_tier"])
+    cols[1].metric("Advisory Risk Tier", snapshot["advisory_risk_tier"])
     cols[2].metric("Additional Review", "Suggested" if escalation["escalation_required"] else "Not suggested")
     cols[3].metric("Human Review", "Required")
     st.markdown("##### Review Queue")
@@ -4642,6 +5066,10 @@ def build_audit_trail_record():
 
     audit_id = f"taivas-{uuid.uuid4().hex[:12]}"
     confidence = confidence_profile()
+    interpretation_status = interpretation_status_profile()
+    authoritative_tier = authoritative_risk_tier_for_results(results)
+    audit_simulation_outputs = dict(results)
+    audit_simulation_outputs["risk_tier"] = authoritative_tier
     return {
         "version": "TAIVAS Governance Patch",
         "audit_id": audit_id,
@@ -4662,6 +5090,10 @@ def build_audit_trail_record():
             "energy_security": energy_security_scenario,
             "geopolitical_event": geopolitical_shock.get("event_type", "None"),
         },
+        "risk_tier": {
+            "value": authoritative_tier,
+            **RISK_TIER_TERMINOLOGY,
+        },
         "simulation_methodology": {
             "authoritative_core": "core.energy_balance_phase2.compute_energy_supply_core",
             "simulation_interval_hours": SIMULATION_INTERVAL_HOURS,
@@ -4672,6 +5104,18 @@ def build_audit_trail_record():
             "risk_thresholds": "Low: no gap; Elevated: <5%; High: 5-<15%; Critical: >=15% unmet demand.",
             "parameter_evidence_status": "Author-defined exploratory assumptions; not empirically calibrated unless separately documented.",
         },
+        "extended_security_assumptions": {
+            "classification": EXTENDED_SECURITY_ASSUMPTION_CLASSIFICATION,
+            "observation_status": EXTENDED_SECURITY_ASSUMPTION_OBSERVATION_STATUS,
+            "values": dict(extended_security_assumptions),
+        },
+        "empirical_validation": build_empirical_validation_audit_record(
+            enabled=empirical_active,
+            selected_record=empirical_record,
+            model_inputs=empirical_inputs,
+            observed_values=empirical_observed,
+            metadata=empirical_metadata,
+        ),
         "scenario_compatibility": {
             "mode": scenario_mode,
             "warning": scenario_warning,
@@ -4683,8 +5127,15 @@ def build_audit_trail_record():
             "uploaded_csv_present": uploaded_df is not None and not uploaded_df.empty,
             "uploaded_rows": int(len(uploaded_df)) if uploaded_df is not None else 0,
             "timestamp_column": detect_timestamp_column(uploaded_df) if uploaded_df is not None and not uploaded_df.empty else None,
+            "bundled_empirical_dataset_active": bool(empirical_active),
+            "bundled_empirical_dataset_is_user_upload": False,
+            "bundled_empirical_dataset_classification": (
+                EMPIRICAL_BUNDLED_DATASET_CLASSIFICATION
+                if empirical_active
+                else None
+            ),
         },
-        "simulation_outputs": results,
+        "simulation_outputs": audit_simulation_outputs,
         "baseline_outputs": baseline_results,
         "timeline_outputs": timeline_results,
         "ai_recommendations": conditional_recommendation_lines(),
@@ -4695,6 +5146,11 @@ def build_audit_trail_record():
         "terminology": {
             "advisory_type": "Transparent rule-based interpretation",
             "runtime_ai_model_present_in_main_file": False,
+            "renewable_ratio": dict(RENEWABLE_RATIO_TERMINOLOGY),
+            "risk_tier": {
+                "internal_key": "risk_tier",
+                **RISK_TIER_TERMINOLOGY,
+            },
             "legacy_internal_identifiers": [
                 "ai_recommendations",
                 "agentic_advisory",
@@ -4704,6 +5160,7 @@ def build_audit_trail_record():
             ],
             "note": "These are legacy internal field names retained for compatibility. They do not indicate runtime AI, live operational monitoring, autonomous workflow execution, or infrastructure control.",
         },
+        "interpretation_status": interpretation_status,
         "confidence": confidence,
         "scenario_matrix": scenario_comparison_matrix().to_dict(orient="records"),
         "data_classification": data_classification_rows(),
@@ -4715,7 +5172,7 @@ def build_audit_trail_record():
                 "Selected inputs",
                 "Scenario assumptions",
                 "Core outputs",
-                "Confidence and uncertainty",
+                "Input completeness and interpretation status",
                 "Explainable rule-based advisory basis",
                 "Human review notes",
             ],
@@ -4769,7 +5226,7 @@ def render_governance_readiness_panel():
         """,
         unsafe_allow_html=True,
     )
-    st.markdown("##### Confidence and Uncertainty")
+    st.markdown("##### Interpretation and Evidence Status")
     render_confidence_panel()
     st.markdown("##### Data Source Classification")
     render_data_classification_chips()
@@ -4786,7 +5243,11 @@ def render_governance_readiness_panel():
             "scenario_assumptions": "included",
             "outputs": "included",
             "rule_based_advisory": "included",
-            "confidence_labels": confidence_profile(),
+            "interpretation_status": interpretation_status_profile(),
+            "legacy_confidence_identifiers": {
+                "status": "Retained for backward compatibility",
+                "note": LEGACY_CONFIDENCE_IDENTIFIER_NOTE,
+            },
             "timestamps": "included",
             "future_pdf_ready_structure": "included in audit JSON",
         })
@@ -5006,11 +5467,22 @@ def render_kpi_reference_panel():
         },
         {
             "KPI": "Renewable Energy Availability",
-            "Unit": "MW / %",
+            "Unit": "MW",
             "Definition": "Estimated renewable contribution after weather and failure assumptions.",
             "Direction": "Higher is generally better, depending on stability and demand.",
             "Affected by": "Solar, wind, hydro, geothermal capacity and scenario factors.",
             "Limitation": "Does not use live solar, wind, or hydrological data unless provided by user uploads.",
+        },
+        {
+            "KPI": RENEWABLE_RATIO_DISPLAY_NAME,
+            "Unit": "%",
+            "Definition": RENEWABLE_RATIO_TERMINOLOGY["definition"],
+            "Direction": (
+                "Values above 100% are valid and indicate modeled renewable "
+                "supply exceeds modeled demand under the selected assumptions."
+            ),
+            "Affected by": "Modeled renewable supply and modeled demand.",
+            "Limitation": RENEWABLE_RATIO_TERMINOLOGY["boundary"],
         },
         {
             "KPI": "Storage Level / Battery Reserve",
@@ -5029,12 +5501,12 @@ def render_kpi_reference_panel():
             "Limitation": "Scenario-based estimate; real operations require local validation.",
         },
         {
-            "KPI": "Risk Tier",
-            "Unit": "Low / Moderate / High / Critical",
-            "Definition": "Plain-language classification based on modeled energy gap and resilience stress.",
+            "KPI": "TAIVAS Risk Tier",
+            "Unit": "Low / Elevated / High / Critical",
+            "Definition": "Classification based on the modeled unmet-demand ratio using the authoritative TAIVAS risk engine.",
             "Direction": "Lower risk tier is better.",
-            "Affected by": "Energy gap, battery reserve, External Support Need Proxy, and System Performance Score.",
-            "Limitation": "Communication aid only; not an official emergency classification.",
+            "Affected by": "Modeled demand and modeled energy gap.",
+            "Limitation": "Battery, renewable, and external-support indicators remain separate advisory context. This is not an official emergency classification.",
         },
         {
             "KPI": "Baseline-versus-Scenario Difference",
@@ -5206,7 +5678,7 @@ def render_research_transparency_panel():
         st.caption(
             "Baseline comparison uses the normal scenario with zero component-failure ratios and zero reserve-recovery lag. "
             "Scenario multipliers are author-defined exploratory assumptions and are not empirically calibrated. "
-            "Audit exports preserve selected inputs, scenario assumptions, outputs, confidence labels, and timestamps."
+            "Audit exports preserve selected inputs, scenario assumptions, outputs, interpretation status, and timestamps."
         )
 
     with evaluation_tab:
@@ -5307,10 +5779,105 @@ def render_scenario_logic_panel():
         unsafe_allow_html=True,
     )
 
+
+def build_empirical_executive_summary_lines(
+    enabled,
+    selected_record,
+    metadata,
+    observed_values,
+    display_map,
+):
+    """Build export-only empirical context without changing model inputs."""
+    if not enabled:
+        return []
+
+    record = dict(selected_record or {})
+    model_inputs = dict(record.get("model_inputs", {}))
+    metadata_values = dict(metadata or record.get("metadata", {}))
+    observed_reference = {
+        key: value
+        for key, value in dict(observed_values or {}).items()
+        if str(key).startswith("observed_")
+    }
+
+    def display_source(raw_value, fallback):
+        raw_text = str(raw_value or "").strip()
+        return display_map.get(raw_text, fallback)
+
+    def observed_line(label, key, unit):
+        value = observed_reference.get(key)
+        if value is None or (isinstance(value, float) and value != value):
+            value_text = "Not available"
+            suffix = ""
+        else:
+            value_text = str(value)
+            suffix = "%" if unit == "%" else f" {unit}"
+        return f"- {label}: {value_text}{suffix}"
+
+    era5_source = display_source(
+        metadata_values.get("source_era5")
+        or metadata_values.get("weather_data_scope"),
+        "ERA5 hourly reanalysis extract for Paris",
+    )
+    rte_source = display_source(
+        metadata_values.get("source_rte")
+        or metadata_values.get("electricity_data_scope"),
+        "RTE eCO2mix Île-de-France regional observation",
+    )
+
+    return [
+        "Empirical Validation Context",
+        f"- Selected Timestamp: {model_inputs.get('timestamp', 'Not available')}",
+        f"- ERA5 Weather Source: {era5_source}",
+        f"- RTE Electricity Source: {rte_source}",
+        "- TAIVAS Model Scope: Paris-scale decision-support simulation",
+        "- Observation Scope: Île-de-France regional electricity observation",
+        "- Spatial Boundary: Absolute MW values are not directly scale-equivalent.",
+        "- Capacity Verification: Installed capacity not verified — TAIVAS assumption / user input",
+        "- Comparison Type: Descriptive empirical comparison only",
+        "",
+        "Selected RTE Observation",
+        observed_line("Observed Demand", "observed_demand_mw", "MW"),
+        observed_line(
+            "Observed Renewable Generation",
+            "observed_renewable_generation_mw",
+            "MW",
+        ),
+        observed_line(
+            "Observed Local Generation",
+            "observed_local_generation_mw",
+            "MW",
+        ),
+        observed_line(
+            "Observed Physical Exchange",
+            "observed_external_support_mw",
+            "MW",
+        ),
+        observed_line(
+            "Observed Battery Net",
+            "observed_battery_net_mw",
+            "MW",
+        ),
+        observed_line(
+            "Observed Import Dependency",
+            "observed_import_dependency_pct",
+            "%",
+        ),
+    ]
+
+
 def build_executive_summary_text():
     advisory = current_agentic_advisory()
     monitoring_state = current_operational_monitoring()
     workflow = current_operational_workflow()
+    interpretation_profile = interpretation_status_profile()
+    empirical_context_lines = build_empirical_executive_summary_lines(
+        enabled=bool(empirical_active),
+        selected_record=empirical_record,
+        metadata=empirical_metadata,
+        observed_values=empirical_observed,
+        display_map=EMPIRICAL_SIDEBAR_DISPLAY_MAP,
+    )
     lines = [
         "TAIVAS Executive Summary",
         "========================",
@@ -5325,16 +5892,27 @@ def build_executive_summary_text():
         "Core Metrics",
         f"- Demand: {results['demand']} MW",
         f"- Renewable Supply: {results['renewable_supply']} MW",
+        f"- {RENEWABLE_RATIO_DISPLAY_NAME}: {results['renewable_ratio']}%",
         f"- Final Supply: {results['final_supply']} MW",
         f"- Shortfall: {results['shortfall']} MW",
         f"- Battery Remaining: {results['battery_levels']} MWh",
         f"- System Performance Score: {format_system_performance_score(results.get('system_performance_score'))}",
         f"- External Support Need Proxy: {results['grid_dependency']}%",
+        f"- TAIVAS Risk Tier: {authoritative_risk_tier_for_results(results)}",
         f"- Simulation Interval: {results.get('simulation_interval_hours', SIMULATION_INTERVAL_HOURS)} h",
         f"- Reserve Recovery Lag: {reserve_recovery_lag_days} days",
         "",
+        "Extended Security Assumptions",
+        f"- Fuel Price Shock: {extended_security_assumptions['fuel_price_shock']}",
+        f"- Repair Crew Availability: {extended_security_assumptions['repair_crew_availability']}",
+        f"- Spare Parts Delay: {extended_security_assumptions['spare_parts_delay_days']} days",
+        f"- Refill Uncertainty: {extended_security_assumptions['refill_uncertainty']}",
+        f"- Single-Point Failure Risk: {extended_security_assumptions['single_point_failure_risk']}",
+        f"- Classification: {EXTENDED_SECURITY_ASSUMPTION_CLASSIFICATION}",
+        f"- Observation Status: {EXTENDED_SECURITY_ASSUMPTION_OBSERVATION_STATUS}",
+        "",
         "Explainable Advisory Layer",
-        f"- Risk Tier: {advisory['risk_tier']}",
+        f"- Advisory Risk Tier: {advisory['risk_tier']}",
         f"- Detected Issue: {advisory['detected_issue']}",
         f"- Management Summary: {advisory['management_summary']}",
         "",
@@ -5348,15 +5926,17 @@ def build_executive_summary_text():
         f"- Executive Snapshot: {workflow['executive_snapshot']['summary']}",
         "",
         "Risk Notes",
-        f"- Geopolitical Risk Level: {geopolitical_shock.get('risk_level', 'N/A')}",
+        f"- Geopolitical Stress Level: {geopolitical_shock.get('risk_level', 'N/A')}",
         f"- Oil/Gas Supply Disruption: {geopolitical_shock.get('oil_supply_disruption_percent', 0)}%",
         f"- Simulated Hours Until Shortfall: {timeline_results.get('hours_until_shortfall')}",
         f"- Simulated Hours Until Critical Failure: {timeline_results.get('hours_until_critical_failure')}",
         "",
-        "Confidence and Uncertainty",
-        f"- Confidence Level: {confidence_profile()['confidence_level']}",
-        f"- Uncertainty Level: {confidence_profile()['uncertainty_level']}",
-        f"- Scenario Interpretation Reliability: {confidence_profile()['forecast_reliability']}",
+        "Interpretation and Evidence Status",
+        f"- Input Completeness: {interpretation_profile['input_completeness']}",
+        f"- Interpretation Status: {interpretation_profile['interpretation_status']}",
+        f"- Model Evidence Status: {interpretation_profile['model_evidence_status']}",
+        f"- Statistical Confidence Claimed: {interpretation_profile['statistical_confidence_claimed']}",
+        f"- Calibration Completed: {interpretation_profile['calibration_completed']}",
         "",
         "Decision-Support Boundary",
         TAIVAS_DECISION_SUPPORT_NOTICE,
@@ -5368,6 +5948,11 @@ def build_executive_summary_text():
         "Model Limitation",
         "TAIVAS is a decision-support simulator. It does not guarantee real-world outcomes and does not replace engineering, grid-operator, legal, security, or emergency-management validation.",
     ]
+    if empirical_context_lines:
+        core_metrics_index = lines.index("Core Metrics")
+        lines[core_metrics_index:core_metrics_index] = (
+            empirical_context_lines + [""]
+        )
     return "\n".join(lines)
 
 
@@ -5376,6 +5961,7 @@ def render_product_notice():
 
 
 def render_executive_overview_workspace():
+    authoritative_tier = authoritative_risk_tier_for_results(results)
     if demo_mode != "Manual":
         st.markdown(f"<span class='demo-pill'>Demo Mode: {demo_mode}</span>", unsafe_allow_html=True)
     st.markdown(
@@ -5384,7 +5970,7 @@ def render_executive_overview_workspace():
           <div class="product-card"><div class="product-label">Location</div><div class="product-value">{active_city}</div><div class="product-sub">{active_country}</div></div>
           <div class="product-card"><div class="product-label">Scenario</div><div class="product-value">{scenario_key.replace('_',' ').title()}</div><div class="product-sub">{energy_security_scenario.replace('_',' ').title()}</div></div>
           <div class="product-card"><div class="product-label">Shortfall</div><div class="product-value">{results['shortfall']} MW</div><div class="product-sub">External Support Need Proxy {results['grid_dependency']}%</div></div>
-          <div class="product-card"><div class="product-label">Recommendation Focus</div><div class="product-value">{build_status_label(results['shortfall'], (5, 15)).title()}</div><div class="product-sub">Protect critical load first</div></div>
+          <div class="product-card"><div class="product-label">TAIVAS Risk Tier</div><div class="product-value">{authoritative_tier}</div><div class="product-sub">Modeled unmet-demand classification</div></div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -5464,7 +6050,7 @@ def render_stable_donut_chart(mix_pct, center_value, title):
             borderaxespad=0.0,
         )
         ax.text(0, 0.05, f"{center_value:.1f}%", ha="center", va="center", fontsize=18, fontweight="bold", color="#F8FAFC")
-        ax.text(0, -0.15, "ratio", ha="center", va="center", fontsize=10, color="#A7B3C7")
+        ax.text(0, -0.15, "supply / demand", ha="center", va="center", fontsize=10, color="#A7B3C7")
         ax.set_title(title, fontsize=14, pad=16, color="#F8FAFC")
         ax.set_aspect("equal")
     plt.tight_layout(pad=1.6)
@@ -5524,7 +6110,7 @@ def scenario_comparison_metrics():
         ("Final Supply", baseline_results["final_supply"], results["final_supply"], "MW", False),
         ("Energy Gap", baseline_results["shortfall"], results["shortfall"], "MW", True),
         ("Battery Remaining", baseline_results["battery_levels"], results["battery_levels"], "MWh", False),
-        ("Renewable Share", baseline_results["renewable_ratio"], results["renewable_ratio"], "%", False),
+        (RENEWABLE_RATIO_DISPLAY_NAME, baseline_results["renewable_ratio"], results["renewable_ratio"], "%", False),
         ("External Support Need Proxy", baseline_results["grid_dependency"], results["grid_dependency"], "%", True),
         ("System Performance Score", baseline_results["system_efficiency"], results["system_efficiency"], "%", False),
     ]
@@ -5543,7 +6129,7 @@ def operational_risk_tier_for_display():
 
 def render_risk_tier_panel():
     tier, class_name, note = operational_risk_tier_for_display()
-    st.caption("Risk Tier: plain-language risk classification based on the modeled energy shortfall ratio.")
+    st.caption("TAIVAS Risk Tier: classification based on the modeled unmet-demand ratio using the authoritative TAIVAS risk engine.")
     st.markdown(
         f"""
         <div class="risk-strip">
@@ -5684,10 +6270,12 @@ def render_ai_recommendation_workspace():
         unsafe_allow_html=True,
     )
     quality_status, quality_note = data_quality_status(build_data_quality_findings())
+    interpretation_profile = interpretation_status_profile()
     rec_cols = st.columns(3)
-    rec_cols[0].metric("Confidence Indicator", "High" if quality_status == "Stable" else "Medium" if quality_status == "Moderate Uncertainty" else "Low")
-    rec_cols[1].metric("Data Quality", quality_status)
-    rec_cols[2].metric("Review Status", "Human review needed")
+    rec_cols[0].metric("Input Completeness", interpretation_profile["input_completeness"])
+    rec_cols[1].metric("Interpretation Status", interpretation_profile["interpretation_status"])
+    rec_cols[2].metric("Model Evidence Status", interpretation_profile["model_evidence_status"])
+    st.caption(f"Data Quality: {quality_status}. Human review is required before operational changes.")
     st.caption(quality_note)
     # UI-ONLY CHANGE END
     st.subheader(tr("quick_reco"))
@@ -5695,9 +6283,9 @@ def render_ai_recommendation_workspace():
     for idx, line in enumerate(conditional_recommendation_lines(), 1):
         st.write(f"{idx}. {line}")
     # UI-ONLY CHANGE START
-    with st.expander("Reasoning, Tradeoffs, and Uncertainty", expanded=False):
+    with st.expander("Reasoning, Tradeoffs, and Evidence Boundaries", expanded=False):
         st.dataframe(explainable_ai_rows(), use_container_width=True, hide_index=True)
-        st.write("Uncertainty notice: outputs are model-generated estimates under selected assumptions, not confirmed predictions or automatic control instructions.")
+        st.write("Evidence boundary: outputs are model-generated estimates under selected assumptions, not confirmed predictions or automatic control instructions.")
     # UI-ONLY CHANGE END
     reason_df = pd.DataFrame(recommendation_reason_chain(results, energy_security_scenario, timeline_results, facility_type, facility_profile))
     st.subheader(tr("reason_chain"))
@@ -6675,6 +7263,25 @@ def render_empirical_validation_snapshot():
         "TAIVAS estimate: Paris-scale decision-support simulation  \n"
         "Absolute MW values are not directly scale-equivalent."
     )
+    interpretation_profile = interpretation_status_profile()
+    status_cols = st.columns(3)
+    status_cols[0].metric(
+        "Input Completeness",
+        interpretation_profile["input_completeness"],
+    )
+    status_cols[1].metric(
+        "Interpretation Status",
+        interpretation_profile["interpretation_status"],
+    )
+    status_cols[2].metric(
+        "Model Evidence Status",
+        interpretation_profile["model_evidence_status"],
+    )
+    st.markdown(
+        "\n".join(
+            f"- {note}" for note in interpretation_profile["display_notes"]
+        )
+    )
 
     selected = snapshot["selected_observation"]
     taivas_snapshot = snapshot["taivas"]
@@ -6706,7 +7313,7 @@ def render_empirical_validation_snapshot():
                 {"Metric": "Battery contribution", "Value": display_value(taivas_snapshot["battery_contribution_mw"], "MW")},
                 {"Metric": "Battery remaining", "Value": display_value(taivas_snapshot["battery_remaining_mwh"], "MWh")},
                 {"Metric": "System Performance Score", "Value": display_value(taivas_snapshot["system_performance_pct"], "%")},
-                {"Metric": "Risk Tier", "Value": display_value(taivas_snapshot["risk_tier"])},
+                {"Metric": "TAIVAS Risk Tier", "Value": authoritative_risk_tier_for_results(results)},
             ]),
             use_container_width=True,
             hide_index=True,
@@ -6727,10 +7334,10 @@ def render_empirical_validation_snapshot():
             hide_index=True,
         )
 
-    st.markdown("**Descriptive shares**")
+    st.markdown("**Descriptive generation-to-demand ratios**")
     share_cols = st.columns(4)
     share_cols[0].metric(
-        "TAIVAS renewable share",
+        "TAIVAS renewable supply-to-demand ratio",
         display_value(taivas_snapshot["descriptive_renewable_share_pct"], "%"),
     )
     share_cols[1].metric(
@@ -6738,7 +7345,7 @@ def render_empirical_validation_snapshot():
         display_value(taivas_snapshot["external_support_need_proxy_pct"], "%"),
     )
     share_cols[2].metric(
-        "RTE renewable share",
+        "RTE renewable generation-to-demand ratio",
         display_value(rte_snapshot["descriptive_renewable_share_pct"], "%"),
     )
     share_cols[3].metric(
@@ -6746,6 +7353,8 @@ def render_empirical_validation_snapshot():
         display_value(rte_snapshot["descriptive_external_support_share_pct"], "%"),
     )
     st.caption(
+        "TAIVAS ratio = modeled renewable supply / modeled demand. "
+        "RTE ratio = observed renewable generation / observed demand. "
         "Descriptive comparison only — definitions and spatial scales differ."
     )
 
@@ -6755,20 +7364,34 @@ def render_empirical_validation_snapshot():
         f"**Capacity source:** {capacity['capacity_source']}"
     )
     metadata = snapshot["metadata"]
+    weather_scope_raw = str(metadata["weather_data_scope"])
+    weather_scope_display = EMPIRICAL_SIDEBAR_DISPLAY_MAP.get(
+        weather_scope_raw,
+        weather_scope_raw,
+    )
+    data_quality_display = EMPIRICAL_SIDEBAR_DISPLAY_MAP.get(
+        str(metadata["data_quality_flag"]),
+        str(metadata["data_quality_flag"]),
+    )
+    capacity_status_display = EMPIRICAL_SIDEBAR_DISPLAY_MAP.get(
+        str(metadata["capacity_data_status"]),
+        str(metadata["capacity_data_status"]),
+    )
     st.dataframe(
         pd.DataFrame([
             {"Metadata": "Electricity data scope", "Value": display_value(metadata["electricity_data_scope"])},
-            {"Metadata": "Weather data scope", "Value": display_value(metadata["weather_data_scope"])},
+            {"Metadata": "Weather data scope", "Value": display_value(weather_scope_display)},
             {"Metadata": "Weather match status", "Value": display_value(metadata["weather_match_status"])},
-            {"Metadata": "Data quality flag", "Value": display_value(metadata["data_quality_flag"])},
-            {"Metadata": "Capacity data status", "Value": display_value(metadata["capacity_data_status"])},
+            {"Metadata": "Data quality flag", "Value": display_value(data_quality_display)},
+            {"Metadata": "Capacity data status", "Value": display_value(capacity_status_display)},
         ]),
         use_container_width=True,
         hide_index=True,
     )
 
 
-def operational_risk_label():
+def operational_stress_signal():
+    """Return a non-authoritative operational signal from absolute stress values."""
     if results["shortfall"] >= 15 or results["grid_dependency"] >= 25:
         return tr("high_grid_instability_risk")
     if results["shortfall"] >= 5 or results["grid_dependency"] >= 10:
@@ -6791,7 +7414,7 @@ def renewable_status_label():
 def render_operational_summary_panel():
     # Decision Support Layer: concise operational state for non-technical users.
     summary_rows = [
-        ("System", operational_risk_label()),
+        ("Operational Stress Signal", operational_stress_signal()),
         ("Battery", battery_status_label()),
         ("Renewables", renewable_status_label()),
         ("Scenario", scenario_key.replace("_", " ").title()),
@@ -6866,6 +7489,10 @@ def render_main_system_status():
     with status_right:
         render_demand_supply_chart()
     st.caption(tr("metric_help"))
+    st.caption(
+        f"{RENEWABLE_RATIO_DISPLAY_NAME}: modeled renewable supply divided by "
+        "modeled demand. Values above 100% are valid under the selected assumptions."
+    )
     st.caption("System Performance Score: percentage of modeled demand served.")
     st.caption("External Support Need Proxy: unmet-demand ratio expressed as a percentage. It does not measure actual imported grid electricity.")
     st.caption(f"Simulation interval: {results.get('simulation_interval_hours', SIMULATION_INTERVAL_HOURS):g} hour")
@@ -6896,7 +7523,7 @@ def compare_baseline_vs_scenario():
         ("Final supply", "MW", results.get("final_supply", 0), baseline_results.get("final_supply", 0), False),
         ("Possible energy gap", "MW", results.get("shortfall", 0), baseline_results.get("shortfall", 0), True),
         ("Battery level", "MWh", results.get("battery_levels", 0), baseline_results.get("battery_levels", 0), False),
-        ("Renewable ratio", "%", results.get("renewable_ratio", 0), baseline_results.get("renewable_ratio", 0), False),
+        (RENEWABLE_RATIO_DISPLAY_NAME, "%", results.get("renewable_ratio", 0), baseline_results.get("renewable_ratio", 0), False),
         ("External Support Need Proxy", "%", results.get("grid_dependency", 0), baseline_results.get("grid_dependency", 0), True),
         ("System Performance Score", "%", results.get("system_efficiency", 0), baseline_results.get("system_efficiency", 0), False),
     ]
@@ -6949,9 +7576,9 @@ def rank_shortfall_drivers():
         })
     if renewable_ratio_delta < 0:
         drivers.append({
-            "Driver": "Renewable share decline",
+            "Driver": "Renewable supply-to-demand ratio decline",
             "Impact": abs(renewable_ratio_delta),
-            "Evidence": f"Renewable ratio changed by {renewable_ratio_delta:+.1f} percentage points.",
+            "Evidence": f"{RENEWABLE_RATIO_DISPLAY_NAME} changed by {renewable_ratio_delta:+.1f} percentage points.",
         })
     if grid_delta > 0:
         drivers.append({
@@ -6999,6 +7626,7 @@ def rank_shortfall_drivers():
 def generate_diagnostic_summary():
     scenario_label = scenario_key.replace("_", " ").title()
     top_driver = rank_shortfall_drivers()[0]
+    authoritative_tier = authoritative_risk_tier_for_results(results)
     if results.get("shortfall", 0) > 0:
         event = f"Possible energy shortfall detected under the {scenario_label} scenario."
     elif results.get("grid_dependency", 0) >= 10:
@@ -7009,7 +7637,10 @@ def generate_diagnostic_summary():
         event = f"System Performance Score is below the preferred comparison range under the {scenario_label} scenario."
     else:
         event = f"No major failure state is detected under the {scenario_label} scenario."
-    return f"{event} The leading diagnostic driver is: {top_driver['Driver']}."
+    return (
+        f"{event} TAIVAS Risk Tier is {authoritative_tier}. "
+        f"The leading diagnostic driver is: {top_driver['Driver']}."
+    )
 
 
 def generate_diagnostic_recommendations():
@@ -7019,7 +7650,7 @@ def generate_diagnostic_recommendations():
         recommendations.append("Test a lower peak-demand or critical-load assumption and compare the results.")
     if "Battery capacity limitation" in driver_names:
         recommendations.append("Test a battery-capacity assumption 20-30% higher and compare the simulated outputs.")
-    if "Renewable supply drop" in driver_names or "Renewable share decline" in driver_names:
+    if "Renewable supply drop" in driver_names or "Renewable supply-to-demand ratio decline" in driver_names:
         recommendations.append("Compare alternative renewable-mix or firm-backup assumptions for the selected scenario.")
     if "External Support Need Proxy increase" in driver_names:
         recommendations.append("Review the External Support Need Proxy and backup-supply assumptions.")
@@ -7032,9 +7663,15 @@ def generate_diagnostic_recommendations():
 
 def render_failure_diagnostics_panel():
     st.subheader("Why did this happen?")
+    interpretation_profile = interpretation_status_profile()
     st.caption(
         f"Applied storage assumption: Reserve Recovery Lag = {reserve_recovery_lag_days} days. "
         "The visible sidebar value is passed unchanged to the authoritative energy-balance core."
+    )
+    st.caption(
+        f"Input Completeness: {interpretation_profile['input_completeness']} | "
+        f"Interpretation Status: {interpretation_profile['interpretation_status']} | "
+        f"Model Evidence Status: {interpretation_profile['model_evidence_status']}"
     )
     st.markdown(
         f"""
@@ -7134,6 +7771,7 @@ def generate_risk_alerts():
     if shortfall > 0:
         level = authoritative_risk_tier_for_results(results)
         alerts.append({
+            "Signal Type": "TAIVAS Risk Tier",
             "Alert Level": level,
             "What Happened": "Possible energy gap detected.",
             "Why It Matters": "The selected scenario creates a modeled supply-demand gap.",
@@ -7141,6 +7779,7 @@ def generate_risk_alerts():
         })
     if battery_ratio < 0.25:
         alerts.append({
+            "Signal Type": "Battery Reserve Signal",
             "Alert Level": "High",
             "What Happened": "Battery reserve is below recommended resilience threshold.",
             "Why It Matters": "Low storage reduces buffer capacity during scenario stress.",
@@ -7148,6 +7787,7 @@ def generate_risk_alerts():
         })
     elif battery_ratio < 0.5:
         alerts.append({
+            "Signal Type": "Battery Reserve Signal",
             "Alert Level": "Medium",
             "What Happened": "Battery reserve is reduced.",
             "Why It Matters": "Storage may become a limiting factor if stress persists.",
@@ -7155,6 +7795,7 @@ def generate_risk_alerts():
         })
     if renewable_drop_pct <= -10:
         alerts.append({
+            "Signal Type": "Renewable Supply Signal",
             "Alert Level": "Medium",
             "What Happened": "Available renewable energy dropped sharply vs baseline.",
             "Why It Matters": "Lower local generation can increase reliance on storage or external power.",
@@ -7162,6 +7803,7 @@ def generate_risk_alerts():
         })
     if efficiency_delta <= -10:
         alerts.append({
+            "Signal Type": "System Performance Signal",
             "Alert Level": "Medium",
             "What Happened": "System performance decreased significantly.",
             "Why It Matters": "Lower performance indicates reduced modeled resilience margin.",
@@ -7169,6 +7811,7 @@ def generate_risk_alerts():
         })
     if scenario_key in {"heat_wave", "storm", "cold_wave", "blizzard", "typhoon"} and not alerts:
         alerts.append({
+            "Signal Type": "Scenario Stress Signal",
             "Alert Level": "Low",
             "What Happened": "Extreme weather scenario selected.",
             "Why It Matters": "Scenario outputs should be interpreted as stress-test results.",
@@ -7180,6 +7823,7 @@ def generate_risk_alerts():
         quality_findings = []
     if quality_findings:
         alerts.append({
+            "Signal Type": "Data-Quality Severity",
             "Alert Level": "Medium",
             "What Happened": "Input data may need review.",
             "Why It Matters": f"{len(quality_findings)} validation warning(s) may affect interpretation.",
@@ -7187,6 +7831,7 @@ def generate_risk_alerts():
         })
     if not alerts:
         alerts.append({
+            "Signal Type": "Scenario Stress Signal",
             "Alert Level": "Low",
             "What Happened": "No major modeled scenario risk indicator detected.",
             "Why It Matters": "Current scenario remains within modeled operating margin.",
@@ -7217,12 +7862,14 @@ def render_risk_alert_panel():
     alerts = st.session_state.get("risk_alerts", [])
     for idx, alert in enumerate(alerts, 1):
         level = alert.get("Alert Level", "Low")
+        signal_type = alert.get("Signal Type", "Scenario Stress Signal")
         st.markdown(
             f"""
             <div class="risk-strip">
               <div>
-                <div class="risk-title">{level} Risk: {alert.get("What Happened", "-")}</div>
+                <div class="risk-title">{signal_type}: {level}</div>
                 <div class="risk-note"><b>Why it matters:</b> {alert.get("Why It Matters", "-")}<br>
+                <b>What happened:</b> {alert.get("What Happened", "-")}<br>
                 <b>Suggested review step:</b> {alert.get("Recommended Next Step", "-")}</div>
               </div>
               <div class="risk-badge risk-{level.lower() if level.lower() in ["low", "high", "critical"] else "moderate"}">{level}</div>
@@ -7248,7 +7895,7 @@ def render_city_facility_profile():
         {"Field": "Installed Capacity Assumptions", "Value": f"Solar {solar_capacity} MW, Wind {wind_capacity} MW, Geothermal {geothermal_capacity} MW, Hydro {hydro_capacity} MW"},
         {"Field": "Battery Capacity", "Value": f"{battery_capacity} MWh"},
         {"Field": "Key Climate Stress Factors", "Value": f"Temperature {temperature} C, Wind {wind_speed} m/s, Solar {solar_radiation} W/m2, Precipitation {precipitation} mm, Humidity {humidity}%"},
-        {"Field": "Current Resilience Status", "Value": friendly_risk_level()},
+        {"Field": "TAIVAS Risk Tier", "Value": authoritative_risk_tier_for_results(results)},
         {"Field": "Last Simulation Timestamp", "Value": datetime.now().strftime("%Y-%m-%d %H:%M:%S")},
     ]
     st.dataframe(pd.DataFrame(profile_rows), use_container_width=True, hide_index=True)
@@ -7344,6 +7991,8 @@ def build_simulation_report_text(
     recommendations,
     decision_logs,
     model_limitation,
+    extended_security_assumptions=None,
+    interpretation_status=None,
 ):
     """Build a traceable TXT report from the exact runtime input/result state."""
     initial_battery_state = runtime_inputs.get(
@@ -7362,6 +8011,13 @@ def build_simulation_report_text(
     external_support_need = runtime_results.get("external_support_need_proxy")
     if external_support_need is None:
         external_support_need = runtime_results.get("grid_dependency")
+    security_assumptions = dict(extended_security_assumptions or {})
+    interpretation_profile = dict(interpretation_status or {})
+    security_classification = "TAIVAS model assumptions / user inputs"
+    security_observation_status = globals().get(
+        "EXTENDED_SECURITY_ASSUMPTION_OBSERVATION_STATUS",
+        "Not sourced from RTE observations or ERA5 reanalysis data",
+    )
 
     lines = [
         "TAIVAS Simulation Report",
@@ -7385,6 +8041,15 @@ def build_simulation_report_text(
         f"- Battery Capacity: {format_report_number(battery_capacity_value)} MWh",
         f"- Reserve Recovery Lag: {format_report_number(applied_reserve_recovery_lag_days)} days",
         "",
+        "Extended Security Assumptions",
+        f"- Fuel Price Shock: {format_report_number(security_assumptions.get('fuel_price_shock'))}",
+        f"- Repair Crew Availability: {format_report_number(security_assumptions.get('repair_crew_availability'))}",
+        f"- Spare Parts Delay: {format_report_number(security_assumptions.get('spare_parts_delay_days'))} days",
+        f"- Refill Uncertainty: {format_report_number(security_assumptions.get('refill_uncertainty'))}",
+        f"- Single-Point Failure Risk: {format_report_number(security_assumptions.get('single_point_failure_risk'))}",
+        f"- Classification: {security_classification}",
+        f"- Observation Status: {security_observation_status}",
+        "",
         "Main Output Results",
         f"- Demand: {runtime_results.get('demand')} MW",
         f"- Renewable Supply: {runtime_results.get('renewable_supply')} MW",
@@ -7392,11 +8057,18 @@ def build_simulation_report_text(
         f"- Final Supply: {runtime_results.get('final_supply')} MW",
         f"- Possible Energy Gap: {runtime_results.get('shortfall')} MW",
         f"- Battery Remaining: {format_report_number(battery_remaining)} MWh",
-        f"- Renewable Ratio: {runtime_results.get('renewable_ratio')}%",
+        f"- Renewable Supply-to-Demand Ratio: {runtime_results.get('renewable_ratio')}%",
         f"- System Performance Score: {format_system_performance_score(runtime_results.get('system_performance_score'))}",
         f"- External Support Need Proxy: {external_support_need}%",
         f"- Risk Tier: {authoritative_risk_tier}",
         f"- Simulation Interval: {format_simulation_interval(runtime_results.get('simulation_interval_hours', SIMULATION_INTERVAL_HOURS))}",
+        "",
+        "Interpretation and Evidence Status",
+        f"- Input Completeness: {interpretation_profile.get('input_completeness', 'Not provided')}",
+        f"- Interpretation Status: {interpretation_profile.get('interpretation_status', 'Not provided')}",
+        f"- Model Evidence Status: {interpretation_profile.get('model_evidence_status', 'Not provided')}",
+        f"- Statistical Confidence Claimed: {interpretation_profile.get('statistical_confidence_claimed', False)}",
+        f"- Calibration Completed: {interpretation_profile.get('calibration_completed', False)}",
         "",
         "Baseline vs Selected Scenario",
     ]
@@ -7404,7 +8076,11 @@ def build_simulation_report_text(
         lines.append(f"- {row['Metric']}: baseline {row['Baseline']} {row['Unit']} | scenario {row['Scenario']} {row['Unit']} | delta {row['Delta']} {row['Unit']}")
     lines.extend(["", "Scenario Risk Indicator Summary"])
     for alert in alerts:
-        lines.append(f"- {alert.get('Alert Level')}: {alert.get('What Happened')} Suggested review step: {alert.get('Recommended Next Step')}")
+        lines.append(
+            f"- {alert.get('Signal Type', 'Scenario Stress Signal')} "
+            f"({alert.get('Alert Level')}): {alert.get('What Happened')} "
+            f"Suggested review step: {alert.get('Recommended Next Step')}"
+        )
     lines.extend(["", "Recommendation Summary"])
     for recommendation in recommendations:
         lines.append(f"- {recommendation}")
@@ -7439,6 +8115,8 @@ def generate_simulation_report_text():
         recommendations=current_agentic_advisory().get("recommended_actions", []),
         decision_logs=logs,
         model_limitation=TAIVAS_PHASE1_MODEL_BOUNDARY,
+        extended_security_assumptions=extended_security_assumptions,
+        interpretation_status=interpretation_status_profile(),
     )
 
 
@@ -7519,7 +8197,11 @@ def render_renewable_mix_summary():
         st.metric(
             tr("rr"),
             f"{results['renewable_ratio']}%",
-            help="Estimated renewable share of supply under the selected scenario.",
+            help=(
+                "Modeled renewable supply divided by modeled demand. Values "
+                "above 100% are valid when modeled renewable supply exceeds "
+                "modeled demand."
+            ),
         )
         st.metric(
             tr("renewable"),
@@ -7704,11 +8386,19 @@ def render_quick_feedback_form():
 
 
 def render_product_utility_toolkit():
+    authoritative_tier = authoritative_risk_tier_for_results(results)
+    interpretation_profile = interpretation_status_profile()
     toolkit_context = {
         "country": active_country,
         "city": active_city,
         "scenario": scenario_key,
-        "risk_level": friendly_risk_level(),
+        "risk_tier": authoritative_tier,
+        "risk_level": authoritative_tier,
+        "input_completeness": interpretation_profile["input_completeness"],
+        "interpretation_status": interpretation_profile["interpretation_status"],
+        "model_evidence_status": interpretation_profile["model_evidence_status"],
+        "statistical_confidence_claimed": interpretation_profile["statistical_confidence_claimed"],
+        "calibration_completed": interpretation_profile["calibration_completed"],
     }
     render_taivas_utility_toolkit(toolkit_context, results, inputs)
 # PRODUCT UI RESTRUCTURE END

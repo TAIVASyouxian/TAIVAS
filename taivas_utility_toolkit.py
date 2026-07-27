@@ -278,7 +278,7 @@ def build_pdf_report(context: dict, results: dict, inputs: dict, notes: str = ""
         ["Country", context.get("country", "-")],
         ["City", context.get("city", "-")],
         ["Scenario", str(context.get("scenario", "-")).replace("_", " ").title()],
-        ["Risk Level", context.get("risk_level", results.get("risk_tier", "-"))],
+        ["TAIVAS Risk Tier", context.get("risk_tier", context.get("risk_level", results.get("risk_tier", "-")))],
     ]
     capacity_rows = [
         ["Solar Capacity", f"{inputs.get('solar_capacity', '-')} MW"],
@@ -292,13 +292,25 @@ def build_pdf_report(context: dict, results: dict, inputs: dict, notes: str = ""
         ["Renewable Supply", f"{results.get('renewable_supply', '-')} MW"],
         ["Final Supply", f"{results.get('final_supply', '-')} MW"],
         ["Possible Energy Gap", f"{results.get('shortfall', '-')} MW"],
-        ["Renewable Ratio", f"{results.get('renewable_ratio', '-')}%"],
+        ["Renewable Supply-to-Demand Ratio", f"{results.get('renewable_ratio', '-')}%"],
         ["Battery Level", f"{results.get('battery_levels', '-')} MWh"],
         ["System Performance Score", f"{results.get('system_performance_score', results.get('system_efficiency', '-'))}%"],
         ["External Support Need Proxy", f"{results.get('external_support_need_proxy', results.get('grid_dependency', '-'))}%"],
     ]
+    interpretation_rows = [
+        ["Input Completeness", context.get("input_completeness", "Not provided")],
+        ["Interpretation Status", context.get("interpretation_status", "Not provided")],
+        ["Model Evidence Status", context.get("model_evidence_status", "Not provided")],
+        ["Statistical Confidence Claimed", str(context.get("statistical_confidence_claimed", False))],
+        ["Calibration Completed", str(context.get("calibration_completed", False))],
+    ]
 
-    for title, rows in (("Scenario Summary", summary_rows), ("Input Capacity Summary", capacity_rows), ("Key Output Summary", output_rows)):
+    for title, rows in (
+        ("Scenario Summary", summary_rows),
+        ("Input Capacity Summary", capacity_rows),
+        ("Key Output Summary", output_rows),
+        ("Interpretation and Evidence Status", interpretation_rows),
+    ):
         story.append(Paragraph(title, styles["Heading2"]))
         table = Table(rows, colWidths=[5.2 * cm, 10.5 * cm])
         table.setStyle(TableStyle([
@@ -435,7 +447,7 @@ def build_ppt_report(context: dict, results: dict, inputs: dict, notes: str = ""
     country = context.get("country", "-")
     city = context.get("city", "-")
     scenario = str(context.get("scenario", "-")).replace("_", " ").title()
-    risk_level = context.get("risk_level", results.get("risk_tier", "-"))
+    risk_tier = context.get("risk_tier", context.get("risk_level", results.get("risk_tier", "-")))
 
     slide = prs.slides.add_slide(blank_layout)
     add_textbox(slide, Inches(0.75), Inches(1.1), Inches(11.8), Inches(0.7), "TAIVAS Rapid Briefing Deck", font_size=32, bold=True, color=(15, 23, 42))
@@ -449,7 +461,10 @@ def build_ppt_report(context: dict, results: dict, inputs: dict, notes: str = ""
         ["Country", country],
         ["City", city],
         ["Scenario", scenario],
-        ["Risk Level", risk_level],
+        ["TAIVAS Risk Tier", risk_tier],
+        ["Input Completeness", context.get("input_completeness", "Not provided")],
+        ["Interpretation Status", context.get("interpretation_status", "Not provided")],
+        ["Model Evidence Status", context.get("model_evidence_status", "Not provided")],
         ["Generated", generated],
     ])
 
@@ -472,7 +487,7 @@ def build_ppt_report(context: dict, results: dict, inputs: dict, notes: str = ""
         ["Energy Gap", format_metric(results.get("shortfall"), "MW")],
     ])
     add_key_value_table(slide, [
-        ["Renewable Ratio", format_metric(results.get("renewable_ratio"), "%")],
+        ["Renewable Supply-to-Demand Ratio", format_metric(results.get("renewable_ratio"), "%")],
         ["System Performance Score", format_metric(results.get("system_performance_score", results.get("system_efficiency")), "%")],
         ["External Support Need Proxy", format_metric(results.get("external_support_need_proxy", results.get("grid_dependency")), "%")],
         ["Battery Level", format_metric(results.get("battery_levels"), "MWh")],
@@ -506,9 +521,9 @@ def build_ppt_report(context: dict, results: dict, inputs: dict, notes: str = ""
     ])
 
     slide = prs.slides.add_slide(blank_layout)
-    add_slide_title(slide, "Risk Level and Recommendation", "Decision-support guidance generated from current simulation outputs.")
+    add_slide_title(slide, "TAIVAS Risk Tier and Recommendation", "Decision-support guidance generated from current simulation outputs.")
     add_key_value_table(slide, [
-        ["Risk Level", risk_level],
+        ["TAIVAS Risk Tier", risk_tier],
         ["Recommendation", recommendation_from_results(results)],
         ["Human Review", "Human confirmation is required before operational changes."],
     ])

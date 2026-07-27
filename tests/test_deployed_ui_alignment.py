@@ -195,7 +195,7 @@ class DeployedUiAlignmentTests(unittest.TestCase):
         self.assertEqual(namespace["friendly_risk_level"](), "Critical")
 
     def test_major_risk_displays_use_authoritative_tier(self):
-        self.assertIn("friendly_risk_level", _function_call_names("render_emergency_brief"))
+        self.assertIn("authoritative_risk_tier_for_results", _function_call_names("render_emergency_brief"))
         self.assertIn("authoritative_risk_tier_for_results", _function_call_names("operational_risk_tier_for_display"))
         self.assertIn("authoritative_risk_tier_for_results", _function_call_names("generate_risk_alerts"))
         self.assertIn("authoritative_risk_tier_for_results", _function_call_names("generate_agentic_advisory"))
