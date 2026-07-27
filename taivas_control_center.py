@@ -3,6 +3,7 @@ import html
 import json
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 import uuid
 
 import matplotlib.pyplot as plt
@@ -211,6 +212,59 @@ TAIVAS_RUNTIME_CONFIG = {
     "audit_backend": os.getenv("TAIVAS_AUDIT_BACKEND", "export_only"),
     "audit_log_path": os.getenv("TAIVAS_AUDIT_LOG_PATH", ""),
 }
+
+
+def detect_runtime_environment(environ=None, streamlit_module=None):
+    """Identify local or deployed runtime without network access or side effects."""
+    environment_values = os.environ if environ is None else environ
+    override = str(
+        environment_values.get("TAIVAS_RUNTIME_ENV", "")
+    ).strip().lower()
+    if override in {"local", "streamlit_cloud", "deployed"}:
+        return override
+
+    runtime_module = st if streamlit_module is None else streamlit_module
+
+    def hostname_from(value):
+        text = str(value or "").strip()
+        if not text:
+            return ""
+        if text.lower() in {"::1", "[::1]"}:
+            return "::1"
+        try:
+            parsed = urlparse(
+                text if "://" in text or text.startswith("//") else f"//{text}"
+            )
+            return str(parsed.hostname or "").strip().lower().rstrip(".")
+        except Exception:
+            return ""
+
+    try:
+        context = getattr(runtime_module, "context", None)
+    except Exception:
+        context = None
+
+    hostname = ""
+    if context is not None:
+        try:
+            hostname = hostname_from(getattr(context, "url", ""))
+        except Exception:
+            hostname = ""
+
+        if not hostname:
+            try:
+                headers = getattr(context, "headers", {}) or {}
+                host = headers.get("Host") or headers.get("host")
+                hostname = hostname_from(host)
+            except Exception:
+                hostname = ""
+
+    if hostname == "streamlit.app" or hostname.endswith(".streamlit.app"):
+        return "streamlit_cloud"
+    if hostname in {"localhost", "127.0.0.1", "::1"}:
+        return "local"
+    return "local"
+
 
 st.set_page_config(
     page_title=TAIVAS_RUNTIME_CONFIG["page_title"],
@@ -5075,7 +5129,7 @@ def build_audit_trail_record():
         "audit_id": audit_id,
         "timestamp_local": datetime.now().isoformat(timespec="seconds"),
         "runtime": {
-            "environment": TAIVAS_RUNTIME_CONFIG["environment"],
+            "environment": detect_runtime_environment(),
             "audit_backend": TAIVAS_RUNTIME_CONFIG["audit_backend"],
             "audit_log_path_configured": bool(TAIVAS_RUNTIME_CONFIG["audit_log_path"]),
         },
