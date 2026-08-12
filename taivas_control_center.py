@@ -206,7 +206,7 @@ except Exception as exc:
 # variables allow future deployment on Render, Railway, Azure, AWS, or GCP
 # without changing application code.
 TAIVAS_RUNTIME_CONFIG = {
-    "page_title": os.getenv("TAIVAS_PAGE_TITLE", "TAIVAS Scenario-Based Energy Resilience Simulator"),
+    "page_title": os.getenv("TAIVAS_PAGE_TITLE", "TAIVAS Energy Resilience Stress-Screening Tool"),
     "layout": os.getenv("TAIVAS_LAYOUT", "wide"),
     "environment": os.getenv("TAIVAS_ENV", "local"),
     "audit_backend": os.getenv("TAIVAS_AUDIT_BACKEND", "export_only"),
@@ -425,7 +425,7 @@ Architecture Rules:
 # Governance and decision-support positioning text.
 # These constants are presentation/audit metadata only and do not alter simulation logic.
 TAIVAS_DECISION_SUPPORT_NOTICE = (
-    "TAIVAS provides scenario-based energy resilience simulations for decision-support purposes only. "
+    "TAIVAS provides scenario-based energy-resilience stress screening for decision-support purposes only. "
     "Outputs are model-generated estimates based on selected assumptions, public/user-provided data, "
     "and simplified system logic. Final operational decisions must be reviewed by qualified professionals."
 )
@@ -3263,12 +3263,13 @@ with st.sidebar:
         help="Use a prepared scenario for fast demos. Manual keeps all sidebar values unchanged.",
     )
     empirical_validation_mode = basic_panel.toggle(
-        "Empirical Validation Mode",
+        "Observed Data Comparison",
         value=False,
         disabled=(demo_mode != "Manual"),
         help=(
-            "Use timestamped ERA5 weather inputs and compare the resulting "
-            "Paris-scale TAIVAS estimate with separate RTE observations."
+            "Compare TAIVAS scenario outputs with selected real-world observational "
+            "datasets. This is a descriptive empirical comparison and does not "
+            "constitute formal model calibration or external validation."
         ),
     )
     empirical_validation_mode = bool(
@@ -3326,7 +3327,7 @@ with st.sidebar:
                 empirical_observed = dict(empirical_record.get("observed", {}))
                 empirical_metadata = dict(empirical_record.get("metadata", {}))
             basic_panel.caption(
-                "Descriptive empirical validation only. Absolute MW values use "
+                "Descriptive observed-data comparison only. Absolute MW values use "
                 "different spatial scales and are not a completed calibration."
             )
             basic_panel.caption(
@@ -3349,7 +3350,7 @@ with st.sidebar:
                 basic_panel.caption(message)
     elif demo_mode != "Manual":
         basic_panel.caption(
-            "Empirical Validation Mode is available in Manual mode."
+            "Observed Data Comparison is available in Manual mode."
         )
     basic_panel.caption("Quick demo scenarios")
     demo_cols = basic_panel.columns(2)
@@ -3379,7 +3380,7 @@ with st.sidebar:
         disabled=empirical_active,
         help=(
             "Optional. Leave this off for a simple guided setup. "
-            "Empirical Validation Mode uses its bundled timestamped staging dataset."
+            "Observed Data Comparison uses its bundled timestamped staging dataset."
         ),
     )
     uploaded_baseline_file = basic_panel.file_uploader(tr("uploaded_data"), type=["csv"], key="uploaded_baseline_csv") if use_csv_upload else None
@@ -3422,7 +3423,7 @@ with st.sidebar:
             "lat": safe_float(empirical_inputs.get("lat"), 0.0),
             "lon": safe_float(empirical_inputs.get("lon"), 0.0),
             "population": safe_int(empirical_inputs.get("population"), 100000),
-            "country_model": "Empirical Validation Context",
+            "country_model": "Observed Data Comparison Context",
         })
     default_country = (
         empirical_inputs["country_key"]
@@ -3538,7 +3539,7 @@ with st.sidebar:
             ),
         )
         scenario_panel.caption(
-            "Empirical validation context: Paris Heat Wave 2026 staging dataset."
+            "Observed data comparison context: Paris Heat Wave 2026 staging dataset."
         )
     else:
         scenario_key = scenario_panel.selectbox(
@@ -5327,7 +5328,7 @@ if st.session_state.get("ui_lang", "English") == "繁體中文":
     hero_kicker = "TAIVAS 協助使用者快速檢視能源缺口、備援需求與初步應對行動。"
 else:
     hero_title = "Understand Energy Resilience Under Extreme Weather"
-    hero_subtitle = "TAIVAS: A Transparent Scenario-Based Energy Resilience Simulator for Extreme-Weather Decision Support"
+    hero_subtitle = "TAIVAS: A Transparent Scenario-Based Energy Resilience Stress-Screening Tool for Extreme-Weather Decision Support"
     hero_kicker = "Explore how extreme weather, energy supply, storage, backup systems, and infrastructure failures may affect local energy resilience."
 # PHASE 1 ALIGNMENT END
 
@@ -5384,7 +5385,7 @@ st.markdown(
     <div class="usage-guide">
       <div class="usage-step"><b>Step 1 - Define the Context</b><span>Select location, population or facility scale, energy sources, storage capacity, backup systems, critical loads, scenario, and duration.</span></div>
       <div class="usage-step"><b>Step 2 - Apply Scenario Conditions</b><span>TAIVAS applies the selected extreme-weather or failure assumptions to demand, renewable availability, storage, and backup conditions.</span></div>
-      <div class="usage-step"><b>Step 3 - Simulate Energy Resilience</b><span>The system evaluates demand, available supply, renewable contribution, storage, backup, energy deficit, support duration, and vulnerability.</span></div>
+      <div class="usage-step"><b>Step 3 - Stress-Test Energy Resilience</b><span>The system evaluates demand, available supply, renewable contribution, storage, backup, energy deficit, support duration, and vulnerability.</span></div>
       <div class="usage-step"><b>Step 4 - Explain the Result</b><span>TAIVAS presents resilience status, risk drivers, support duration, energy shortage, baseline comparison, and variables for further testing.</span></div>
     </div>
     <div class="audience-card">
@@ -5402,7 +5403,7 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-with st.expander("Model Assumptions and Limitations", expanded=False):
+with st.expander("Assumptions, Data Sources & Limitations", expanded=False):
     st.markdown(
         """
         **Model Assumptions**
@@ -5880,7 +5881,7 @@ def build_empirical_executive_summary_lines(
     )
 
     return [
-        "Empirical Validation Context",
+        "Observed Data Comparison Context",
         f"- Selected Timestamp: {model_inputs.get('timestamp', 'Not available')}",
         f"- ERA5 Weather Source: {era5_source}",
         f"- RTE Electricity Source: {rte_source}",
@@ -6000,7 +6001,7 @@ def build_executive_summary_text():
         f"- Validation alerts: {len(build_data_quality_findings())}",
         "",
         "Model Limitation",
-        "TAIVAS is a decision-support simulator. It does not guarantee real-world outcomes and does not replace engineering, grid-operator, legal, security, or emergency-management validation.",
+        "TAIVAS is a stress-screening and decision-support prototype. It does not guarantee real-world outcomes and does not replace engineering, grid-operator, legal, security, or emergency-management validation.",
     ]
     if empirical_context_lines:
         core_metrics_index = lines.index("Core Metrics")
@@ -7307,9 +7308,10 @@ def render_empirical_validation_snapshot():
         suffix = f" {unit}" if unit else ""
         return f"{value}{suffix}"
 
-    st.subheader("Empirical Validation Snapshot")
+    st.subheader("Observed Data Comparison Snapshot")
     st.caption(
-        "Descriptive empirical validation only. This panel does not change "
+        "Descriptive observed-data comparison only; this does not constitute formal "
+        "model calibration or external validation. This panel does not change "
         "simulation inputs, formulas, scenario logic, battery behavior, or risk tiers."
     )
     st.info(
@@ -8403,7 +8405,12 @@ def render_quick_feedback_form():
         return
 
     st.subheader("Quick Feedback")
-    st.caption("Anonymous feedback only. TAIVAS does not ask for name, email, IP address, or cookies.")
+    st.caption(
+        "Feedback is stored with a generated session identifier and scenario "
+        "context. Free-text responses may contain information you voluntarily "
+        "enter; do not include names, email addresses, or other identifying "
+        "information."
+    )
     with st.form("taivas_quick_feedback_form", clear_on_submit=True):
         clarity = st.radio(
             "Q1. Is the simulation result understandable?",
