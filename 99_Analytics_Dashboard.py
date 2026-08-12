@@ -13,21 +13,28 @@ def _configured_access_key():
         return os.getenv("TAIVAS_ANALYTICS_ACCESS_KEY")
 
 
-st.set_page_config(page_title="TAIVAS Analytics Dashboard", layout="wide")
-st.title("TAIVAS Analytics Dashboard")
-st.caption("Internal anonymous testing analytics. No names, emails, IP addresses, or cookies are collected.")
+st.set_page_config(page_title="Internal Legacy Testing Analytics", layout="wide")
+st.title("Internal Legacy Testing Analytics")
+st.caption("Not canonical TAIVAS model output")
+st.caption(
+    "This utility reads legacy testing events keyed by a generated session "
+    "identifier. Records may include source/campaign query metadata, country, "
+    "city, scenario, event details, and free-text feedback; voluntarily entered "
+    "text may contain identifying information."
+)
 
 access_key = _configured_access_key()
 if not access_key:
     st.warning(
-        "Analytics dashboard is locked. Set TAIVAS_ANALYTICS_ACCESS_KEY in Streamlit Secrets "
-        "or environment variables to view this internal page."
+        "Internal legacy testing analytics is locked. Set "
+        "TAIVAS_ANALYTICS_ACCESS_KEY in Streamlit Secrets or environment variables "
+        "to view this utility."
     )
     st.stop()
 
 entered_key = st.text_input("Access key", type="password")
 if entered_key != access_key:
-    st.info("Enter the internal analytics access key to view anonymous testing events.")
+    st.info("Enter the internal analytics access key to view legacy testing events.")
     st.stop()
 
 init_analytics_db()
